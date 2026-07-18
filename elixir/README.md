@@ -13,7 +13,7 @@ This directory contains the current Elixir/OTP implementation of Symphony, based
 
 ## How it works
 
-1. Polls the configured tracker for candidate work (the included production adapter is Linear)
+1. Polls the configured tracker for candidate work (included adapters: Linear and GitHub Issues)
 2. Creates a workspace per issue
 3. Launches Codex in [App Server mode](https://developers.openai.com/codex/app-server/) inside the
    workspace
@@ -21,9 +21,9 @@ This directory contains the current Elixir/OTP implementation of Symphony, based
 5. Keeps Codex working on the issue until the work is done
 
 During app-server sessions, the selected tracker adapter may advertise provider-native tools. The
-included Linear adapter serves `linear_graphql` so repo skills can make raw Linear GraphQL calls.
-Symphony executes that tool with its configured auth and removes `LINEAR_API_KEY` from the Codex
-child environment, so the agent does not need a second tracker login.
+Linear adapter serves `linear_graphql`; the GitHub Issues adapter serves `github_api`. Symphony
+executes those tools with configured host-side auth and removes declared tracker-token environment
+variables from the Codex child, so the agent does not need a second tracker login.
 
 If a claimed issue moves to a terminal state (`Done`, `Closed`, `Cancelled`, or `Duplicate`),
 Symphony stops the active agent for that issue and cleans up matching workspaces.
@@ -238,6 +238,36 @@ codex:
   `tracker_payload`, and missing cursors to `tracker_pagination`; logs and tool responses carry the
   human-readable provider detail.
 
+### GitHub Issues adapter profile
+
+- Config: use `tracker.kind: github` with required `tracker.provider.repo` in `owner/repo` form,
+  optional `token` (defaults to `GITHUB_TOKEN` and accepts `$VAR`), and optional `api_url`
+  (default `https://api.github.com`, HTTPS only). Set explicit `active_states` and
+  `terminal_states`; active entries may be `open` and terminal entries may be `closed`.
+- Scope and paging: candidate reads call the configured repository's issues endpoint with the
+  requested GitHub state and pages of 100. ID refreshes use the repository-scoped issue number;
+  missing/hidden `404` issues are omitted. Empty state/ID lists return `{:ok, []}` without a
+  GitHub request.
+- Identity and normalization: `issue.id` is the repository-scoped issue number as a string,
+  `issue.identifier` is route-safe `GH-<number>`, and `issue.native_ref` preserves the repo,
+  number, GitHub ID, and node ID. State keeps GitHub's `open`/`closed` spelling; labels are
+  trimmed, lowercased, deduplicated, and blanks are dropped. Pull requests returned by GitHub's
+  issues endpoint remain visible but are `dispatchable: false`.
+- Tool: the adapter advertises `github_api`, accepting `method`, relative GitHub REST `path`,
+  optional object `params`, and optional JSON `body`. Symphony executes it host-side with the
+  session-bound token and strips `GITHUB_TOKEN` plus any configured `$VAR` token name from the
+  Codex child. Scheduler reads are repo-scoped; the raw tool can access whatever the configured
+  GitHub token can access.
+- Responsibility and errors: `github_api` adds no idempotency key, retry, scope guard, or
+  rate-limit policy. It preserves REST `status` and `body` in the tool result, with non-2xx
+  responses marked `"success" => false`. Read/config failures use
+  `{:error, :missing_github_active_states}`, `{:error, :missing_github_terminal_states}`,
+  `{:error, :invalid_github_states}`, `{:error, :missing_github_repo}`,
+  `{:error, :invalid_github_repo}`,
+  `{:error, :missing_github_token}`, `{:error, :invalid_github_api_url}`,
+  `{:error, :invalid_github_issue_id}`, `{:error, {:github_api_status, status}}`,
+  `{:error, {:github_api_request, reason}}`, or `{:error, :github_unknown_payload}`.
+
 ## Web dashboard
 
 The observability UI now runs on a minimal Phoenix stack:
@@ -290,6 +320,19 @@ Set `SYMPHONY_LIVE_SSH_WORKER_HOSTS` if you want `make e2e` to target real SSH h
 The live test creates a temporary Linear project and issue, writes a temporary `WORKFLOW.md`, runs
 a real agent turn, verifies the workspace side effect, requires Codex to comment on and close the
 Linear issue, then marks the project completed so the run remains visible in Linear.
+
+Run the opt-in GitHub Issues live test with a disposable/scratch repository:
+
+```bash
+cd elixir
+export SYMPHONY_LIVE_GITHUB_REPO=owner/scratch-repo
+export GITHUB_TOKEN=...
+SYMPHONY_RUN_GITHUB_LIVE_E2E=1 mix test test/symphony_elixir/github_live_e2e_test.exs
+```
+
+It creates one disposable issue, verifies both tracker reads, runs a real local Codex worker,
+requires `github_api` to post an exact comment and close the issue, verifies the workspace file and
+direct GitHub readback, then leaves the test issue closed.
 
 ## FAQ
 
