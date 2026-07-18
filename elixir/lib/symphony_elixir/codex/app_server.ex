@@ -7,8 +7,13 @@ defmodule SymphonyElixir.Codex.AppServer do
   alias SymphonyElixir.{Codex.DynamicTool, Config, PathSafety, SSH}
 
   @initialize_id 1
-  @thread_start_id 2
-  @turn_start_id 3
+  @environment_add_id 2
+  @local_thread_start_id 2
+  @remote_thread_start_id 3
+  @local_turn_start_id 3
+  @remote_turn_start_id 4
+  @remote_environment_id "ssh-worker"
+  @remote_exec_server_command "exec codex exec-server --listen stdio"
   @port_line_bytes 1_048_576
   @max_stream_log_bytes 1_000
   @non_interactive_tool_input_answer "This is a non-interactive session. Operator input is unavailable."
@@ -45,7 +50,8 @@ defmodule SymphonyElixir.Codex.AppServer do
       metadata = port_metadata(port, worker_host)
 
       with {:ok, session_policies} <- session_policies(expanded_workspace, worker_host),
-           {:ok, thread_id} <- do_start_session(port, expanded_workspace, session_policies) do
+           {:ok, thread_id} <-
+             do_start_session(port, expanded_workspace, session_policies, worker_host) do
         {:ok,
          %{
            port: port,
@@ -75,7 +81,8 @@ defmodule SymphonyElixir.Codex.AppServer do
           auto_approve_requests: auto_approve_requests,
           turn_sandbox_policy: turn_sandbox_policy,
           thread_id: thread_id,
-          workspace: workspace
+          workspace: workspace,
+          worker_host: worker_host
         },
         prompt,
         issue,
@@ -88,7 +95,16 @@ defmodule SymphonyElixir.Codex.AppServer do
         DynamicTool.execute(tool, arguments)
       end)
 
-    case start_turn(port, thread_id, prompt, issue, workspace, approval_policy, turn_sandbox_policy) do
+    case start_turn(
+           port,
+           thread_id,
+           prompt,
+           issue,
+           workspace,
+           approval_policy,
+           turn_sandbox_policy,
+           worker_host
+         ) do
       {:ok, turn_id} ->
         session_id = "#{thread_id}-#{turn_id}"
         Logger.info("Codex session started for #{issue_context(issue)} session_id=#{session_id}")
@@ -186,7 +202,7 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp start_port(workspace, nil) do
+  defp start_port(workspace, worker_host) do
     executable = System.find_executable("bash")
 
     if is_nil(executable) do
@@ -200,27 +216,16 @@ defmodule SymphonyElixir.Codex.AppServer do
             :exit_status,
             :stderr_to_stdout,
             args: [~c"-lc", String.to_charlist(Config.settings!().codex.command)],
-            cd: String.to_charlist(workspace),
             line: @port_line_bytes
-          ]
+          ] ++ local_app_server_cwd(workspace, worker_host)
         )
 
       {:ok, port}
     end
   end
 
-  defp start_port(workspace, worker_host) when is_binary(worker_host) do
-    remote_command = remote_launch_command(workspace)
-    SSH.start_port(worker_host, remote_command, line: @port_line_bytes)
-  end
-
-  defp remote_launch_command(workspace) when is_binary(workspace) do
-    [
-      "cd #{shell_escape(workspace)}",
-      "exec #{Config.settings!().codex.command}"
-    ]
-    |> Enum.join(" && ")
-  end
+  defp local_app_server_cwd(workspace, nil), do: [cd: String.to_charlist(workspace)]
+  defp local_app_server_cwd(_workspace, worker_host) when is_binary(worker_host), do: []
 
   defp port_metadata(port, worker_host) when is_port(port) do
     base_metadata =
@@ -270,26 +275,57 @@ defmodule SymphonyElixir.Codex.AppServer do
     Config.codex_runtime_settings(workspace, remote: true)
   end
 
-  defp do_start_session(port, workspace, session_policies) do
-    case send_initialize(port) do
-      :ok -> start_thread(port, workspace, session_policies)
-      {:error, reason} -> {:error, reason}
+  defp do_start_session(port, workspace, session_policies, worker_host) do
+    with :ok <- send_initialize(port),
+         :ok <- add_remote_environment(port, worker_host) do
+      start_thread(port, workspace, session_policies, worker_host)
     end
   end
 
-  defp start_thread(port, workspace, %{approval_policy: approval_policy, thread_sandbox: thread_sandbox}) do
-    send_message(port, %{
-      "method" => "thread/start",
-      "id" => @thread_start_id,
-      "params" => %{
+  defp add_remote_environment(_port, nil), do: :ok
+
+  defp add_remote_environment(port, worker_host) when is_binary(worker_host) do
+    with {:ok, exec_server_command} <-
+           SSH.command_argv(worker_host, @remote_exec_server_command) do
+      send_message(port, %{
+        "method" => "environment/add",
+        "id" => @environment_add_id,
+        "params" => %{
+          "environmentId" => @remote_environment_id,
+          "execServerCommand" => exec_server_command
+        }
+      })
+
+      case await_response(port, @environment_add_id) do
+        {:ok, _result} -> :ok
+        other -> other
+      end
+    end
+  end
+
+  defp start_thread(
+         port,
+         workspace,
+         %{approval_policy: approval_policy, thread_sandbox: thread_sandbox},
+         worker_host
+       ) do
+    request_id = thread_start_id(worker_host)
+
+    params =
+      %{
         "approvalPolicy" => approval_policy,
         "sandbox" => thread_sandbox,
-        "cwd" => workspace,
         "dynamicTools" => DynamicTool.tool_specs()
       }
+      |> Map.merge(execution_target(workspace, worker_host))
+
+    send_message(port, %{
+      "method" => "thread/start",
+      "id" => request_id,
+      "params" => params
     })
 
-    case await_response(port, @thread_start_id) do
+    case await_response(port, request_id) do
       {:ok, %{"thread" => thread_payload}} ->
         case thread_payload do
           %{"id" => thread_id} -> {:ok, thread_id}
@@ -301,11 +337,20 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp start_turn(port, thread_id, prompt, issue, workspace, approval_policy, turn_sandbox_policy) do
-    send_message(port, %{
-      "method" => "turn/start",
-      "id" => @turn_start_id,
-      "params" => %{
+  defp start_turn(
+         port,
+         thread_id,
+         prompt,
+         issue,
+         workspace,
+         approval_policy,
+         turn_sandbox_policy,
+         worker_host
+       ) do
+    request_id = turn_start_id(worker_host)
+
+    params =
+      %{
         "threadId" => thread_id,
         "input" => [
           %{
@@ -313,18 +358,42 @@ defmodule SymphonyElixir.Codex.AppServer do
             "text" => prompt
           }
         ],
-        "cwd" => workspace,
         "title" => "#{issue.identifier}: #{issue.title}",
         "approvalPolicy" => approval_policy,
         "sandboxPolicy" => turn_sandbox_policy
       }
+      |> Map.merge(execution_target(workspace, worker_host))
+
+    send_message(port, %{
+      "method" => "turn/start",
+      "id" => request_id,
+      "params" => params
     })
 
-    case await_response(port, @turn_start_id) do
+    case await_response(port, request_id) do
       {:ok, %{"turn" => %{"id" => turn_id}}} -> {:ok, turn_id}
       other -> other
     end
   end
+
+  defp execution_target(workspace, nil), do: %{"cwd" => workspace}
+
+  defp execution_target(workspace, worker_host) when is_binary(worker_host) do
+    %{
+      "environments" => [
+        %{
+          "environmentId" => @remote_environment_id,
+          "cwd" => workspace
+        }
+      ]
+    }
+  end
+
+  defp thread_start_id(nil), do: @local_thread_start_id
+  defp thread_start_id(worker_host) when is_binary(worker_host), do: @remote_thread_start_id
+
+  defp turn_start_id(nil), do: @local_turn_start_id
+  defp turn_start_id(worker_host) when is_binary(worker_host), do: @remote_turn_start_id
 
   defp await_turn_completion(port, on_message, tool_executor, auto_approve_requests) do
     receive_loop(
@@ -1026,10 +1095,6 @@ defmodule SymphonyElixir.Codex.AppServer do
   end
 
   defp maybe_set_usage(metadata, _payload), do: metadata
-
-  defp shell_escape(value) when is_binary(value) do
-    "'" <> String.replace(value, "'", "'\"'\"'") <> "'"
-  end
 
   defp default_on_message(_message), do: :ok
 

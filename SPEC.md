@@ -933,12 +933,13 @@ Subprocess launch parameters:
 
 - Command: `codex.command`
 - Invocation: `bash -lc <codex.command>`
-- Working directory: workspace path
+- Working directory: workspace path for local workers; a local directory for SSH workers
 - Transport/framing: the protocol transport required by the targeted Codex app-server version
 
 Notes:
 
 - The default command is `codex app-server`.
+- The SSH extension selects the remote workspace through app-server environment parameters.
 - Approval policy, sandbox policy, cwd, prompt input, and OPTIONAL tool declarations are supplied
   using fields supported by the targeted Codex app-server version.
 
@@ -953,11 +954,11 @@ Reference: https://developers.openai.com/codex/app-server/
 Startup MUST follow the targeted Codex app-server contract. Symphony additionally requires the
 client to:
 
-- Start the app-server subprocess in the per-issue workspace.
+- Start the app-server subprocess locally. For local workers, start it in the per-issue workspace.
 - Initialize the app-server session using the targeted Codex app-server protocol.
 - Create or resume a coding-agent thread according to the targeted protocol.
-- Supply the absolute per-issue workspace path as the thread/turn working directory wherever the
-  targeted protocol accepts cwd.
+- Supply the per-issue workspace path through the target protocol's cwd or environment-selection
+  fields.
 - Start the first turn with the rendered issue prompt.
 - Start later in-worker continuation turns on the same live thread with continuation guidance rather
   than resending the original issue prompt.
@@ -2142,12 +2143,17 @@ Extension config:
 - Each worker run is assigned to one host at a time, and that host becomes part of the run's
   effective execution identity along with the issue workspace.
 - `workspace.root` is interpreted on the remote host, not on the orchestrator host.
-- The coding-agent app-server is launched over SSH stdio instead of as a local subprocess, so the
-  orchestrator still owns the session lifecycle even though commands execute remotely.
+- The coding-agent app-server remains a local subprocess owned by the orchestrator.
+- For each selected host, the orchestrator registers a named app-server environment whose
+  `execServerCommand` starts `ssh ... codex exec-server --listen stdio`.
+- The coding-agent thread selects that environment with the remote workspace as its cwd.
 - Continuation turns inside one worker lifetime SHOULD stay on the same host and workspace.
 - A remote host SHOULD satisfy the same basic contract as a local worker environment: reachable
-  shell, writable workspace root, coding-agent executable, and any required auth or repository
-  prerequisites.
+  shell, writable workspace root, a `codex exec-server --listen stdio` compatible with the local
+  app-server's expected protocol and capabilities, and any repository prerequisites. App-server
+  auth remains on the orchestrator host.
+- If the selected environment cannot register or start, the worker run MUST fail rather than
+  falling back to local execution.
 
 ### A.2 Scheduling Notes
 
@@ -2166,8 +2172,8 @@ Extension config:
 ### A.3 Problems to Consider
 
 - Remote environment drift:
-  - Each host needs the expected shell environment, coding-agent executable, auth, and repository
-    prerequisites.
+  - Each host needs the expected shell environment, a compatible
+    `codex exec-server --listen stdio`, and repository prerequisites.
 - Workspace locality:
   - Workspaces are usually host-local, so moving an issue to a different host is typically a cold
     restart unless shared storage exists.

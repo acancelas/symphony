@@ -102,8 +102,8 @@ defmodule SymphonyElixir.SSHTest do
     assert {:error, :ssh_not_found} = SSH.run("localhost", "printf ok")
   end
 
-  test "start_port/3 supports binary output without line mode" do
-    test_root = Path.join(System.tmp_dir!(), "symphony-ssh-port-test-#{System.unique_integer([:positive])}")
+  test "command_argv/2 returns the ssh exec-server command without spawning it" do
+    test_root = Path.join(System.tmp_dir!(), "symphony-ssh-argv-test-#{System.unique_integer([:positive])}")
     trace_file = Path.join(test_root, "ssh.trace")
     previous_path = System.get_env("PATH")
     previous_ssh_config = System.get_env("SYMPHONY_SSH_CONFIG")
@@ -114,47 +114,22 @@ defmodule SymphonyElixir.SSHTest do
       File.rm_rf(test_root)
     end)
 
-    install_fake_ssh!(test_root, trace_file, """
-    #!/bin/sh
-    printf 'ARGV:%s\\n' "$*" >> "#{trace_file}"
-    printf 'ready\\n'
-    exit 0
-    """)
-
+    install_fake_ssh!(test_root, trace_file)
     System.delete_env("SYMPHONY_SSH_CONFIG")
 
-    assert {:ok, port} = SSH.start_port("localhost", "printf ok")
-    assert is_port(port)
-    wait_for_trace!(trace_file)
+    assert {:ok, argv} =
+             SSH.command_argv("localhost:2222", "exec codex exec-server --listen stdio")
 
-    trace = File.read!(trace_file)
-    assert trace =~ "-T localhost bash -lc"
-    refute trace =~ " -F "
-  end
+    assert argv == [
+             Path.join([test_root, "bin", "ssh"]),
+             "-T",
+             "-p",
+             "2222",
+             "localhost",
+             "bash -lc 'exec codex exec-server --listen stdio'"
+           ]
 
-  test "start_port/3 supports line mode" do
-    test_root = Path.join(System.tmp_dir!(), "symphony-ssh-line-port-test-#{System.unique_integer([:positive])}")
-    trace_file = Path.join(test_root, "ssh.trace")
-    previous_path = System.get_env("PATH")
-
-    on_exit(fn ->
-      restore_env("PATH", previous_path)
-      File.rm_rf(test_root)
-    end)
-
-    install_fake_ssh!(test_root, trace_file, """
-    #!/bin/sh
-    printf 'ARGV:%s\\n' "$*" >> "#{trace_file}"
-    printf 'ready\\n'
-    exit 0
-    """)
-
-    assert {:ok, port} = SSH.start_port("localhost:2222", "printf ok", line: 256)
-    assert is_port(port)
-    wait_for_trace!(trace_file)
-
-    trace = File.read!(trace_file)
-    assert trace =~ "-T -p 2222 localhost bash -lc"
+    refute File.exists?(trace_file)
   end
 
   test "remote_shell_command/1 escapes embedded single quotes" do
@@ -180,18 +155,6 @@ defmodule SymphonyElixir.SSHTest do
 
     File.chmod!(fake_ssh, 0o755)
     System.put_env("PATH", fake_bin_dir <> ":" <> (System.get_env("PATH") || ""))
-  end
-
-  defp wait_for_trace!(trace_file, attempts \\ 20)
-  defp wait_for_trace!(trace_file, 0), do: flunk("timed out waiting for fake ssh trace at #{trace_file}")
-
-  defp wait_for_trace!(trace_file, attempts) do
-    if File.exists?(trace_file) and File.read!(trace_file) != "" do
-      :ok
-    else
-      Process.sleep(25)
-      wait_for_trace!(trace_file, attempts - 1)
-    end
   end
 
   defp restore_env(key, nil), do: System.delete_env(key)

@@ -3,26 +3,15 @@ defmodule SymphonyElixir.SSH do
 
   @spec run(String.t(), String.t(), keyword()) :: {:ok, {String.t(), non_neg_integer()}} | {:error, term()}
   def run(host, command, opts \\ []) when is_binary(host) and is_binary(command) do
-    with {:ok, executable} <- ssh_executable() do
-      {:ok, System.cmd(executable, ssh_args(host, command), opts)}
+    with {:ok, [executable | args]} <- command_argv(host, command) do
+      {:ok, System.cmd(executable, args, opts)}
     end
   end
 
-  @spec start_port(String.t(), String.t(), keyword()) :: {:ok, port()} | {:error, term()}
-  def start_port(host, command, opts \\ []) when is_binary(host) and is_binary(command) do
+  @spec command_argv(String.t(), String.t()) :: {:ok, [String.t()]} | {:error, term()}
+  def command_argv(host, command) when is_binary(host) and is_binary(command) do
     with {:ok, executable} <- ssh_executable() do
-      line_bytes = Keyword.get(opts, :line)
-
-      port_opts =
-        [
-          :binary,
-          :exit_status,
-          :stderr_to_stdout,
-          args: Enum.map(ssh_args(host, command), &String.to_charlist/1)
-        ]
-        |> maybe_put_line_option(line_bytes)
-
-      {:ok, Port.open({:spawn_executable, String.to_charlist(executable)}, port_opts)}
+      {:ok, [executable | ssh_args(host, command)]}
     end
   end
 
@@ -47,9 +36,6 @@ defmodule SymphonyElixir.SSH do
     |> maybe_put_port(port)
     |> Kernel.++([destination, remote_shell_command(command)])
   end
-
-  defp maybe_put_line_option(port_opts, nil), do: port_opts
-  defp maybe_put_line_option(port_opts, line_bytes), do: Keyword.put(port_opts, :line, line_bytes)
 
   defp maybe_put_config(args) do
     case System.get_env("SYMPHONY_SSH_CONFIG") do

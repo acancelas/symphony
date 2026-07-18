@@ -15,13 +15,17 @@ This directory contains the current Elixir/OTP implementation of Symphony, based
 
 1. Polls Linear for candidate work
 2. Creates a workspace per issue
-3. Launches Codex in [App Server mode](https://developers.openai.com/codex/app-server/) inside the
+3. Launches Codex in [App Server mode](https://developers.openai.com/codex/app-server/) for the
    workspace
 4. Sends a workflow prompt to Codex
 5. Keeps Codex working on the issue until the work is done
 
 During app-server sessions, Symphony also serves a client-side `linear_graphql` tool so that repo
 skills can make raw Linear GraphQL calls.
+
+With SSH workers, the app-server stays local. Symphony registers the selected host as an
+exec-server environment over `ssh ... codex exec-server --listen stdio`, while workspace hooks and
+agent commands run on that host.
 
 If a claimed issue moves to a terminal state (`Done`, `Closed`, `Cancelled`, or `Duplicate`),
 Symphony stops the active agent for that issue and cleans up matching workspaces.
@@ -166,6 +170,11 @@ Notes:
 - For env-backed path values, use `$VAR`. `workspace.root` resolves `$VAR` before path handling,
   while `codex.command` stays a shell command string and any `$VAR` expansion there happens in the
   launched shell.
+- `codex.command` launches the local app-server. SSH workers must provide a compatible
+  `codex exec-server --listen stdio` on `PATH`; if it lacks protocol or capability support
+  expected by that app-server, the run fails instead of falling back to local execution.
+- Slow SSH or exec-server startup may need a larger `codex.read_timeout_ms`; the live E2E uses
+  `60000`.
 
 ```yaml
 tracker:
@@ -220,6 +229,8 @@ make e2e
 Optional environment variables:
 
 - `SYMPHONY_LIVE_LINEAR_TEAM_KEY` defaults to `SYME2E`
+- `SYMPHONY_LIVE_CODEX_BIN` overrides the local Codex binary used for app-server startup
+  (default: `codex`)
 - `SYMPHONY_LIVE_SSH_WORKER_HOSTS` uses those SSH hosts when set, as a comma-separated list
 
 `make e2e` runs two live scenarios:
@@ -228,9 +239,9 @@ Optional environment variables:
 
 If `SYMPHONY_LIVE_SSH_WORKER_HOSTS` is unset, the SSH scenario uses `docker compose` to start two
 disposable SSH workers on `localhost:<port>`. The live test generates a temporary SSH keypair,
-mounts the host `~/.codex/auth.json` into each worker, verifies that Symphony can talk to them
-over real SSH, then runs the same orchestration flow against those worker addresses. This keeps
-the transport representative without depending on long-lived external machines.
+verifies that Symphony can talk to them over real SSH, then uses them as remote
+`codex exec-server --listen stdio` environments while the app-server stays local. This keeps the
+transport representative without depending on long-lived external machines.
 
 Set `SYMPHONY_LIVE_SSH_WORKER_HOSTS` if you want `make e2e` to target real SSH hosts instead.
 

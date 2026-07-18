@@ -526,11 +526,9 @@ defmodule SymphonyElixir.LiveE2ETest do
   end
 
   defp live_worker_setup!(:local, _run_id, test_root) when is_binary(test_root) do
-    codex_home = isolated_codex_home!(test_root)
-
     %{
       cleanup: fn -> :ok end,
-      codex_command: "env CODEX_HOME=#{shell_escape(codex_home)} codex app-server",
+      codex_command: live_codex_app_server_command!(test_root),
       ssh_worker_hosts: [],
       workspace_root: Path.join(test_root, "workspaces")
     }
@@ -542,8 +540,20 @@ defmodule SymphonyElixir.LiveE2ETest do
         live_docker_worker_setup!(run_id, test_root)
 
       _hosts ->
-        live_ssh_worker_setup!(run_id)
+        live_ssh_worker_setup!(run_id, test_root)
     end
+  end
+
+  defp live_codex_app_server_command!(test_root) when is_binary(test_root) do
+    codex_home = isolated_codex_home!(test_root)
+
+    codex_bin =
+      case System.get_env("SYMPHONY_LIVE_CODEX_BIN") do
+        value when is_binary(value) and value != "" -> value
+        _ -> "codex"
+      end
+
+    "env CODEX_HOME=#{shell_escape(codex_home)} #{shell_escape(codex_bin)} app-server"
   end
 
   defp isolated_codex_home!(test_root) when is_binary(test_root) do
@@ -586,14 +596,15 @@ defmodule SymphonyElixir.LiveE2ETest do
     end
   end
 
-  defp live_ssh_worker_setup!(run_id) when is_binary(run_id) do
+  defp live_ssh_worker_setup!(run_id, test_root)
+       when is_binary(run_id) and is_binary(test_root) do
     ssh_worker_hosts = live_ssh_worker_hosts()
     remote_test_root = Path.join(shared_remote_home!(ssh_worker_hosts), ".#{run_id}")
     remote_workspace_root = "~/.#{run_id}/workspaces"
 
     %{
       cleanup: fn -> cleanup_remote_test_root(remote_test_root, ssh_worker_hosts) end,
-      codex_command: "codex app-server",
+      codex_command: live_codex_app_server_command!(test_root),
       ssh_worker_hosts: ssh_worker_hosts,
       workspace_root: remote_workspace_root
     }
@@ -631,7 +642,7 @@ defmodule SymphonyElixir.LiveE2ETest do
             cleanup_remote_test_root(remote_test_root, worker_hosts)
             base_cleanup.()
           end,
-          codex_command: "codex app-server",
+          codex_command: live_codex_app_server_command!(test_root),
           codex_turn_sandbox_policy: %{type: "dangerFullAccess"},
           ssh_worker_hosts: worker_hosts,
           workspace_root: remote_workspace_root
