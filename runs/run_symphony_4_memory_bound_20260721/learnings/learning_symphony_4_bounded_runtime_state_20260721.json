@@ -1,0 +1,21 @@
+{
+  "learningId": "learning_symphony_4_bounded_runtime_state_20260721",
+  "runId": "run_symphony_4_memory_bound_20260721",
+  "category": "architecture",
+  "summary": "High-frequency agent payloads must never be retained verbatim in the long-lived orchestrator process; durable detail belongs in the external audit ledger.",
+  "action": "Keep only bounded human-readable projections in GenServer state, enforce regression size limits, and retain systemd memory limits as a secondary recovery boundary.",
+  "references": [
+    {
+      "type": "pullRequest",
+      "number": 5
+    },
+    {
+      "type": "commit",
+      "sha": "7b22f4b7c618f06f7ba3cc95bc8bd4ca6511721e"
+    },
+    {
+      "type": "systemdDropIn",
+      "path": "~/.config/systemd/user/bos-orchestrator.service.d/20-resource-recovery.conf"
+    }
+  ]
+}
