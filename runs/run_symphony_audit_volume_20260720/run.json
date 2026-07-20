@@ -1,0 +1,19 @@
+{
+  "runId": "run_symphony_audit_volume_20260720",
+  "issueNumber": 2,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "alejandro"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "7ab7e589"
+  },
+  "startedAt": "2026-07-20T21:32:50Z",
+  "branch": "fix/audit-volume-control",
+  "headCommit": "7ab7e5891c4a47c3d0ace51c5688d818e72f0c98",
+  "currentAttemptId": "attempt_001"
+}
