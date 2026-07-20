@@ -1,0 +1,42 @@
+{
+  "evidenceId": "evidence_symphony_4_memory_bound_local_20260721",
+  "runId": "run_symphony_4_memory_bound_20260721",
+  "commitSha": "22bd598b6ca9137b79b0c4f37fb796b4fe46496f",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Large Codex payloads are not retained in orchestrator state",
+      "status": "passed",
+      "evidence": "Multi-megabyte regression retains under 1 KiB and no raw marker."
+    },
+    {
+      "criterion": "Repository quality gate passes",
+      "status": "passed",
+      "evidence": "make all passed."
+    }
+  ],
+  "checks": [
+    {
+      "name": "targeted orchestrator status suite",
+      "status": "passed",
+      "result": "44 tests, 0 failures"
+    },
+    {
+      "name": "make all",
+      "status": "passed",
+      "result": "274 tests, 100% coverage, format, Credo, specs and Dialyzer passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "22bd598b6ca9137b79b0c4f37fb796b4fe46496f"
+    },
+    {
+      "type": "pull_request",
+      "number": 5
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Codex event payload retention is bounded and the full Symphony quality gate passes."
+}
