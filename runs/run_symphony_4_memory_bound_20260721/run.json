@@ -1,0 +1,21 @@
+{
+  "runId": "run_symphony_4_memory_bound_20260721",
+  "issueNumber": 4,
+  "repositoryId": "symphony",
+  "status": "completed",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "github:acancelas"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "7b22f4b7c618f06f7ba3cc95bc8bd4ca6511721e"
+  },
+  "startedAt": "2026-07-20T22:30:00Z",
+  "completedAt": "2026-07-20T23:37:28Z",
+  "branch": "fix/bound-codex-event-memory",
+  "baseCommit": "387aa1f3bd2fae0df6688415b1ad93fd7c6a07da",
+  "headCommit": "22bd598b6ca9137b79b0c4f37fb796b4fe46496f",
+  "pullRequestNumber": 5
+}
