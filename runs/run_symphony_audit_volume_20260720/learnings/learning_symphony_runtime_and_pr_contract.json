@@ -1,0 +1,20 @@
+{
+  "learningId": "learning_symphony_runtime_and_pr_contract",
+  "runId": "run_symphony_audit_volume_20260720",
+  "category": "operations",
+  "summary": "An escript that works interactively can fail under systemd when Erlang is only available through mise; BOS PR markers can also conflict with strict template-comment checks.",
+  "action": "Install Symphony as a versioned escript behind a mise-based launcher, verify the runtime during X1 configuration, and explicitly allow only the exact BOS AgentRun marker in PR validation.",
+  "references": [
+    {
+      "repository": "bos-orchestrator",
+      "commit": "ca0cea6"
+    },
+    {
+      "repository": "symphony",
+      "commit": "4756f66e6fffabbf6d41f32d33cddd2eef560cd1"
+    },
+    {
+      "pullRequest": 3
+    }
+  ]
+}
