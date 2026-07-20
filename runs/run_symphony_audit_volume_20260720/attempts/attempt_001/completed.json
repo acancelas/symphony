@@ -1,0 +1,21 @@
+{
+  "attemptId": "attempt_001",
+  "runId": "run_symphony_audit_volume_20260720",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-20T21:32:50Z",
+  "completedAt": "2026-07-20T21:40:30Z",
+  "reason": "Implement, validate, deploy, and recover bounded audit outboxes",
+  "summary": "Implemented bounded durable events, recoverable legacy compaction, chain rebasing, BOS PR-marker compatibility, and portable X1 runtime installation.",
+  "metrics": {
+    "tests": 274,
+    "coveragePercent": 100,
+    "dialyzerErrors": 0,
+    "legacyEventsQuarantined": 6291,
+    "githubChecksPassed": 2
+  }
+}
