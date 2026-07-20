@@ -1,0 +1,13 @@
+{
+  "attemptId": "attempt_001",
+  "runId": "run_symphony_audit_volume_20260720",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-20T21:32:50Z",
+  "reason": "Implement, validate, deploy, and recover bounded audit outboxes",
+  "metrics": {}
+}
