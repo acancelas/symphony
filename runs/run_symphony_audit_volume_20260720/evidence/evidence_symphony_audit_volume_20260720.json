@@ -1,0 +1,75 @@
+{
+  "evidenceId": "evidence_symphony_audit_volume_20260720",
+  "runId": "run_symphony_audit_volume_20260720",
+  "commitSha": "4756f66e6fffabbf6d41f32d33cddd2eef560cd1",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Full Symphony quality gate passes",
+      "status": "passed",
+      "evidence": "274 tests, 0 failures, 2 skipped; 100% coverage; Dialyzer 0 errors"
+    },
+    {
+      "criterion": "Legacy telemetry is recoverably quarantined",
+      "status": "passed",
+      "evidence": "6,291 legacy telemetry event files moved under legacy-telemetry; durable events retained"
+    },
+    {
+      "criterion": "X1 service remains healthy after recovery",
+      "status": "passed",
+      "evidence": "systemd active with three concurrent agents and no post-fix restarts"
+    },
+    {
+      "criterion": "Durable events flush idempotently",
+      "status": "passed",
+      "evidence": "GitHub-backed receipt count increased while retained outbox drained"
+    },
+    {
+      "criterion": "CI contract remains compatible with BOS audit marker",
+      "status": "passed",
+      "evidence": "validate-pr-description passes with exact structured AgentRun marker and rejects other comments"
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all-local",
+      "status": "passed"
+    },
+    {
+      "name": "make-all-github-actions",
+      "status": "passed",
+      "url": "https://github.com/acancelas/symphony/actions/runs/29781012828"
+    },
+    {
+      "name": "validate-pr-description",
+      "status": "passed",
+      "url": "https://github.com/acancelas/symphony/actions/runs/29781025604"
+    },
+    {
+      "name": "systemd-runtime",
+      "status": "passed"
+    },
+    {
+      "name": "audit-outbox-recovery",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "url": "https://github.com/acancelas/symphony/pull/3"
+    },
+    {
+      "type": "binary",
+      "sha256": "8839713beb028004218796072bc9b2e0ba10c0189271951aa052c3d5011c856e",
+      "path": "$HOME/.local/lib/bos/symphony.escript"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Historical durable events may require time to drain while active agents continue generating bounded command and tool events.",
+      "severity": "low"
+    }
+  ],
+  "summary": "Bounded audit persistence, recoverable compaction, CI compatibility, portable runtime installation, and live X1 recovery are verified for the exact commit."
+}
