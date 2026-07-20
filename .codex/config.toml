@@ -1,0 +1,4 @@
+[mcp_servers.bos-mcp]
+command = "bos-mcp"
+enabled = true
+required = true
