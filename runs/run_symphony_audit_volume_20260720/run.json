@@ -2,18 +2,22 @@
   "runId": "run_symphony_audit_volume_20260720",
   "issueNumber": 2,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "human",
     "subjectId": "alejandro"
   },
   "runner": {
-    "id": "x1",
+    "id": "x1-manual",
     "type": "local",
-    "orchestratorVersion": "7ab7e589"
+    "orchestratorVersion": "bos-orchestrator",
+    "codexVersion": "codex-desktop"
   },
-  "startedAt": "2026-07-20T21:32:50Z",
+  "startedAt": "2026-07-20T20:00:00Z",
+  "completedAt": "2026-07-20T22:06:00Z",
   "branch": "fix/audit-volume-control",
-  "headCommit": "7ab7e5891c4a47c3d0ace51c5688d818e72f0c98",
+  "baseCommit": "59964ee731fa7597587c9c6306150db3c47ff17a",
+  "headCommit": "4756f66e6fffabbf6d41f32d33cddd2eef560cd1",
+  "pullRequestNumber": 3,
   "currentAttemptId": "attempt_001"
 }
