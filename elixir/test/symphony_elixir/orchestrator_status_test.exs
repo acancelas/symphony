@@ -97,9 +97,26 @@ defmodule SymphonyElixir.OrchestratorStatusTest do
 
     assert snapshot_entry.last_codex_message == %{
              event: :notification,
-             message: %{method: "some-event"},
+             message: "some-event",
              timestamp: now
            }
+
+    large_marker = String.duplicate("unbounded-codex-payload", 100_000)
+
+    send(
+      pid,
+      {:codex_worker_update, issue_id,
+       %{
+         event: :notification,
+         payload: %{method: "large-event", detail: large_marker},
+         timestamp: now
+       }}
+    )
+
+    assert %{running: [bounded_entry]} = GenServer.call(pid, :snapshot)
+    assert bounded_entry.last_codex_message.message == "large-event"
+    assert byte_size(:erlang.term_to_binary(bounded_entry.last_codex_message)) < 1_024
+    refute inspect(bounded_entry.last_codex_message) =~ "unbounded-codex-payload"
   end
 
   test "orchestrator snapshot tracks codex thread totals and app-server pid" do
