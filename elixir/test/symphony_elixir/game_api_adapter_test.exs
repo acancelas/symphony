@@ -2,6 +2,7 @@ defmodule SymphonyElixir.GameApiAdapterTest do
   use ExUnit.Case, async: false
 
   alias SymphonyElixir.GameApi.Adapter
+  alias SymphonyElixir.GameApi.Client
 
   defmodule FakeClient do
     @spec validate_config(map()) :: :ok
@@ -79,5 +80,14 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert {:ok, claimed} = Adapter.claim_issue(issue)
     assert {:ok, started} = Adapter.start_execution(claimed, 1)
     assert started.native_ref["attemptId"] == "attempt_run_42_001_1"
+  end
+
+  test "preserves audit chain conflict identity for outbox recovery" do
+    assert Client.http_error(409, %{
+             "detail" => %{"error" => "audit_chain_conflict", "message" => "stale"}
+           }) == {:game_api_http_error, 409, "audit_chain_conflict"}
+
+    assert Client.http_error(404, %{"error" => "delivery_run_not_found"}) ==
+             {:game_api_http_error, 404}
   end
 end

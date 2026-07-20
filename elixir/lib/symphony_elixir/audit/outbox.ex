@@ -34,6 +34,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   def init(opts) do
     root = Keyword.get(opts, :root, outbox_root())
     File.mkdir_p!(root)
+    recover_incomplete_rebases(root)
     runs = recover_pending(root)
     if map_size(runs) > 0, do: send(self(), :flush)
     Process.send_after(self(), :flush, @flush_interval_ms)
@@ -164,7 +165,8 @@ defmodule SymphonyElixir.Audit.Outbox do
     File.mkdir_p!(Path.dirname(batch_path))
     atomic_write(batch_path, Jason.encode!(request))
 
-    persist_batch_result(Client.append_audit_batch(request), state, run_id, run_state, pending, batch_id, batch_path)
+    client = Application.get_env(:symphony_elixir, :game_api_client_module, Client)
+    persist_batch_result(client.append_audit_batch(request), state, run_id, run_state, pending, batch_id, batch_path)
   end
 
   defp persist_batch_result({:ok, receipt}, state, run_id, run_state, pending, batch_id, batch_path) do
@@ -179,9 +181,104 @@ defmodule SymphonyElixir.Audit.Outbox do
     if remaining == [], do: next, else: flush_run(next, run_id)
   end
 
+  defp persist_batch_result(
+         {:error, {:game_api_http_error, 409, code}},
+         state,
+         run_id,
+         run_state,
+         _pending,
+         _batch_id,
+         _batch_path
+       )
+       when code in ["audit_chain_conflict", "audit_sequence_gap"] do
+    case recover_remote_state(run_state.issue) do
+      %{remote_confirmed?: true} = remote ->
+        rebased = rebase_pending_events(run_state.pending, remote.sequence, remote.previous_hash)
+        replace_pending_events(state.root, run_id, run_state.issue, rebased)
+
+        next_run = %{
+          run_state
+          | pending: rebased,
+            sequence: List.last(rebased)["sequence"],
+            previous_hash: List.last(rebased)["eventHash"],
+            current_attempt_id: remote.current_attempt_id
+        }
+
+        Logger.info("Rebased #{length(rebased)} unconfirmed BOS audit events after remote #{code} run_id=#{run_id}")
+
+        Process.send_after(self(), :flush, 1_000)
+        put_in(state, [:runs, run_id], next_run)
+
+      _ ->
+        Logger.warning("BOS audit conflict could not fetch confirmed chain; flush deferred run_id=#{run_id}")
+
+        state
+    end
+  end
+
   defp persist_batch_result({:error, reason}, state, run_id, _run_state, _pending, _batch_id, _batch_path) do
     Logger.warning("BOS audit flush deferred run_id=#{run_id}: #{inspect(reason)}")
     state
+  end
+
+  @doc false
+  @spec rebase_pending_events([map()], non_neg_integer(), String.t() | nil) :: [map()]
+  def rebase_pending_events(events, confirmed_sequence, confirmed_hash)
+      when is_list(events) and is_integer(confirmed_sequence) and confirmed_sequence >= 0 do
+    events
+    |> Enum.sort_by(& &1["sequence"])
+    |> Enum.map_reduce({confirmed_sequence, confirmed_hash}, fn event, {sequence, previous_hash} ->
+      next_sequence = sequence + 1
+
+      rebased =
+        event
+        |> Map.put("sequence", next_sequence)
+        |> Map.put("previousEventHash", previous_hash)
+        |> Map.delete("eventHash")
+
+      hash =
+        rebased
+        |> CanonicalJson.encode()
+        |> IO.iodata_to_binary()
+        |> sha256()
+
+      rebased = Map.put(rebased, "eventHash", hash)
+      {rebased, {next_sequence, hash}}
+    end)
+    |> elem(0)
+  end
+
+  defp replace_pending_events(root, run_id, issue, events) do
+    run_dir = Path.join(root, run_id)
+    events_dir = Path.join(run_dir, "events")
+    token = Integer.to_string(System.unique_integer([:positive, :monotonic]))
+    rebase_dir = Path.join(run_dir, ".events.rebase.#{token}")
+    backup_dir = Path.join(run_dir, ".events.backup.#{token}")
+    File.mkdir_p!(rebase_dir)
+
+    Enum.each(events, fn event ->
+      path =
+        Path.join(
+          rebase_dir,
+          String.pad_leading(to_string(event["sequence"]), 8, "0") <> ".json"
+        )
+
+      atomic_write(path, Jason.encode!(%{"issue" => issue_identity(issue), "event" => event}))
+    end)
+
+    if File.dir?(events_dir), do: File.rename!(events_dir, backup_dir)
+
+    try do
+      File.rename!(rebase_dir, events_dir)
+      File.rm_rf!(backup_dir)
+      File.rm_rf!(Path.join(run_dir, "batches"))
+    rescue
+      error ->
+        if not File.dir?(events_dir) and File.dir?(backup_dir),
+          do: File.rename!(backup_dir, events_dir)
+
+        reraise error, __STACKTRACE__
+    end
   end
 
   defp repository_identity(%Issue{native_ref: native_ref}) do
@@ -205,6 +302,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   @doc false
   @spec recover_pending(Path.t()) :: map()
   def recover_pending(root) do
+    recover_incomplete_rebases(root)
     confirmed_event_ids = confirmed_event_ids(root)
 
     Path.wildcard(Path.join([root, "*", "events", "*.json"]))
@@ -240,6 +338,50 @@ defmodule SymphonyElixir.Audit.Outbox do
     end)
   end
 
+  defp recover_incomplete_rebases(root) do
+    Path.wildcard(Path.join([root, "*"]))
+    |> Enum.filter(&File.dir?/1)
+    |> Enum.each(fn run_dir ->
+      events_dir = Path.join(run_dir, "events")
+
+      entries =
+        case File.ls(run_dir) do
+          {:ok, names} -> names
+          {:error, _reason} -> []
+        end
+
+      rebases =
+        entries
+        |> Enum.filter(&String.starts_with?(&1, ".events.rebase."))
+        |> Enum.map(&Path.join(run_dir, &1))
+        |> Enum.sort()
+
+      backups =
+        entries
+        |> Enum.filter(&String.starts_with?(&1, ".events.backup."))
+        |> Enum.map(&Path.join(run_dir, &1))
+        |> Enum.sort()
+
+      cond do
+        File.dir?(events_dir) ->
+          Enum.each(rebases ++ backups, &File.rm_rf!/1)
+
+        rebases != [] ->
+          selected = List.last(rebases)
+          File.rename!(selected, events_dir)
+          Enum.each(List.delete(rebases, selected) ++ backups, &File.rm_rf!/1)
+
+        backups != [] ->
+          selected = List.last(backups)
+          File.rename!(selected, events_dir)
+          Enum.each(List.delete(backups, selected), &File.rm_rf!/1)
+
+        true ->
+          :ok
+      end
+    end)
+  end
+
   defp confirmed_event_ids(root) do
     Path.wildcard(Path.join([root, "*", "receipts", "*.json"]))
     |> Enum.reduce(MapSet.new(), fn path, confirmed ->
@@ -257,18 +399,28 @@ defmodule SymphonyElixir.Audit.Outbox do
     repository_id = native_ref["repositoryId"]
     run_id = native_ref["runId"]
 
-    case Client.fetch_run(repository_id, run_id) do
+    client = Application.get_env(:symphony_elixir, :game_api_client_module, Client)
+
+    case client.fetch_run(repository_id, run_id) do
       {:ok, %{"auditChain" => chain} = manifest} when is_map(chain) ->
         %{
           sequence: chain["lastSequence"] || 0,
           previous_hash: chain["lastEventHash"],
           pending: [],
           issue: issue,
-          current_attempt_id: manifest["currentAttemptId"]
+          current_attempt_id: manifest["currentAttemptId"],
+          remote_confirmed?: true
         }
 
       _ ->
-        %{sequence: 0, previous_hash: nil, pending: [], issue: issue, current_attempt_id: nil}
+        %{
+          sequence: 0,
+          previous_hash: nil,
+          pending: [],
+          issue: issue,
+          current_attempt_id: nil,
+          remote_confirmed?: false
+        }
     end
   end
 

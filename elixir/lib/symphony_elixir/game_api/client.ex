@@ -187,10 +187,26 @@ defmodule SymphonyElixir.GameApi.Client do
 
     case Req.request(Keyword.merge(options, method: method, url: url)) do
       {:ok, %Req.Response{status: status, body: body}} when status in 200..299 -> {:ok, body}
-      {:ok, %Req.Response{status: status}} -> {:error, {:game_api_http_error, status}}
+      {:ok, %Req.Response{status: status, body: body}} -> {:error, http_error(status, body)}
       {:error, reason} -> {:error, {:game_api_request_failed, reason}}
     end
   end
+
+  @doc false
+  @spec http_error(non_neg_integer(), term()) :: tuple()
+  def http_error(status, body) do
+    case response_error_code(body) do
+      code when status == 409 and code in ["audit_chain_conflict", "audit_sequence_gap"] ->
+        {:game_api_http_error, status, code}
+
+      _ ->
+        {:game_api_http_error, status}
+    end
+  end
+
+  defp response_error_code(%{"detail" => %{"error" => code}}) when is_binary(code), do: code
+  defp response_error_code(%{"error" => code}) when is_binary(code), do: code
+  defp response_error_code(_body), do: nil
 
   defp response_list({:ok, payload}, key) when is_map(payload) do
     case Map.get(payload, key) do

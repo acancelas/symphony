@@ -97,4 +97,60 @@ defmodule SymphonyElixir.Audit.OutboxTest do
              "subjectId" => "security-reviewer"
            }
   end
+
+  test "rebases only unconfirmed events onto the confirmed remote chain" do
+    events = [
+      %{
+        "eventId" => "event_1",
+        "operationId" => "op_event_1",
+        "runId" => "run_001",
+        "sequence" => 8,
+        "previousEventHash" => "sha256:stale",
+        "eventHash" => "sha256:stale_event"
+      },
+      %{
+        "eventId" => "event_2",
+        "operationId" => "op_event_2",
+        "runId" => "run_001",
+        "sequence" => 9,
+        "previousEventHash" => "sha256:stale_event",
+        "eventHash" => "sha256:stale_event_2"
+      }
+    ]
+
+    [first, second] =
+      Outbox.rebase_pending_events(events, 21, "sha256:confirmed_remote")
+
+    assert first["sequence"] == 22
+    assert first["previousEventHash"] == "sha256:confirmed_remote"
+    assert first["eventId"] == "event_1"
+    assert first["operationId"] == "op_event_1"
+    assert first["eventHash"] != "sha256:stale_event"
+    assert second["sequence"] == 23
+    assert second["previousEventHash"] == first["eventHash"]
+    assert second["eventId"] == "event_2"
+  end
+
+  test "recovers a crash during an atomic pending-event directory swap" do
+    root = Path.join(System.tmp_dir!(), "bos-outbox-rebase-test-#{System.unique_integer([:positive])}")
+    run_dir = Path.join(root, "run_001")
+    rebase_path = Path.join(run_dir, ".events.rebase.2")
+    backup_path = Path.join(run_dir, ".events.backup.2")
+    File.mkdir_p!(rebase_path)
+    File.mkdir_p!(backup_path)
+
+    issue = %{"repositoryId" => "bos-front", "issueNumber" => 42, "runId" => "run_001"}
+    rebased = %{"eventId" => "event_pending", "runId" => "run_001", "sequence" => 42, "eventHash" => "sha256:rebased"}
+    stale = %{"eventId" => "event_pending", "runId" => "run_001", "sequence" => 8, "eventHash" => "sha256:stale"}
+    File.write!(Path.join(rebase_path, "00000042.json"), Jason.encode!(%{"issue" => issue, "event" => rebased}))
+    File.write!(Path.join(backup_path, "00000008.json"), Jason.encode!(%{"issue" => issue, "event" => stale}))
+
+    recovered = Outbox.recover_pending(root)["run_001"]
+
+    assert Enum.map(recovered.pending, & &1["sequence"]) == [42]
+    assert recovered.previous_hash == "sha256:rebased"
+    refute File.exists?(backup_path)
+
+    File.rm_rf!(root)
+  end
 end
