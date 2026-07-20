@@ -327,3 +327,18 @@ Use this exact structure for the persistent workpad comment and keep it updated 
 
 - <only include when something was confusing during execution>
 ````
+
+
+## BOS Goal planning and terminal completion
+
+Items labelled `bos:goal` are planning work, not implementation work. Symphony
+starts an isolated goal analyst session, then a fresh independent proposal reviewer
+session. It repeats requested corrections for at most three cycles and asks for a
+human decision only after game-api confirms a passed durable review. Capabilities
+and executable Issues are created only by the authenticated human approval path.
+
+After merge approval, deployment coordination is not terminal by itself. Symphony
+must obtain an exact-commit passed DeploymentVerification, confirm the Issue is
+`agent:done`, confirm the AgentRun and current Attempt are terminal, and confirm a
+durable Learning before considering the lifecycle complete. A stale runtime probe
+handoff is removed before each deployment verifier turn.

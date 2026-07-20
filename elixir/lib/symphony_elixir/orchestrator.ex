@@ -8,6 +8,7 @@ defmodule SymphonyElixir.Orchestrator do
   import Bitwise, only: [<<<: 2]
 
   alias SymphonyElixir.{AgentRunner, Config, StatusDashboard, Tracker, Workspace}
+  alias SymphonyElixir.Audit.Outbox
   alias SymphonyElixir.Tracker.Issue
 
   @continuation_retry_delay_ms 1_000
@@ -117,6 +118,7 @@ defmodule SymphonyElixir.Orchestrator do
 
   def handle_info(:run_poll_cycle, state) do
     state = refresh_runtime_config(state)
+    heartbeat_running(state)
     state = maybe_dispatch(state)
     state = schedule_tick(state, state.poll_interval_ms)
     state = %{state | poll_check_in_progress: false}
@@ -173,6 +175,7 @@ defmodule SymphonyElixir.Orchestrator do
         {:noreply, state}
 
       running_entry ->
+        Outbox.record(running_entry.issue, update)
         {updated_running_entry, token_delta} = integrate_codex_update(running_entry, update)
 
         state =
@@ -203,6 +206,15 @@ defmodule SymphonyElixir.Orchestrator do
   def handle_info(msg, state) do
     Logger.debug("Orchestrator ignored message: #{inspect(msg)}")
     {:noreply, state}
+  end
+
+  defp heartbeat_running(%State{running: running}) do
+    Enum.each(running, fn {_issue_id, entry} ->
+      case Tracker.heartbeat_issue(entry.issue) do
+        :ok -> :ok
+        {:error, reason} -> Logger.warning("BOS claim heartbeat deferred: #{inspect(reason)}")
+      end
+    end)
   end
 
   defp handle_agent_down(:normal, state, issue_id, running_entry, session_id) do
@@ -926,15 +938,22 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp do_dispatch_issue(%State{} = state, issue, attempt, preferred_worker_host) do
-    recipient = self()
+    case Tracker.claim_issue(issue) do
+      {:ok, claimed_issue} ->
+        recipient = self()
 
-    case select_worker_host(state, preferred_worker_host) do
-      :no_worker_capacity ->
-        Logger.debug("No SSH worker slots available for #{issue_context(issue)} preferred_worker_host=#{inspect(preferred_worker_host)}")
+        case select_worker_host(state, preferred_worker_host) do
+          :no_worker_capacity ->
+            Logger.debug("No SSH worker slots available for #{issue_context(claimed_issue)} preferred_worker_host=#{inspect(preferred_worker_host)}")
+            state
+
+          worker_host ->
+            spawn_issue_on_worker_host(state, claimed_issue, attempt, recipient, worker_host)
+        end
+
+      {:error, reason} ->
+        Logger.warning("Unable to claim issue before dispatch: #{issue_context(issue)} reason=#{inspect(reason)}")
         state
-
-      worker_host ->
-        spawn_issue_on_worker_host(state, issue, attempt, recipient, worker_host)
     end
   end
 

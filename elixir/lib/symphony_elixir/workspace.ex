@@ -343,7 +343,11 @@ defmodule SymphonyElixir.Workspace do
 
     task =
       Task.async(fn ->
-        System.cmd("sh", ["-lc", command], cd: workspace, stderr_to_stdout: true)
+        System.cmd("sh", ["-lc", command],
+          cd: workspace,
+          stderr_to_stdout: true,
+          env: hook_environment(issue_context)
+        )
       end)
 
     case Task.yield(task, timeout_ms) do
@@ -364,7 +368,16 @@ defmodule SymphonyElixir.Workspace do
 
     Logger.info("Running workspace hook hook=#{hook_name} #{issue_log_context(issue_context)} workspace=#{workspace} worker_host=#{worker_host}")
 
-    case run_remote_command(worker_host, "cd #{shell_escape(workspace)} && #{command}", timeout_ms) do
+    environment =
+      issue_context
+      |> hook_environment()
+      |> Enum.map_join(" ", fn {key, value} -> "#{key}=#{shell_escape(value)}" end)
+
+    case run_remote_command(
+           worker_host,
+           "cd #{shell_escape(workspace)} && env #{environment} sh -lc #{shell_escape(command)}",
+           timeout_ms
+         ) do
       {:ok, cmd_result} ->
         handle_hook_command_result(cmd_result, workspace, issue_context, hook_name)
 
@@ -501,10 +514,18 @@ defmodule SymphonyElixir.Workspace do
   defp worker_host_for_log(nil), do: "local"
   defp worker_host_for_log(worker_host), do: worker_host
 
-  defp issue_context(%{id: issue_id, identifier: identifier}) do
+  defp issue_context(%{id: issue_id, identifier: identifier} = issue) do
+    native_ref = Map.get(issue, :native_ref) || %{}
+
     %{
       issue_id: issue_id,
-      issue_identifier: identifier || "issue"
+      issue_identifier: identifier || "issue",
+      repository_id: native_ref["repositoryId"],
+      repository_owner: native_ref["repositoryOwner"],
+      repository_name: native_ref["repositoryName"],
+      repository_clone_url: native_ref["repositoryCloneUrl"],
+      issue_number: native_ref["issueNumber"],
+      run_id: native_ref["runId"]
     }
   end
 
@@ -520,6 +541,21 @@ defmodule SymphonyElixir.Workspace do
       issue_id: nil,
       issue_identifier: "issue"
     }
+  end
+
+  defp hook_environment(issue_context) do
+    %{
+      "BOS_ISSUE_ID" => issue_context[:issue_id],
+      "BOS_ISSUE_IDENTIFIER" => issue_context[:issue_identifier],
+      "BOS_ISSUE_NUMBER" => issue_context[:issue_number],
+      "BOS_REPOSITORY_ID" => issue_context[:repository_id],
+      "BOS_REPOSITORY_OWNER" => issue_context[:repository_owner],
+      "BOS_REPOSITORY_NAME" => issue_context[:repository_name],
+      "BOS_REPOSITORY_CLONE_URL" => issue_context[:repository_clone_url],
+      "BOS_RUN_ID" => issue_context[:run_id]
+    }
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+    |> Enum.map(fn {key, value} -> {key, to_string(value)} end)
   end
 
   defp issue_log_context(%{issue_id: issue_id, issue_identifier: issue_identifier}) do

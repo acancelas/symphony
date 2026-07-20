@@ -22,9 +22,17 @@ defmodule SymphonyElixir.TestSupport do
       alias SymphonyElixir.Workspace
 
       import SymphonyElixir.TestSupport,
-        only: [write_workflow_file!: 1, write_workflow_file!: 2, restore_env: 2, stop_default_http_server: 0]
+        only: [
+          ensure_test_runtime_started!: 0,
+          write_workflow_file!: 1,
+          write_workflow_file!: 2,
+          restore_env: 2,
+          stop_default_http_server: 0
+        ]
 
       setup do
+        ensure_test_runtime_started!()
+
         workflow_root =
           Path.join(
             System.tmp_dir!(),
@@ -67,6 +75,13 @@ defmodule SymphonyElixir.TestSupport do
 
   def restore_env(key, nil), do: System.delete_env(key)
   def restore_env(key, value), do: System.put_env(key, value)
+
+  def ensure_test_runtime_started! do
+    case Application.ensure_all_started(:symphony_elixir) do
+      {:ok, _applications} -> :ok
+      {:error, reason} -> raise "Could not start Symphony test runtime: #{inspect(reason)}"
+    end
+  end
 
   def stop_default_http_server do
     case Enum.find(Supervisor.which_children(SymphonyElixir.Supervisor), fn
