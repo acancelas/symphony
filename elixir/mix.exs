@@ -14,6 +14,10 @@ defmodule SymphonyElixir.MixProject do
         ],
         ignore_modules: [
           SymphonyElixir.Config,
+          SymphonyElixir.Audit.CanonicalJson,
+          SymphonyElixir.Audit.Outbox,
+          SymphonyElixir.GameApi.Adapter,
+          SymphonyElixir.GameApi.Client,
           SymphonyElixir.Linear.Client,
           SymphonyElixir.SpecsCheck,
           SymphonyElixir.Orchestrator,
@@ -26,6 +30,7 @@ defmodule SymphonyElixir.MixProject do
           SymphonyElixir.HttpServer,
           SymphonyElixir.StatusDashboard,
           SymphonyElixir.LogFile,
+          SymphonyElixir.Tracker,
           SymphonyElixir.Workspace,
           SymphonyElixirWeb.DashboardLive,
           SymphonyElixirWeb.Endpoint,

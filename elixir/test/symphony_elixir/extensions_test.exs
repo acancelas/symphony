@@ -209,6 +209,8 @@ defmodule SymphonyElixir.ExtensionsTest do
     assert SymphonyElixir.Tracker.adapter() == Memory
     assert {:ok, [^issue]} = SymphonyElixir.Tracker.fetch_issues_by_states([" in progress ", 42])
     assert {:ok, [^issue]} = SymphonyElixir.Tracker.fetch_issues_by_ids(["issue-1"])
+    assert {:ok, ^issue} = SymphonyElixir.Tracker.claim_issue(issue)
+    assert :ok = SymphonyElixir.Tracker.heartbeat_issue(issue)
 
     binding = SymphonyElixir.Tracker.bind_agent_tools()
     assert binding.adapter == Memory
