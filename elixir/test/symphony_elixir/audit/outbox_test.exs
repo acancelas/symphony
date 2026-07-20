@@ -81,6 +81,94 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     assert normalized["redacted"] == true
   end
 
+  test "persists semantic lifecycle but drops high-frequency telemetry deltas" do
+    command_item = %{"method" => "item/started", "params" => %{"item" => %{"type" => "commandExecution"}}}
+    reasoning_item = %{"method" => "item/completed", "params" => %{"item" => %{"type" => "reasoning"}}}
+
+    assert Outbox.auditable_update?(%{event: :item_started, payload: command_item})
+    assert Outbox.auditable_update?(%{event: :turn_completed, payload: %{"method" => "turn/completed"}})
+    refute Outbox.auditable_update?(%{event: :notification, payload: reasoning_item})
+    refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "item/agentMessage/delta"}})
+    refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "item/commandExecution/outputDelta"}})
+    refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "thread/tokenUsage/updated"}})
+    refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "account/rateLimits/updated"}})
+  end
+
+  test "quarantines legacy telemetry while preserving commands, tools and turn lifecycle" do
+    root = Path.join(System.tmp_dir!(), "bos-outbox-compaction-test-#{System.unique_integer([:positive])}")
+    events_path = Path.join([root, "run_legacy", "events"])
+    File.mkdir_p!(events_path)
+
+    issue = %{"repositoryId" => "bos-front", "issueNumber" => 42, "runId" => "run_legacy"}
+
+    events = [
+      %{
+        "eventId" => "event_turn",
+        "runId" => "run_legacy",
+        "sequence" => 10,
+        "eventHash" => "sha256:turn",
+        "eventType" => "agent.progress_recorded",
+        "payload" => %{"method" => "turn/started"}
+      },
+      %{
+        "eventId" => "event_delta",
+        "runId" => "run_legacy",
+        "sequence" => 11,
+        "eventHash" => "sha256:delta",
+        "eventType" => "agent.progress_recorded",
+        "payload" => %{"method" => "item/agentMessage/delta"}
+      },
+      %{
+        "eventId" => "event_command",
+        "runId" => "run_legacy",
+        "sequence" => 12,
+        "eventHash" => "sha256:command",
+        "eventType" => "command.completed",
+        "payload" => %{"command" => "mix test", "exitCode" => 0}
+      }
+    ]
+
+    Enum.each(events, fn event ->
+      filename = String.pad_leading(to_string(event["sequence"]), 8, "0") <> ".json"
+      File.write!(Path.join(events_path, filename), Jason.encode!(%{"issue" => issue, "event" => event}))
+    end)
+
+    assert Outbox.compact_legacy_telemetry(root) == %{kept: 2, quarantined: 1}
+    recovered = Outbox.recover_pending(root)["run_legacy"]
+
+    assert Enum.map(recovered.pending, & &1["eventType"]) == ["agent.turn_started", "command.completed"]
+    assert File.exists?(Path.join([root, "run_legacy", "legacy-telemetry", "00000011.json"]))
+    refute File.exists?(Path.join(events_path, "00000011.json"))
+
+    File.rm_rf!(root)
+  end
+
+  test "command metadata is redacted and excludes the raw App Server payload" do
+    payload = %{
+      "method" => "item/completed",
+      "params" => %{
+        "item" => %{
+          "id" => "cmd_secret",
+          "type" => "commandExecution",
+          "command" => "BOS_API_INTERNAL_TOKEN=top-secret curl --api-key another-secret",
+          "status" => "completed",
+          "exitCode" => 0,
+          "aggregatedOutput" => ~s({"token":"output-secret","result":"ok"})
+        }
+      }
+    }
+
+    normalized = Outbox.normalize_codex_payload("item/completed", payload, "2026-07-20T10:00:00.000Z")
+    serialized = inspect(normalized)
+
+    refute Map.has_key?(normalized, "source")
+    refute serialized =~ "top-secret"
+    refute serialized =~ "another-secret"
+    refute serialized =~ "output-secret"
+    assert normalized["command"] =~ "[REDACTED]"
+    assert normalized["outputSummary"] =~ "[REDACTED]"
+  end
+
   test "attributes Codex lifecycle actions to the agent while retaining runner observation separately" do
     assert Outbox.actor_for_codex_method("item/completed") == %{
              "type" => "agent",
@@ -96,5 +184,61 @@ defmodule SymphonyElixir.Audit.OutboxTest do
              "type" => "agent",
              "subjectId" => "security-reviewer"
            }
+  end
+
+  test "rebases only unconfirmed events onto the confirmed remote chain" do
+    events = [
+      %{
+        "eventId" => "event_1",
+        "operationId" => "op_event_1",
+        "runId" => "run_001",
+        "sequence" => 8,
+        "previousEventHash" => "sha256:stale",
+        "eventHash" => "sha256:stale_event"
+      },
+      %{
+        "eventId" => "event_2",
+        "operationId" => "op_event_2",
+        "runId" => "run_001",
+        "sequence" => 9,
+        "previousEventHash" => "sha256:stale_event",
+        "eventHash" => "sha256:stale_event_2"
+      }
+    ]
+
+    [first, second] =
+      Outbox.rebase_pending_events(events, 21, "sha256:confirmed_remote")
+
+    assert first["sequence"] == 22
+    assert first["previousEventHash"] == "sha256:confirmed_remote"
+    assert first["eventId"] == "event_1"
+    assert first["operationId"] == "op_event_1"
+    assert first["eventHash"] != "sha256:stale_event"
+    assert second["sequence"] == 23
+    assert second["previousEventHash"] == first["eventHash"]
+    assert second["eventId"] == "event_2"
+  end
+
+  test "recovers a crash during an atomic pending-event directory swap" do
+    root = Path.join(System.tmp_dir!(), "bos-outbox-rebase-test-#{System.unique_integer([:positive])}")
+    run_dir = Path.join(root, "run_001")
+    rebase_path = Path.join(run_dir, ".events.rebase.2")
+    backup_path = Path.join(run_dir, ".events.backup.2")
+    File.mkdir_p!(rebase_path)
+    File.mkdir_p!(backup_path)
+
+    issue = %{"repositoryId" => "bos-front", "issueNumber" => 42, "runId" => "run_001"}
+    rebased = %{"eventId" => "event_pending", "runId" => "run_001", "sequence" => 42, "eventHash" => "sha256:rebased"}
+    stale = %{"eventId" => "event_pending", "runId" => "run_001", "sequence" => 8, "eventHash" => "sha256:stale"}
+    File.write!(Path.join(rebase_path, "00000042.json"), Jason.encode!(%{"issue" => issue, "event" => rebased}))
+    File.write!(Path.join(backup_path, "00000008.json"), Jason.encode!(%{"issue" => issue, "event" => stale}))
+
+    recovered = Outbox.recover_pending(root)["run_001"]
+
+    assert Enum.map(recovered.pending, & &1["sequence"]) == [42]
+    assert recovered.previous_hash == "sha256:rebased"
+    refute File.exists?(backup_path)
+
+    File.rm_rf!(root)
   end
 end

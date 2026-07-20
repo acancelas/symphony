@@ -18,6 +18,19 @@ defmodule SymphonyElixir.Audit.Outbox do
   @sensitive_key ~r/(authorization|cookie|credential|password|secret|token)/i
   @bearer ~r/Bearer\s+[A-Za-z0-9._~+\/-]+=*/i
   @max_inline_string_bytes 8_000
+  @sensitive_assignment ~r/(?i)\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|AUTHORIZATION|API[_-]?KEY)[A-Z0-9_]*)(\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s]+)/
+  @sensitive_json_pair ~r/(?i)(["']?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)["']?\s*:\s*)(?:"[^"]*"|'[^']*'|[^\s,}\]]+)/
+  @sensitive_flag ~r/(?i)(--?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s]+)/
+  @durable_event_types MapSet.new([
+                         "agent.turn_started",
+                         "agent.turn_completed",
+                         "agent.turn_failed",
+                         "agent.turn_cancelled",
+                         "command.started",
+                         "command.completed",
+                         "tool.requested",
+                         "tool.confirmed"
+                       ])
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -34,6 +47,8 @@ defmodule SymphonyElixir.Audit.Outbox do
   def init(opts) do
     root = Keyword.get(opts, :root, outbox_root())
     File.mkdir_p!(root)
+    recover_incomplete_rebases(root)
+    compact_legacy_telemetry(root)
     runs = recover_pending(root)
     if map_size(runs) > 0, do: send(self(), :flush)
     Process.send_after(self(), :flush, @flush_interval_ms)
@@ -42,22 +57,32 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   @impl true
   def handle_cast({:record, issue, update}, state) do
+    if auditable_update?(update), do: record_auditable(issue, update, state), else: {:noreply, state}
+  end
+
+  defp record_auditable(issue, update, state) do
     case build_event(issue, update, state) do
       {:ok, event, run_state} ->
         run_id = event["runId"]
-        next = put_in(state, [:runs, run_id], run_state)
-        next = persist_pending(next, issue, event)
 
-        if critical?(update) or length(run_state.pending) >= @batch_size do
-          {:noreply, flush_run(next, run_id)}
-        else
-          {:noreply, next}
-        end
+        next =
+          state
+          |> put_in([:runs, run_id], run_state)
+          |> persist_pending(issue, event)
+          |> maybe_flush_run(run_id, update, run_state)
+
+        {:noreply, next}
 
       {:error, reason} ->
         Logger.warning("Skipping invalid BOS audit event: #{inspect(reason)}")
         {:noreply, state}
     end
+  end
+
+  defp maybe_flush_run(state, run_id, update, run_state) do
+    if critical?(update) or length(run_state.pending) >= @batch_size,
+      do: flush_run(state, run_id),
+      else: state
   end
 
   @impl true
@@ -164,7 +189,8 @@ defmodule SymphonyElixir.Audit.Outbox do
     File.mkdir_p!(Path.dirname(batch_path))
     atomic_write(batch_path, Jason.encode!(request))
 
-    persist_batch_result(Client.append_audit_batch(request), state, run_id, run_state, pending, batch_id, batch_path)
+    client = Application.get_env(:symphony_elixir, :game_api_client_module, Client)
+    persist_batch_result(client.append_audit_batch(request), state, run_id, run_state, pending, batch_id, batch_path)
   end
 
   defp persist_batch_result({:ok, receipt}, state, run_id, run_state, pending, batch_id, batch_path) do
@@ -179,9 +205,104 @@ defmodule SymphonyElixir.Audit.Outbox do
     if remaining == [], do: next, else: flush_run(next, run_id)
   end
 
+  defp persist_batch_result(
+         {:error, {:game_api_http_error, 409, code}},
+         state,
+         run_id,
+         run_state,
+         _pending,
+         _batch_id,
+         _batch_path
+       )
+       when code in ["audit_chain_conflict", "audit_sequence_gap"] do
+    case recover_remote_state(run_state.issue) do
+      %{remote_confirmed?: true} = remote ->
+        rebased = rebase_pending_events(run_state.pending, remote.sequence, remote.previous_hash)
+        replace_pending_events(state.root, run_id, run_state.issue, rebased)
+
+        next_run = %{
+          run_state
+          | pending: rebased,
+            sequence: List.last(rebased)["sequence"],
+            previous_hash: List.last(rebased)["eventHash"],
+            current_attempt_id: remote.current_attempt_id
+        }
+
+        Logger.info("Rebased #{length(rebased)} unconfirmed BOS audit events after remote #{code} run_id=#{run_id}")
+
+        Process.send_after(self(), :flush, 1_000)
+        put_in(state, [:runs, run_id], next_run)
+
+      _ ->
+        Logger.warning("BOS audit conflict could not fetch confirmed chain; flush deferred run_id=#{run_id}")
+
+        state
+    end
+  end
+
   defp persist_batch_result({:error, reason}, state, run_id, _run_state, _pending, _batch_id, _batch_path) do
     Logger.warning("BOS audit flush deferred run_id=#{run_id}: #{inspect(reason)}")
     state
+  end
+
+  @doc false
+  @spec rebase_pending_events([map()], non_neg_integer(), String.t() | nil) :: [map()]
+  def rebase_pending_events(events, confirmed_sequence, confirmed_hash)
+      when is_list(events) and is_integer(confirmed_sequence) and confirmed_sequence >= 0 do
+    events
+    |> Enum.sort_by(& &1["sequence"])
+    |> Enum.map_reduce({confirmed_sequence, confirmed_hash}, fn event, {sequence, previous_hash} ->
+      next_sequence = sequence + 1
+
+      rebased =
+        event
+        |> Map.put("sequence", next_sequence)
+        |> Map.put("previousEventHash", previous_hash)
+        |> Map.delete("eventHash")
+
+      hash =
+        rebased
+        |> CanonicalJson.encode()
+        |> IO.iodata_to_binary()
+        |> sha256()
+
+      rebased = Map.put(rebased, "eventHash", hash)
+      {rebased, {next_sequence, hash}}
+    end)
+    |> elem(0)
+  end
+
+  defp replace_pending_events(root, run_id, issue, events) do
+    run_dir = Path.join(root, run_id)
+    events_dir = Path.join(run_dir, "events")
+    token = Integer.to_string(System.unique_integer([:positive, :monotonic]))
+    rebase_dir = Path.join(run_dir, ".events.rebase.#{token}")
+    backup_dir = Path.join(run_dir, ".events.backup.#{token}")
+    File.mkdir_p!(rebase_dir)
+
+    Enum.each(events, fn event ->
+      path =
+        Path.join(
+          rebase_dir,
+          String.pad_leading(to_string(event["sequence"]), 8, "0") <> ".json"
+        )
+
+      atomic_write(path, Jason.encode!(%{"issue" => issue_identity(issue), "event" => event}))
+    end)
+
+    if File.dir?(events_dir), do: File.rename!(events_dir, backup_dir)
+
+    try do
+      File.rename!(rebase_dir, events_dir)
+      File.rm_rf!(backup_dir)
+      File.rm_rf!(Path.join(run_dir, "batches"))
+    rescue
+      error ->
+        if not File.dir?(events_dir) and File.dir?(backup_dir),
+          do: File.rename!(backup_dir, events_dir)
+
+        reraise error, __STACKTRACE__
+    end
   end
 
   defp repository_identity(%Issue{native_ref: native_ref}) do
@@ -205,12 +326,14 @@ defmodule SymphonyElixir.Audit.Outbox do
   @doc false
   @spec recover_pending(Path.t()) :: map()
   def recover_pending(root) do
+    recover_incomplete_rebases(root)
     confirmed_event_ids = confirmed_event_ids(root)
 
     Path.wildcard(Path.join([root, "*", "events", "*.json"]))
     |> Enum.reduce(%{}, fn path, runs ->
       with {:ok, contents} <- File.read(path),
-           {:ok, %{"issue" => identity, "event" => event}} <- Jason.decode(contents),
+           {:ok, %{"issue" => identity, "event" => raw_event}} <- Jason.decode(contents),
+           event <- normalize_recovered_event(raw_event),
            run_id when is_binary(run_id) <- event["runId"],
            false <- MapSet.member?(confirmed_event_ids, event["eventId"]) do
         current =
@@ -240,6 +363,98 @@ defmodule SymphonyElixir.Audit.Outbox do
     end)
   end
 
+  @doc false
+  @spec compact_legacy_telemetry(Path.t()) :: %{kept: non_neg_integer(), quarantined: non_neg_integer()}
+  def compact_legacy_telemetry(root) do
+    Path.wildcard(Path.join([root, "*", "events", "*.json"]))
+    |> Enum.reduce(%{kept: 0, quarantined: 0}, &compact_legacy_event/2)
+  end
+
+  defp compact_legacy_event(event_path, counts) do
+    with {:ok, contents} <- File.read(event_path),
+         {:ok, %{"event" => event}} <- Jason.decode(contents) do
+      classify_legacy_event(event, event_path, counts)
+    else
+      _ -> counts
+    end
+  end
+
+  defp classify_legacy_event(event, event_path, counts) do
+    if durable_recovered_event?(event) do
+      Map.update!(counts, :kept, &(&1 + 1))
+    else
+      quarantine_legacy_event(event_path)
+      Map.update!(counts, :quarantined, &(&1 + 1))
+    end
+  end
+
+  defp durable_recovered_event?(%{"eventType" => event_type} = event) do
+    MapSet.member?(@durable_event_types, event_type) or
+      (event_type == "agent.progress_recorded" and get_in(event, ["payload", "method"]) == "turn/started")
+  end
+
+  defp durable_recovered_event?(_event), do: false
+
+  defp quarantine_legacy_event(event_path) do
+    events_dir = Path.dirname(event_path)
+    run_dir = Path.dirname(events_dir)
+    quarantine_dir = Path.join(run_dir, "legacy-telemetry")
+    File.mkdir_p!(quarantine_dir)
+    File.rename!(event_path, Path.join(quarantine_dir, Path.basename(event_path)))
+  end
+
+  defp normalize_recovered_event(%{"eventType" => "agent.progress_recorded", "payload" => %{"method" => "turn/started"}} = event) do
+    event
+    |> Map.put("eventType", "agent.turn_started")
+    |> Map.put("summary", "Codex App Server event: turn/started")
+  end
+
+  defp normalize_recovered_event(event), do: event
+
+  defp recover_incomplete_rebases(root) do
+    Path.wildcard(Path.join([root, "*"]))
+    |> Enum.filter(&File.dir?/1)
+    |> Enum.each(fn run_dir ->
+      events_dir = Path.join(run_dir, "events")
+
+      entries =
+        case File.ls(run_dir) do
+          {:ok, names} -> names
+          {:error, _reason} -> []
+        end
+
+      rebases =
+        entries
+        |> Enum.filter(&String.starts_with?(&1, ".events.rebase."))
+        |> Enum.map(&Path.join(run_dir, &1))
+        |> Enum.sort()
+
+      backups =
+        entries
+        |> Enum.filter(&String.starts_with?(&1, ".events.backup."))
+        |> Enum.map(&Path.join(run_dir, &1))
+        |> Enum.sort()
+
+      cond do
+        File.dir?(events_dir) ->
+          Enum.each(rebases ++ backups, &File.rm_rf!/1)
+
+        rebases != [] ->
+          selected = List.last(rebases)
+          File.rename!(selected, events_dir)
+          Enum.each(List.delete(rebases, selected) ++ backups, &File.rm_rf!/1)
+
+        backups != [] ->
+          selected = List.last(backups)
+          File.rename!(selected, events_dir)
+          Enum.each(List.delete(backups, selected), &File.rm_rf!/1)
+
+        true ->
+          :ok
+      end
+    end)
+  end
+
   defp confirmed_event_ids(root) do
     Path.wildcard(Path.join([root, "*", "receipts", "*.json"]))
     |> Enum.reduce(MapSet.new(), fn path, confirmed ->
@@ -257,18 +472,28 @@ defmodule SymphonyElixir.Audit.Outbox do
     repository_id = native_ref["repositoryId"]
     run_id = native_ref["runId"]
 
-    case Client.fetch_run(repository_id, run_id) do
+    client = Application.get_env(:symphony_elixir, :game_api_client_module, Client)
+
+    case client.fetch_run(repository_id, run_id) do
       {:ok, %{"auditChain" => chain} = manifest} when is_map(chain) ->
         %{
           sequence: chain["lastSequence"] || 0,
           previous_hash: chain["lastEventHash"],
           pending: [],
           issue: issue,
-          current_attempt_id: manifest["currentAttemptId"]
+          current_attempt_id: manifest["currentAttemptId"],
+          remote_confirmed?: true
         }
 
       _ ->
-        %{sequence: 0, previous_hash: nil, pending: [], issue: issue, current_attempt_id: nil}
+        %{
+          sequence: 0,
+          previous_hash: nil,
+          pending: [],
+          issue: issue,
+          current_attempt_id: nil,
+          remote_confirmed?: false
+        }
     end
   end
 
@@ -291,11 +516,41 @@ defmodule SymphonyElixir.Audit.Outbox do
     File.rename!(temporary, path)
   end
 
+  @doc false
+  @spec auditable_update?(map()) :: boolean()
+  def auditable_update?(update) when is_map(update) do
+    method = get_in(update, [:payload, "method"]) || update |> Map.get(:event) |> event_method()
+
+    cond do
+      method in ["turn/started", "turn/completed", "turn/failed", "turn/cancelled"] ->
+        true
+
+      method in ["item/started", "item/completed"] ->
+        update
+        |> Map.get(:payload, %{})
+        |> codex_item()
+        |> auditable_item?()
+
+      true ->
+        false
+    end
+  end
+
+  defp auditable_item?(item) when is_map(item) do
+    item_kind(String.downcase(to_string(Map.get(item, ~s(type))))) in [:command, :tool]
+  end
+
+  defp auditable_item?(_item), do: false
+
+  defp event_method(event) when is_atom(event), do: event |> Atom.to_string() |> String.replace("_", "/")
+  defp event_method(_event), do: ""
+
   defp critical?(%{event: event}) when event in [:turn_completed, :turn_failed, :turn_cancelled], do: true
   defp critical?(_update), do: false
 
   defp event_type("item/completed", payload), do: item_event_type(payload, "completed")
   defp event_type("item/started", payload), do: item_event_type(payload, "started")
+  defp event_type("turn/started", _payload), do: "agent.turn_started"
   defp event_type("turn/completed", _payload), do: "agent.turn_completed"
   defp event_type("turn/failed", _payload), do: "agent.turn_failed"
   defp event_type("turn/cancelled", _payload), do: "agent.turn_cancelled"
@@ -365,7 +620,7 @@ defmodule SymphonyElixir.Audit.Outbox do
     end
   end
 
-  defp command_payload(method, item, sanitized, occurred_at) do
+  defp command_payload(method, item, _sanitized, occurred_at) do
     command = normalize_command(item["command"] || item["parsedCmd"])
     output = item["aggregatedOutput"] || item["output"] || item["stdout"]
 
@@ -382,29 +637,28 @@ defmodule SymphonyElixir.Audit.Outbox do
       "stdoutReference" => nil,
       "stderrReference" => nil,
       "environmentPolicy" => "restricted",
-      "redacted" => true,
-      "source" => sanitized
+      "redacted" => true
     }
   end
 
-  defp tool_payload(item, sanitized) do
+  defp tool_payload(item, _sanitized) do
     %{
       "toolCallId" => item["id"],
       "tool" => item["name"] || item["tool"] || item["server"],
-      "status" => item["status"],
-      "source" => sanitized
+      "status" => item["status"]
     }
   end
 
   defp codex_item(payload),
     do: get_in(payload, ["params", "item"]) || payload["item"]
 
-  defp normalize_command(command) when is_binary(command), do: normalize_paths(command)
+  defp normalize_command(command) when is_binary(command), do: command |> normalize_paths() |> redact_sensitive_text()
 
   defp normalize_command(command) when is_list(command) do
     command
     |> Enum.map_join(" ", &to_string/1)
     |> normalize_paths()
+    |> redact_sensitive_text()
   end
 
   defp normalize_command(_command), do: nil
@@ -415,6 +669,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp output_summary(output) when is_binary(output) do
     output
     |> normalize_paths()
+    |> redact_sensitive_text()
     |> String.slice(0, 2_000)
   end
 
@@ -463,7 +718,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp sanitize(value) when is_list(value), do: Enum.map(value, &sanitize/1)
 
   defp sanitize(value) when is_binary(value) do
-    sanitized = @bearer |> Regex.replace(value, "Bearer [REDACTED]") |> normalize_paths()
+    sanitized = value |> normalize_paths() |> redact_sensitive_text()
 
     if byte_size(sanitized) > @max_inline_string_bytes do
       %{
@@ -482,6 +737,14 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp sanitize(value), do: inspect(value)
 
   defp sha256(value), do: "sha256:" <> (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower))
+
+  defp redact_sensitive_text(value) do
+    value
+    |> then(&Regex.replace(@bearer, &1, "Bearer [REDACTED]"))
+    |> then(&Regex.replace(@sensitive_assignment, &1, "\\1\\2[REDACTED]"))
+    |> then(&Regex.replace(@sensitive_json_pair, &1, "\\1[REDACTED]"))
+    |> then(&Regex.replace(@sensitive_flag, &1, "\\1[REDACTED]"))
+  end
 
   defp timestamp(datetime) do
     base = Calendar.strftime(datetime, "%Y-%m-%dT%H:%M:%S")

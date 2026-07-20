@@ -118,6 +118,38 @@ defmodule Mix.Tasks.PrBody.CheckTest do
     end)
   end
 
+  test "allows the structured BOS AgentRun marker" do
+    in_temp_repo(fn ->
+      write_template!(@template)
+      File.write!("body.md", "<!-- bos:agent-run run_20260720_001 -->\n\n" <> @valid_body)
+
+      output = capture_io(fn -> Check.run(["--file", "body.md"]) end)
+
+      assert output =~ "PR body format OK"
+    end)
+  end
+
+  test "rejects comments next to the structured BOS AgentRun marker" do
+    in_temp_repo(fn ->
+      write_template!(@template)
+
+      File.write!(
+        "body.md",
+        "<!-- bos:agent-run run_20260720_001 -->\n<!-- unresolved placeholder -->\n\n" <>
+          @valid_body
+      )
+
+      error_output =
+        capture_io(:stderr, fn ->
+          assert_raise Mix.Error, ~r/PR body format invalid/, fn ->
+            Check.run(["--file", "body.md"])
+          end
+        end)
+
+      assert error_output =~ "PR description still contains template placeholder comments"
+    end)
+  end
+
   test "fails when heading is missing" do
     in_temp_repo(fn ->
       write_template!(@template)
