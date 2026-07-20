@@ -5,7 +5,17 @@ defmodule SymphonyElixir.AgentRunner do
 
   require Logger
   alias SymphonyElixir.Codex.AppServer
-  alias SymphonyElixir.{Config, DeliveryCoordinator, PostApprovalCoordinator, PromptBuilder, Tracker, Workspace}
+
+  alias SymphonyElixir.{
+    Config,
+    DeliveryCoordinator,
+    GoalPlanningCoordinator,
+    PostApprovalCoordinator,
+    PromptBuilder,
+    Tracker,
+    Workspace
+  }
+
   alias SymphonyElixir.Tracker.Issue
 
   @type worker_host :: String.t() | nil
@@ -45,16 +55,21 @@ defmodule SymphonyElixir.AgentRunner do
 
       try do
         with :ok <- Workspace.run_before_run_hook(workspace, issue, worker_host) do
-          if post_approval_issue?(issue) do
-            PostApprovalCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
-          else
-            with :ok <- run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
-              if bos_delivery_issue?(issue) do
-                DeliveryCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
-              else
-                :ok
+          cond do
+            goal_planning_issue?(issue) ->
+              GoalPlanningCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
+
+            post_approval_issue?(issue) ->
+              PostApprovalCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
+
+            true ->
+              with :ok <- run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
+                if bos_delivery_issue?(issue) do
+                  DeliveryCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
+                else
+                  :ok
+                end
               end
-            end
           end
         end
       after
@@ -237,6 +252,10 @@ defmodule SymphonyElixir.AgentRunner do
   end
 
   defp bos_delivery_issue?(_issue), do: false
+
+  defp goal_planning_issue?(%Issue{labels: labels}) do
+    "bos:goal" in labels
+  end
 
   defp post_approval_issue?(%Issue{state: state}) when is_binary(state) do
     normalize_issue_state(state) == "agent:merging"

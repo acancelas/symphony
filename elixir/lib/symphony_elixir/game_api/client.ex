@@ -13,9 +13,17 @@ defmodule SymphonyElixir.GameApi.Client do
   def fetch_ready_issues do
     repositories()
     |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->
+      params = repository_query(repository) ++ [{"runnerId", System.get_env("BOS_RUNNER_ID") || "x1"}]
+
       result =
-        request(:get, "/v1/internal/bos/delivery/issues/eligible", params: repository_query(repository) ++ [{"runnerId", System.get_env("BOS_RUNNER_ID") || "x1"}])
-        |> response_list("issues")
+        with {:ok, issues} <-
+               request(:get, "/v1/internal/bos/delivery/issues/eligible", params: params)
+               |> response_list("issues"),
+             {:ok, goals} <-
+               request(:get, "/v1/internal/bos/delivery/goals/eligible", params: params)
+               |> response_list("goals") do
+          {:ok, issues ++ goals}
+        end
 
       case result do
         {:ok, issues} -> {:cont, {:ok, accumulated ++ issues}}
@@ -81,6 +89,28 @@ defmodule SymphonyElixir.GameApi.Client do
   @spec record_runtime_probe(map()) :: {:ok, map()} | {:error, term()}
   def record_runtime_probe(probe) when is_map(probe) do
     request(:post, "/v1/internal/bos/delivery/deployment-verifications/runtime-probes", json: probe)
+  end
+
+  @spec fetch_goal_planning(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}
+  def fetch_goal_planning(repository_id, issue_number)
+      when is_binary(repository_id) and is_integer(issue_number) and issue_number > 0 do
+    with {:ok, repository} <- find_repository(repository_id) do
+      request(:get, "/v1/internal/bos/delivery/goals/planning", params: repository_query(repository) ++ [{"issueNumber", issue_number}])
+    end
+  end
+
+  @spec request_goal_breakdown_approval(Issue.t()) :: {:ok, map()} | {:error, term()}
+  def request_goal_breakdown_approval(%Issue{native_ref: native_ref}) do
+    with {:ok, repository} <- find_repository(native_ref["repositoryId"]) do
+      request(:post, "/v1/internal/bos/delivery/goals/breakdown-approval-requests",
+        json: %{
+          "repository" => repository_body(repository),
+          "issueNumber" => native_ref["issueNumber"],
+          "operationId" => "goal_approval_request_#{native_ref["runId"]}",
+          "runId" => native_ref["runId"]
+        }
+      )
+    end
   end
 
   @spec fetch_run(String.t(), String.t()) :: {:ok, map()} | {:error, term()}

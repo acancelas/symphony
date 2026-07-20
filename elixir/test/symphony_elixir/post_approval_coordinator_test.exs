@@ -43,6 +43,39 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
       send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:probe, request})
       {:ok, %{"status" => "completed", "receipt" => %{"receiptId" => "receipt_001"}}}
     end
+
+    def fetch_issue("bos-front", 42), do: {:ok, %{"labels" => ["bos:issue", "agent:done"]}}
+
+    def fetch_run("bos-front", "run_001") do
+      {:ok, %{"status" => "completed", "currentAttemptId" => "attempt_002"}}
+    end
+
+    def fetch_run_artifacts("bos-front", "run_001", "deployment-verifications") do
+      {:ok,
+       [
+         %{
+           "status" => "passed",
+           "deploymentId" => "deployment_001",
+           "commitSha" => "a1b2c3d4",
+           "environment" => "production"
+         }
+       ]}
+    end
+
+    def fetch_run_artifacts("bos-front", "run_001", "attempts") do
+      {:ok,
+       [
+         %{
+           "attemptId" => "attempt_002",
+           "status" => "passed",
+           "completedAt" => "2026-07-20T12:00:00Z"
+         }
+       ]}
+    end
+
+    def fetch_run_artifacts("bos-front", "run_001", "learnings") do
+      {:ok, [%{"learningId" => "learning_001"}]}
+    end
   end
 
   test "runner confirms the bounded probe handoff between deploy and release roles" do

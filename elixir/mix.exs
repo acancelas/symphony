@@ -18,6 +18,7 @@ defmodule SymphonyElixir.MixProject do
           SymphonyElixir.Audit.Outbox,
           SymphonyElixir.GameApi.Adapter,
           SymphonyElixir.GameApi.Client,
+          SymphonyElixir.GoalPlanningCoordinator,
           SymphonyElixir.Linear.Client,
           SymphonyElixir.SpecsCheck,
           SymphonyElixir.Orchestrator,

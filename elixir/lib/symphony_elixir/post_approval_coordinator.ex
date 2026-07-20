@@ -20,11 +20,13 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
     client = Keyword.get(opts, :game_api_client_module, Client)
 
     with :ok <- require_local_probe_handoff(worker_host),
+         :ok <- prepare_probe_handoff(workspace),
          :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),
          {:ok, request} <- load_probe_request(workspace, issue),
          {:ok, receipt} <- client.record_runtime_probe(request),
-         :ok <- require_confirmed_receipt(receipt) do
-      run_release_turn(app_server, workspace, issue, recipient, worker_host)
+         :ok <- require_confirmed_receipt(receipt),
+         :ok <- run_release_turn(app_server, workspace, issue, recipient, worker_host) do
+      verify_terminal_state(client, issue, request["probe"])
     end
   end
 
@@ -109,6 +111,59 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
       probe["status"] not in ["passed", "failed", "inconclusive", "cancelled"] -> {:error, :status_invalid}
       true -> :ok
     end
+  end
+
+  defp prepare_probe_handoff(workspace) do
+    case File.rm(Path.join(workspace, @probe_path)) do
+      :ok -> :ok
+      {:error, :enoent} -> :ok
+      {:error, reason} -> {:error, {:probe_handoff_cleanup_failed, reason}}
+    end
+  end
+
+  defp verify_terminal_state(client, %Issue{native_ref: native_ref}, probe) do
+    repository_id = native_ref["repositoryId"]
+    issue_number = native_ref["issueNumber"]
+    run_id = native_ref["runId"]
+
+    with {:ok, issue} <- client.fetch_issue(repository_id, issue_number),
+         true <- "agent:done" in (issue["labels"] || []) || {:error, :issue_not_done},
+         {:ok, run} <- client.fetch_run(repository_id, run_id),
+         true <- run["status"] == "completed" || {:error, :run_not_completed},
+         {:ok, verifications} <- client.fetch_run_artifacts(repository_id, run_id, "deployment-verifications"),
+         :ok <- require_exact_passed_verification(verifications, probe),
+         {:ok, attempts} <- client.fetch_run_artifacts(repository_id, run_id, "attempts"),
+         :ok <- require_completed_attempt(attempts, run["currentAttemptId"]),
+         {:ok, learnings} <- client.fetch_run_artifacts(repository_id, run_id, "learnings"),
+         true <- learnings != [] || {:error, :learning_missing} do
+      :ok
+    else
+      {:error, reason} -> {:error, {:terminal_delivery_not_confirmed, reason}}
+      false -> {:error, {:terminal_delivery_not_confirmed, :invalid_terminal_state}}
+    end
+  end
+
+  defp require_exact_passed_verification(verifications, probe) do
+    matched =
+      Enum.any?(verifications, fn verification ->
+        verification["status"] == "passed" and
+          verification["deploymentId"] == probe["deploymentId"] and
+          verification["commitSha"] == probe["commitSha"] and
+          verification["environment"] == probe["environment"]
+      end)
+
+    if matched, do: :ok, else: {:error, :exact_deployment_verification_missing}
+  end
+
+  defp require_completed_attempt(attempts, current_attempt_id) do
+    completed =
+      Enum.any?(attempts, fn attempt ->
+        attempt["attemptId"] == current_attempt_id and
+          attempt["status"] in ["passed", "failed", "cancelled", "blocked"] and
+          not is_nil(attempt["completedAt"])
+      end)
+
+    if completed, do: :ok, else: {:error, :attempt_not_completed}
   end
 
   defp require_confirmed_receipt(%{"status" => "completed", "receipt" => receipt}) when is_map(receipt), do: :ok
