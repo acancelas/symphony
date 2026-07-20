@@ -1,0 +1,25 @@
+schemaVersion: 1
+projectId: bos
+repositoryId: symphony
+workflowId: bos-autonomous-delivery
+remote: https://github.com/acancelas/symphony
+delivery:
+  issueProvider: github
+  issueRequired: true
+  branchStrategy: issue-based
+quality:
+  commands:
+    - id: test
+      runner: shell
+      script: cd elixir && mise exec -- mix test
+      required: true
+      timeoutSeconds: 900
+environments:
+  production:
+    branch: main
+    automaticDeployment: false
+    requiresApproval: true
+    requiresVerification: true
+offline:
+  allowed: [read, edit, local_checks]
+  blocked: [push, pull_request, deployment]
