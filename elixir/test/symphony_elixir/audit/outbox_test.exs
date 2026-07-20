@@ -81,6 +81,45 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     assert normalized["redacted"] == true
   end
 
+  test "persists semantic lifecycle but drops high-frequency telemetry deltas" do
+    command_item = %{"method" => "item/started", "params" => %{"item" => %{"type" => "commandExecution"}}}
+    reasoning_item = %{"method" => "item/completed", "params" => %{"item" => %{"type" => "reasoning"}}}
+
+    assert Outbox.auditable_update?(%{event: :item_started, payload: command_item})
+    assert Outbox.auditable_update?(%{event: :turn_completed, payload: %{"method" => "turn/completed"}})
+    refute Outbox.auditable_update?(%{event: :notification, payload: reasoning_item})
+    refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "item/agentMessage/delta"}})
+    refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "item/commandExecution/outputDelta"}})
+    refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "thread/tokenUsage/updated"}})
+    refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "account/rateLimits/updated"}})
+  end
+
+  test "command metadata is redacted and excludes the raw App Server payload" do
+    payload = %{
+      "method" => "item/completed",
+      "params" => %{
+        "item" => %{
+          "id" => "cmd_secret",
+          "type" => "commandExecution",
+          "command" => "BOS_API_INTERNAL_TOKEN=top-secret curl --api-key another-secret",
+          "status" => "completed",
+          "exitCode" => 0,
+          "aggregatedOutput" => ~s({"token":"output-secret","result":"ok"})
+        }
+      }
+    }
+
+    normalized = Outbox.normalize_codex_payload("item/completed", payload, "2026-07-20T10:00:00.000Z")
+    serialized = inspect(normalized)
+
+    refute Map.has_key?(normalized, "source")
+    refute serialized =~ "top-secret"
+    refute serialized =~ "another-secret"
+    refute serialized =~ "output-secret"
+    assert normalized["command"] =~ "[REDACTED]"
+    assert normalized["outputSummary"] =~ "[REDACTED]"
+  end
+
   test "attributes Codex lifecycle actions to the agent while retaining runner observation separately" do
     assert Outbox.actor_for_codex_method("item/completed") == %{
              "type" => "agent",

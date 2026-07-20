@@ -18,6 +18,9 @@ defmodule SymphonyElixir.Audit.Outbox do
   @sensitive_key ~r/(authorization|cookie|credential|password|secret|token)/i
   @bearer ~r/Bearer\s+[A-Za-z0-9._~+\/-]+=*/i
   @max_inline_string_bytes 8_000
+  @sensitive_assignment ~r/(?i)\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|AUTHORIZATION|API[_-]?KEY)[A-Z0-9_]*)(\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s]+)/
+  @sensitive_json_pair ~r/(?i)(["']?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)["']?\s*:\s*)(?:"[^"]*"|'[^']*'|[^\s,}\]]+)/
+  @sensitive_flag ~r/(?i)(--?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s]+)/
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -43,21 +46,25 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   @impl true
   def handle_cast({:record, issue, update}, state) do
-    case build_event(issue, update, state) do
-      {:ok, event, run_state} ->
-        run_id = event["runId"]
-        next = put_in(state, [:runs, run_id], run_state)
-        next = persist_pending(next, issue, event)
+    if not auditable_update?(update) do
+      {:noreply, state}
+    else
+      case build_event(issue, update, state) do
+        {:ok, event, run_state} ->
+          run_id = event["runId"]
+          next = put_in(state, [:runs, run_id], run_state)
+          next = persist_pending(next, issue, event)
 
-        if critical?(update) or length(run_state.pending) >= @batch_size do
-          {:noreply, flush_run(next, run_id)}
-        else
-          {:noreply, next}
-        end
+          if critical?(update) or length(run_state.pending) >= @batch_size do
+            {:noreply, flush_run(next, run_id)}
+          else
+            {:noreply, next}
+          end
 
-      {:error, reason} ->
-        Logger.warning("Skipping invalid BOS audit event: #{inspect(reason)}")
-        {:noreply, state}
+        {:error, reason} ->
+          Logger.warning("Skipping invalid BOS audit event: #{inspect(reason)}")
+          {:noreply, state}
+      end
     end
   end
 
@@ -443,6 +450,35 @@ defmodule SymphonyElixir.Audit.Outbox do
     File.rename!(temporary, path)
   end
 
+  @doc false
+  @spec auditable_update?(map()) :: boolean()
+  def auditable_update?(update) when is_map(update) do
+    method = get_in(update, [:payload, "method"]) || update |> Map.get(:event) |> event_method()
+
+    cond do
+      method in ["turn/started", "turn/completed", "turn/failed", "turn/cancelled"] ->
+        true
+
+      method in ["item/started", "item/completed"] ->
+        update
+        |> Map.get(:payload, %{})
+        |> codex_item()
+        |> auditable_item?()
+
+      true ->
+        false
+    end
+  end
+
+  defp auditable_item?(item) when is_map(item) do
+    item_kind(String.downcase(to_string(Map.get(item, ~s(type))))) in [:command, :tool]
+  end
+
+  defp auditable_item?(_item), do: false
+
+  defp event_method(event) when is_atom(event), do: event |> Atom.to_string() |> String.replace("_", "/")
+  defp event_method(_event), do: ""
+
   defp critical?(%{event: event}) when event in [:turn_completed, :turn_failed, :turn_cancelled], do: true
   defp critical?(_update), do: false
 
@@ -517,7 +553,7 @@ defmodule SymphonyElixir.Audit.Outbox do
     end
   end
 
-  defp command_payload(method, item, sanitized, occurred_at) do
+  defp command_payload(method, item, _sanitized, occurred_at) do
     command = normalize_command(item["command"] || item["parsedCmd"])
     output = item["aggregatedOutput"] || item["output"] || item["stdout"]
 
@@ -534,29 +570,28 @@ defmodule SymphonyElixir.Audit.Outbox do
       "stdoutReference" => nil,
       "stderrReference" => nil,
       "environmentPolicy" => "restricted",
-      "redacted" => true,
-      "source" => sanitized
+      "redacted" => true
     }
   end
 
-  defp tool_payload(item, sanitized) do
+  defp tool_payload(item, _sanitized) do
     %{
       "toolCallId" => item["id"],
       "tool" => item["name"] || item["tool"] || item["server"],
-      "status" => item["status"],
-      "source" => sanitized
+      "status" => item["status"]
     }
   end
 
   defp codex_item(payload),
     do: get_in(payload, ["params", "item"]) || payload["item"]
 
-  defp normalize_command(command) when is_binary(command), do: normalize_paths(command)
+  defp normalize_command(command) when is_binary(command), do: command |> normalize_paths() |> redact_sensitive_text()
 
   defp normalize_command(command) when is_list(command) do
     command
     |> Enum.map_join(" ", &to_string/1)
     |> normalize_paths()
+    |> redact_sensitive_text()
   end
 
   defp normalize_command(_command), do: nil
@@ -567,6 +602,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp output_summary(output) when is_binary(output) do
     output
     |> normalize_paths()
+    |> redact_sensitive_text()
     |> String.slice(0, 2_000)
   end
 
@@ -615,7 +651,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp sanitize(value) when is_list(value), do: Enum.map(value, &sanitize/1)
 
   defp sanitize(value) when is_binary(value) do
-    sanitized = @bearer |> Regex.replace(value, "Bearer [REDACTED]") |> normalize_paths()
+    sanitized = value |> normalize_paths() |> redact_sensitive_text()
 
     if byte_size(sanitized) > @max_inline_string_bytes do
       %{
@@ -634,6 +670,14 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp sanitize(value), do: inspect(value)
 
   defp sha256(value), do: "sha256:" <> (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower))
+
+  defp redact_sensitive_text(value) do
+    value
+    |> then(&Regex.replace(@bearer, &1, "Bearer [REDACTED]"))
+    |> then(&Regex.replace(@sensitive_assignment, &1, "\\1\\2[REDACTED]"))
+    |> then(&Regex.replace(@sensitive_json_pair, &1, "\\1[REDACTED]"))
+    |> then(&Regex.replace(@sensitive_flag, &1, "\\1[REDACTED]"))
+  end
 
   defp timestamp(datetime) do
     base = Calendar.strftime(datetime, "%Y-%m-%dT%H:%M:%S")
