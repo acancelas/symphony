@@ -6,6 +6,8 @@ defmodule SymphonyElixir.GameApi.Client do
   """
 
   alias SymphonyElixir.Config
+  alias SymphonyElixir.Audit.CanonicalJson
+  alias SymphonyElixir.Tracker.Issue
 
   @spec fetch_ready_issues() :: {:ok, [map()]} | {:error, term()}
   def fetch_ready_issues do
@@ -76,10 +78,42 @@ defmodule SymphonyElixir.GameApi.Client do
     request(:post, "/v1/internal/bos/delivery/audit/events", json: batch)
   end
 
+  @spec record_runtime_probe(map()) :: {:ok, map()} | {:error, term()}
+  def record_runtime_probe(probe) when is_map(probe) do
+    request(:post, "/v1/internal/bos/delivery/deployment-verifications/runtime-probes", json: probe)
+  end
+
   @spec fetch_run(String.t(), String.t()) :: {:ok, map()} | {:error, term()}
   def fetch_run(repository_id, run_id) when is_binary(repository_id) and is_binary(run_id) do
     with {:ok, repository} <- find_repository(repository_id) do
       request(:get, "/v1/internal/bos/delivery/runs/#{URI.encode(run_id)}", params: repository_query(repository))
+    end
+  end
+
+  @spec fetch_run_artifacts(String.t(), String.t(), String.t()) :: {:ok, [map()]} | {:error, term()}
+  def fetch_run_artifacts(repository_id, run_id, directory)
+      when is_binary(repository_id) and is_binary(run_id) and is_binary(directory) do
+    with {:ok, repository} <- find_repository(repository_id) do
+      list_artifacts(repository, run_id, directory)
+    end
+  end
+
+  @spec start_execution(Issue.t(), pos_integer()) :: {:ok, String.t()} | {:error, term()}
+  def start_execution(%Issue{native_ref: native_ref} = issue, attempt_number)
+      when is_integer(attempt_number) and attempt_number > 0 do
+    repository_id = native_ref["repositoryId"]
+    run_id = native_ref["runId"]
+    issue_number = native_ref["issueNumber"]
+    attempt_id = "attempt_#{run_id}_#{attempt_number}"
+
+    with true <- (is_binary(run_id) and run_id != "") || {:error, :missing_run_id},
+         {:ok, repository} <- find_repository(repository_id),
+         {:ok, run} <- ensure_run_record(repository, issue, run_id, issue_number, attempt_id),
+         :ok <- ensure_attempt_record(repository, issue, run, run_id, attempt_id, attempt_number) do
+      {:ok, attempt_id}
+    else
+      {:error, reason} -> {:error, reason}
+      false -> {:error, :missing_run_id}
     end
   end
 
@@ -102,14 +136,21 @@ defmodule SymphonyElixir.GameApi.Client do
     token = System.get_env("BOS_API_INTERNAL_TOKEN")
     runner_id = System.get_env("BOS_RUNNER_ID") || "x1"
 
+    headers =
+      [
+        {"accept", "application/json"},
+        {"x-internal-token", token},
+        {"x-bos-actor-type", "runner"},
+        {"x-bos-actor-id", "runner:#{runner_id}"},
+        {"x-bos-runner-id", runner_id},
+        {"x-bos-authenticated-by", "symphony_internal_token"},
+        {"x-bos-origin", "symphony"}
+      ]
+      |> maybe_add_header("x-bos-runner-action-token", System.get_env("BOS_RUNNER_ACTION_TOKEN"))
+
     options =
       Keyword.merge(options,
-        headers: [
-          {"accept", "application/json"},
-          {"x-internal-token", token},
-          {"x-bos-actor-id", "runner:#{runner_id}"},
-          {"x-bos-runner-id", runner_id}
-        ],
+        headers: headers,
         receive_timeout: 15_000,
         retry: false
       )
@@ -129,6 +170,170 @@ defmodule SymphonyElixir.GameApi.Client do
   end
 
   defp response_list({:error, reason}, _key), do: {:error, reason}
+
+  defp ensure_run_record(repository, issue, run_id, issue_number, attempt_id) do
+    case fetch_run(repository["repository_id"], run_id) do
+      {:ok, %{"currentAttemptId" => ^attempt_id} = run} ->
+        {:ok, run}
+
+      {:ok, run} ->
+        record_run(repository, issue, run_id, issue_number, attempt_id, run)
+
+      {:error, {:game_api_http_error, 404}} ->
+        record_run(repository, issue, run_id, issue_number, attempt_id, nil)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp record_run(repository, issue, run_id, issue_number, attempt_id, existing_run) do
+    with {:ok, event} <- lifecycle_event(repository, issue, run_id, attempt_id, existing_run, "run.started", "AgentRun started durably."),
+         {:ok, _result} <-
+           record_artifact(
+             repository,
+             issue_number,
+             run_id,
+             "run",
+             %{
+               "runId" => run_id,
+               "issueNumber" => issue_number,
+               "repositoryId" => repository["repository_id"],
+               "status" => "running",
+               "initiatedBy" => %{"type" => "runner", "runnerId" => runner_id()},
+               "runner" => runner_identity(),
+               "startedAt" => (existing_run && existing_run["startedAt"]) || event["occurredAt"],
+               "branch" => issue.branch_name,
+               "baseCommit" => existing_run && existing_run["baseCommit"],
+               "headCommit" => existing_run && existing_run["headCommit"],
+               "pullRequestNumber" => existing_run && existing_run["pullRequestNumber"],
+               "currentAttemptId" => attempt_id
+             },
+             event
+           ) do
+      fetch_run(repository["repository_id"], run_id)
+    end
+  end
+
+  defp ensure_attempt_record(repository, issue, run, run_id, attempt_id, attempt_number) do
+    case list_artifacts(repository, run_id, "attempts") do
+      {:ok, artifacts} when is_list(artifacts) ->
+        if Enum.any?(artifacts, &(&1["attemptId"] == attempt_id)) do
+          :ok
+        else
+          record_attempt(repository, issue, run, run_id, attempt_id, attempt_number)
+        end
+
+      {:error, {:game_api_http_error, 404}} ->
+        record_attempt(repository, issue, run, run_id, attempt_id, attempt_number)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp record_attempt(repository, issue, run, run_id, attempt_id, attempt_number) do
+    issue_number = issue.native_ref["issueNumber"]
+
+    with {:ok, event} <- lifecycle_event(repository, issue, run_id, attempt_id, run, "attempt.started", "Attempt started durably."),
+         {:ok, _result} <-
+           record_artifact(
+             repository,
+             issue_number,
+             run_id,
+             "attempt_started",
+             %{
+               "attemptId" => attempt_id,
+               "runId" => run_id,
+               "number" => attempt_number,
+               "status" => "running",
+               "actor" => %{"type" => "runner", "subjectId" => runner_id()},
+               "startedAt" => event["occurredAt"],
+               "metrics" => %{}
+             },
+             event
+           ) do
+      :ok
+    end
+  end
+
+  defp record_artifact(repository, issue_number, run_id, kind, artifact, event) do
+    operation_id = event["operationId"]
+
+    request(:post, "/v1/internal/bos/delivery/artifacts",
+      json: %{
+        "repository" => repository_body(repository),
+        "issueNumber" => issue_number,
+        "operationId" => operation_id,
+        "runId" => run_id,
+        "kind" => kind,
+        "artifact" => artifact,
+        "auditBatch" => %{
+          "operationId" => "append_#{operation_id}",
+          "batchId" => "batch_#{operation_id}",
+          "repository" => repository_body(repository),
+          "events" => [event]
+        }
+      }
+    )
+  end
+
+  defp list_artifacts(repository, run_id, directory) do
+    request(:get, "/v1/internal/bos/delivery/runs/#{URI.encode(run_id)}/artifacts/#{directory}", params: repository_query(repository))
+    |> response_list("artifacts")
+  end
+
+  defp lifecycle_event(repository, issue, run_id, attempt_id, run, event_type, summary) do
+    chain = (run && run["auditChain"]) || %{}
+    sequence = (chain["lastSequence"] || 0) + 1
+    previous_hash = chain["lastEventHash"]
+    suffix = event_type |> String.replace(".", "_") |> String.replace("-", "_")
+    operation_id = "#{suffix}_#{attempt_id}"
+    occurred_at = DateTime.utc_now() |> DateTime.truncate(:millisecond) |> DateTime.to_iso8601()
+
+    event = %{
+      "schemaVersion" => "1.0",
+      "eventId" => "event_#{operation_id}",
+      "occurredAt" => occurred_at,
+      "scopeType" => "run",
+      "scopeId" => run_id,
+      "sequence" => sequence,
+      "previousEventHash" => previous_hash,
+      "correlationId" => run_id,
+      "operationId" => operation_id,
+      "repositoryId" => repository["repository_id"],
+      "issueNumber" => issue.native_ref["issueNumber"],
+      "runId" => run_id,
+      "attemptId" => attempt_id,
+      "actor" => %{"type" => "runner", "subjectId" => runner_id()},
+      "runner" => runner_identity(),
+      "eventType" => event_type,
+      "status" => "running",
+      "summary" => summary,
+      "references" => %{"branch" => issue.branch_name},
+      "evidence" => [],
+      "redaction" => %{"applied" => true, "policyVersion" => "1.0"},
+      "retention" => %{"category" => "permanent"},
+      "payload" => %{}
+    }
+
+    hash = event |> CanonicalJson.encode() |> IO.iodata_to_binary() |> sha256()
+    {:ok, Map.put(event, "eventHash", hash)}
+  rescue
+    error -> {:error, {:audit_event_build_failed, error}}
+  end
+
+  defp runner_identity do
+    %{
+      "id" => runner_id(),
+      "type" => "local",
+      "orchestratorVersion" => to_string(Application.spec(:symphony_elixir, :vsn) || "unknown")
+    }
+  end
+
+  defp runner_id, do: System.get_env("BOS_RUNNER_ID") || "x1"
+
+  defp sha256(value), do: "sha256:" <> (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower))
 
   defp repository_query(repository) do
     repository_body(repository)
@@ -175,6 +380,9 @@ defmodule SymphonyElixir.GameApi.Client do
     timestamp = System.system_time(:millisecond)
     "run_#{issue_number}_#{timestamp}"
   end
+
+  defp maybe_add_header(headers, _name, value) when not is_binary(value) or value == "", do: headers
+  defp maybe_add_header(headers, name, value), do: [{name, value} | headers]
 
   defp blank?(value), do: not is_binary(value) or String.trim(value) == ""
 end

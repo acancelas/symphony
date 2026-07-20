@@ -45,7 +45,9 @@ defmodule SymphonyElixir.GameApi.Adapter do
          "completed" <- result["status"] do
       claim = result["claim"] || %{}
       native_ref = Map.put(issue.native_ref || %{}, "runId", claim["runId"])
-      {:ok, %{issue | native_ref: native_ref, state: "agent:running"}}
+      labels = result |> Map.get("issue", %{}) |> Map.get("labels", [])
+      state = if labels == [], do: "agent:running", else: current_state(labels)
+      {:ok, %{issue | native_ref: native_ref, state: state}}
     else
       {:error, reason} -> {:error, reason}
       other -> {:error, {:game_api_claim_rejected, other}}
@@ -65,6 +67,14 @@ defmodule SymphonyElixir.GameApi.Adapter do
     end
   end
 
+  @spec start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}
+  def start_execution(%Issue{} = issue, attempt_number)
+      when is_integer(attempt_number) and attempt_number > 0 do
+    with {:ok, attempt_id} <- client_module().start_execution(issue, attempt_number) do
+      {:ok, %{issue | native_ref: Map.put(issue.native_ref || %{}, "attemptId", attempt_id)}}
+    end
+  end
+
   @spec agent_tool_specs() :: [map()]
   def agent_tool_specs, do: []
 
@@ -74,7 +84,8 @@ defmodule SymphonyElixir.GameApi.Adapter do
   end
 
   @spec secret_environment_names(map()) :: [String.t()]
-  def secret_environment_names(_tracker_settings), do: ["BOS_API_INTERNAL_TOKEN"]
+  def secret_environment_names(_tracker_settings),
+    do: ["BOS_API_INTERNAL_TOKEN", "BOS_RUNNER_ACTION_TOKEN"]
 
   defp normalize_issue(payload) do
     labels = payload["labels"] || []

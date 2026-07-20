@@ -52,4 +52,49 @@ defmodule SymphonyElixir.Audit.OutboxTest do
 
     File.rm_rf!(root)
   end
+
+  test "normalizes command completion into durable portable metadata" do
+    payload = %{
+      "method" => "item/completed",
+      "params" => %{
+        "item" => %{
+          "id" => "cmd_001",
+          "type" => "commandExecution",
+          "command" => "mix test",
+          "cwd" => File.cwd!(),
+          "status" => "completed",
+          "exitCode" => 0,
+          "durationMs" => 245,
+          "aggregatedOutput" => "260 tests, 0 failures"
+        }
+      }
+    }
+
+    normalized = Outbox.normalize_codex_payload("item/completed", payload, "2026-07-20T10:00:00.000Z")
+
+    assert normalized["commandId"] == "cmd_001"
+    assert normalized["command"] == "mix test"
+    assert normalized["workingDirectory"] == "$WORKSPACE"
+    assert normalized["exitCode"] == 0
+    assert normalized["durationMs"] == 245
+    assert normalized["outputSummary"] == "260 tests, 0 failures"
+    assert normalized["redacted"] == true
+  end
+
+  test "attributes Codex lifecycle actions to the agent while retaining runner observation separately" do
+    assert Outbox.actor_for_codex_method("item/completed") == %{
+             "type" => "agent",
+             "subjectId" => "implementation-agent"
+           }
+
+    assert Outbox.actor_for_codex_method("runner/recovered") == %{
+             "type" => "runner",
+             "subjectId" => "x1"
+           }
+
+    assert Outbox.actor_for_update(%{delivery_actor: "security-reviewer"}, "item/completed") == %{
+             "type" => "agent",
+             "subjectId" => "security-reviewer"
+           }
+  end
 end

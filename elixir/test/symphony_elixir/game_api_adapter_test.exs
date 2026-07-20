@@ -36,6 +36,12 @@ defmodule SymphonyElixir.GameApiAdapterTest do
          "claim" => %{"runId" => "run_42_001", "runnerId" => "x1"}
        }}
     end
+
+    @spec start_execution(SymphonyElixir.Tracker.Issue.t(), pos_integer()) ::
+            {:ok, String.t()}
+    def start_execution(%SymphonyElixir.Tracker.Issue{native_ref: %{"runId" => "run_42_001"}}, 1) do
+      {:ok, "attempt_run_42_001_1"}
+    end
   end
 
   setup do
@@ -66,5 +72,12 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert {:ok, claimed} = Adapter.claim_issue(issue)
     assert claimed.native_ref["runId"] == "run_42_001"
     assert claimed.state == "agent:running"
+  end
+
+  test "persists the execution identity before Codex starts" do
+    assert {:ok, [issue]} = Adapter.fetch_issues_by_states(["agent:ready"])
+    assert {:ok, claimed} = Adapter.claim_issue(issue)
+    assert {:ok, started} = Adapter.start_execution(claimed, 1)
+    assert started.native_ref["attemptId"] == "attempt_run_42_001_1"
   end
 end

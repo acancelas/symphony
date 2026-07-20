@@ -86,11 +86,13 @@ defmodule SymphonyElixir.Audit.Outbox do
       unique = System.unique_integer([:positive, :monotonic])
       event_id = "event_#{System.system_time(:millisecond)}_#{unique}"
       method = get_in(update, [:payload, "method"]) || Atom.to_string(update.event)
+      occurred_at = timestamp(now)
+      normalized_payload = normalize_codex_payload(method, update.payload || %{}, occurred_at)
 
       event = %{
         "schemaVersion" => "1.0",
         "eventId" => event_id,
-        "occurredAt" => timestamp(now),
+        "occurredAt" => occurred_at,
         "scopeType" => "run",
         "scopeId" => run_id,
         "sequence" => sequence,
@@ -101,16 +103,16 @@ defmodule SymphonyElixir.Audit.Outbox do
         "issueNumber" => native_ref["issueNumber"],
         "runId" => run_id,
         "attemptId" => attempt_id(issue, current),
-        "actor" => %{"type" => "runner", "subjectId" => runner_id()},
+        "actor" => actor_for_update(update, method),
         "runner" => %{"id" => runner_id(), "type" => "local"},
         "eventType" => event_type(method, update.payload || %{}),
         "status" => event_status(update),
-        "summary" => summary(method),
+        "summary" => summary(method, normalized_payload),
         "references" => %{"branch" => issue.branch_name},
         "evidence" => [],
         "redaction" => %{"applied" => true, "policyVersion" => "1.0"},
-        "retention" => %{"category" => "permanent"},
-        "payload" => sanitize(update.payload || %{})
+        "retention" => retention_for(method, normalized_payload),
+        "payload" => normalized_payload
       }
 
       hash = event |> Map.delete("eventHash") |> CanonicalJson.encode() |> IO.iodata_to_binary() |> sha256()
@@ -319,7 +321,117 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp event_status(%{event: :turn_cancelled}), do: "cancelled"
   defp event_status(_update), do: "completed"
 
-  defp summary(method), do: "Codex App Server event: #{method}"
+  defp summary(method, %{"command" => command} = payload)
+       when method in ["item/started", "item/completed"] and is_binary(command) do
+    result = if is_integer(payload["exitCode"]), do: " (exit #{payload["exitCode"]})", else: ""
+    "Codex command #{if method == "item/started", do: "started", else: "completed"}: #{command}#{result}"
+  end
+
+  defp summary(method, %{"tool" => tool}) when is_binary(tool),
+    do: "Codex tool #{if String.ends_with?(method, "started"), do: "requested", else: "confirmed"}: #{tool}"
+
+  defp summary(method, _payload), do: "Codex App Server event: #{method}"
+
+  @doc false
+  @spec normalize_codex_payload(String.t(), map(), String.t()) :: map()
+  def normalize_codex_payload(method, payload, occurred_at) do
+    sanitized = sanitize(payload)
+
+    case {method, codex_item(payload)} do
+      {lifecycle, item} when lifecycle in ["item/started", "item/completed"] and is_map(item) ->
+        normalize_item_payload(lifecycle, item, sanitized, occurred_at)
+
+      _ ->
+        sanitized
+    end
+  end
+
+  defp normalize_item_payload(method, item, sanitized, occurred_at) do
+    type = String.downcase(to_string(item["type"] || ""))
+
+    cond do
+      String.contains?(type, "command") ->
+        command = normalize_command(item["command"] || item["parsedCmd"])
+        output = item["aggregatedOutput"] || item["output"] || item["stdout"]
+
+        %{
+          "commandId" => item["id"] || "command_unknown",
+          "command" => command || "[command unavailable]",
+          "workingDirectory" => normalize_optional_path(item["cwd"]),
+          "startedAt" => if(method == "item/started", do: occurred_at, else: item["startedAt"]),
+          "finishedAt" => if(method == "item/completed", do: occurred_at, else: nil),
+          "exitCode" => item["exitCode"],
+          "durationMs" => item["durationMs"] || item["duration_ms"],
+          "status" => item["status"],
+          "outputSummary" => output_summary(output),
+          "stdoutReference" => nil,
+          "stderrReference" => nil,
+          "environmentPolicy" => "restricted",
+          "redacted" => true,
+          "source" => sanitized
+        }
+
+      String.contains?(type, "mcp") or String.contains?(type, "tool") ->
+        %{
+          "toolCallId" => item["id"],
+          "tool" => item["name"] || item["tool"] || item["server"],
+          "status" => item["status"],
+          "source" => sanitized
+        }
+
+      true ->
+        sanitized
+    end
+    |> drop_nil_values()
+  end
+
+  defp codex_item(payload),
+    do: get_in(payload, ["params", "item"]) || payload["item"]
+
+  defp normalize_command(command) when is_binary(command), do: normalize_paths(command)
+  defp normalize_command(command) when is_list(command), do: command |> Enum.map(&to_string/1) |> Enum.join(" ") |> normalize_paths()
+  defp normalize_command(_command), do: nil
+
+  defp normalize_optional_path(path) when is_binary(path), do: normalize_paths(path)
+  defp normalize_optional_path(_path), do: nil
+
+  defp output_summary(output) when is_binary(output) do
+    output
+    |> normalize_paths()
+    |> String.slice(0, 2_000)
+  end
+
+  defp output_summary(_output), do: nil
+
+  defp drop_nil_values(map), do: Map.reject(map, fn {_key, value} -> is_nil(value) end)
+
+  @doc false
+  @spec actor_for_codex_method(String.t()) :: map()
+  def actor_for_codex_method(method) when is_binary(method) do
+    if String.starts_with?(method, ["item/", "turn/", "thread/"]) do
+      %{"type" => "agent", "subjectId" => implementation_agent_id()}
+    else
+      %{"type" => "runner", "subjectId" => runner_id()}
+    end
+  end
+
+  @doc false
+  @spec actor_for_update(map(), String.t()) :: map()
+  def actor_for_update(%{delivery_actor: actor}, method)
+      when is_binary(actor) and actor != "" and is_binary(method) do
+    if String.starts_with?(method, ["item/", "turn/", "thread/"]) do
+      %{"type" => "agent", "subjectId" => actor}
+    else
+      actor_for_codex_method(method)
+    end
+  end
+
+  def actor_for_update(_update, method), do: actor_for_codex_method(method)
+
+  defp retention_for(_method, %{"exitCode" => exit_code}) when is_integer(exit_code) and exit_code != 0,
+    do: %{"category" => "long"}
+
+  defp retention_for(_method, _payload), do: %{"category" => "permanent"}
 
   defp sanitize(value) when is_map(value) do
     Map.new(value, fn {key, item} ->
@@ -365,6 +477,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   end
 
   defp runner_id, do: System.get_env("BOS_RUNNER_ID") || "x1"
+  defp implementation_agent_id, do: System.get_env("BOS_IMPLEMENTATION_AGENT_ID") || "implementation-agent"
 
   defp normalize_paths(value) do
     value

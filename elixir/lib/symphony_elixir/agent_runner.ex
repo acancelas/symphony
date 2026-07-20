@@ -5,7 +5,7 @@ defmodule SymphonyElixir.AgentRunner do
 
   require Logger
   alias SymphonyElixir.Codex.AppServer
-  alias SymphonyElixir.{Config, PromptBuilder, Tracker, Workspace}
+  alias SymphonyElixir.{Config, DeliveryCoordinator, PostApprovalCoordinator, PromptBuilder, Tracker, Workspace}
   alias SymphonyElixir.Tracker.Issue
 
   @type worker_host :: String.t() | nil
@@ -37,21 +37,33 @@ defmodule SymphonyElixir.AgentRunner do
 
   defp run_on_worker_host(issue, codex_update_recipient, opts, worker_host) do
     Logger.info("Starting worker attempt for #{issue_context(issue)} worker_host=#{worker_host_for_log(worker_host)}")
+    attempt_number = normalize_attempt_number(Keyword.get(opts, :attempt))
 
-    case Workspace.create_for_issue(issue, worker_host) do
-      {:ok, workspace} ->
-        send_worker_runtime_info(codex_update_recipient, issue, worker_host, workspace)
+    with {:ok, issue} <- Tracker.start_execution(issue, attempt_number),
+         {:ok, workspace} <- Workspace.create_for_issue(issue, worker_host) do
+      send_worker_runtime_info(codex_update_recipient, issue, worker_host, workspace)
 
-        try do
-          with :ok <- Workspace.run_before_run_hook(workspace, issue, worker_host) do
-            run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host)
+      try do
+        with :ok <- Workspace.run_before_run_hook(workspace, issue, worker_host) do
+          cond do
+            post_approval_issue?(issue) ->
+              PostApprovalCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
+
+            true ->
+              with :ok <- run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
+                if bos_delivery_issue?(issue) do
+                  DeliveryCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
+                else
+                  :ok
+                end
+              end
           end
-        after
-          Workspace.run_after_run_hook(workspace, issue, worker_host)
         end
-
-      {:error, reason} ->
-        {:error, reason}
+      after
+        Workspace.run_after_run_hook(workspace, issue, worker_host)
+      end
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -86,7 +98,16 @@ defmodule SymphonyElixir.AgentRunner do
   defp send_worker_runtime_info(_recipient, _issue, _worker_host, _workspace), do: :ok
 
   defp run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
-    max_turns = Keyword.get(opts, :max_turns, Config.settings!().agent.max_turns)
+    # One implementation turn is a complete Codex task execution. Delivery
+    # continuation is owned by the explicit review/repair coordinator below,
+    # preventing an active tracker label from spawning dozens of blind turns.
+    max_turns =
+      if bos_delivery_issue?(issue) do
+        Keyword.get(opts, :implementation_max_turns, 1)
+      else
+        Keyword.get(opts, :max_turns, Config.settings!().agent.max_turns)
+      end
+
     issue_state_fetcher = Keyword.get(opts, :issue_state_fetcher, &Tracker.fetch_issues_by_ids/1)
 
     with {:ok, session} <- AppServer.start_session(workspace, worker_host: worker_host) do
@@ -209,6 +230,21 @@ defmodule SymphonyElixir.AgentRunner do
     |> String.trim()
     |> String.downcase()
   end
+
+  defp normalize_attempt_number(attempt) when is_integer(attempt) and attempt >= 0, do: attempt + 1
+  defp normalize_attempt_number(_attempt), do: 1
+
+  defp bos_delivery_issue?(%Issue{native_ref: native_ref}) when is_map(native_ref) do
+    is_binary(native_ref["repositoryId"]) and is_binary(native_ref["runId"])
+  end
+
+  defp bos_delivery_issue?(_issue), do: false
+
+  defp post_approval_issue?(%Issue{state: state}) when is_binary(state) do
+    normalize_issue_state(state) == "agent:merging"
+  end
+
+  defp post_approval_issue?(_issue), do: false
 
   defp issue_context(%Issue{id: issue_id, identifier: identifier}) do
     "issue_id=#{issue_id} issue_identifier=#{identifier}"

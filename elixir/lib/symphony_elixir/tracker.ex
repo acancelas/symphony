@@ -24,12 +24,14 @@ defmodule SymphonyElixir.Tracker do
   @callback validate_config(map()) :: :ok | {:error, term()}
   @callback claim_issue(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}
   @callback heartbeat_issue(Issue.t()) :: :ok | {:error, term()}
+  @callback start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}
 
   @optional_callbacks agent_tool_specs: 0,
                       execute_agent_tool: 3,
                       validate_config: 1,
                       claim_issue: 1,
-                      heartbeat_issue: 1
+                      heartbeat_issue: 1,
+                      start_execution: 2
 
   @spec fetch_issues_by_states([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
   def fetch_issues_by_states(states) do
@@ -60,6 +62,18 @@ defmodule SymphonyElixir.Tracker do
       adapter.heartbeat_issue(issue)
     else
       :ok
+    end
+  end
+
+  @spec start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}
+  def start_execution(%Issue{} = issue, attempt_number)
+      when is_integer(attempt_number) and attempt_number > 0 do
+    adapter = adapter()
+
+    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :start_execution, 2) do
+      adapter.start_execution(issue, attempt_number)
+    else
+      {:ok, issue}
     end
   end
 

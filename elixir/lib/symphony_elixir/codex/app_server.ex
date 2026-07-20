@@ -40,10 +40,11 @@ defmodule SymphonyElixir.Codex.AppServer do
   @spec start_session(Path.t(), keyword()) :: {:ok, session()} | {:error, term()}
   def start_session(workspace, opts \\ []) do
     worker_host = Keyword.get(opts, :worker_host)
+    environment_overrides = validated_environment_overrides(Keyword.get(opts, :environment_overrides, []))
     dynamic_tool_binding = DynamicTool.bind()
 
     with {:ok, expanded_workspace} <- validate_workspace_cwd(workspace, worker_host),
-         {:ok, port} <- start_port(expanded_workspace, worker_host, dynamic_tool_binding) do
+         {:ok, port} <- start_port(expanded_workspace, worker_host, dynamic_tool_binding, environment_overrides) do
       metadata = port_metadata(port, worker_host)
 
       with {:ok, session_policies} <- session_policies(expanded_workspace, worker_host),
@@ -191,7 +192,7 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp start_port(workspace, nil, dynamic_tool_binding) do
+  defp start_port(workspace, nil, dynamic_tool_binding, environment_overrides) do
     executable = System.find_executable("bash")
 
     if is_nil(executable) do
@@ -206,7 +207,7 @@ defmodule SymphonyElixir.Codex.AppServer do
             :stderr_to_stdout,
             args: [~c"-lc", String.to_charlist(local_launch_command(dynamic_tool_binding))],
             cd: String.to_charlist(workspace),
-            env: tracker_secret_port_env(dynamic_tool_binding),
+            env: tracker_secret_port_env(dynamic_tool_binding) ++ port_environment(environment_overrides),
             line: @port_line_bytes
           ]
         )
@@ -215,8 +216,8 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp start_port(workspace, worker_host, dynamic_tool_binding) when is_binary(worker_host) do
-    remote_command = remote_launch_command(workspace, dynamic_tool_binding)
+  defp start_port(workspace, worker_host, dynamic_tool_binding, environment_overrides) when is_binary(worker_host) do
+    remote_command = remote_launch_command(workspace, dynamic_tool_binding, environment_overrides)
     SSH.start_port(worker_host, remote_command, line: @port_line_bytes)
   end
 
@@ -229,10 +230,11 @@ defmodule SymphonyElixir.Codex.AppServer do
     |> Enum.join(" && ")
   end
 
-  defp remote_launch_command(workspace, dynamic_tool_binding) when is_binary(workspace) do
+  defp remote_launch_command(workspace, dynamic_tool_binding, environment_overrides) when is_binary(workspace) do
     [
       "cd #{shell_escape(workspace)}",
       tracker_secret_unset_command(dynamic_tool_binding),
+      remote_environment_export(environment_overrides),
       "exec #{Config.settings!().codex.command}"
     ]
     |> Enum.reject(&is_nil/1)
@@ -243,6 +245,32 @@ defmodule SymphonyElixir.Codex.AppServer do
     dynamic_tool_binding.secret_environment_names
     |> valid_environment_names()
     |> Enum.map(fn name -> {String.to_charlist(name), false} end)
+  end
+
+  defp validated_environment_overrides(overrides) when is_list(overrides) do
+    Enum.map(overrides, fn
+      {name, value} when is_binary(name) and is_binary(value) ->
+        if name in valid_environment_names([name]) and not String.contains?(value, <<0>>) do
+          {name, value}
+        else
+          raise ArgumentError, "invalid Codex environment override"
+        end
+
+      _ ->
+        raise ArgumentError, "Codex environment overrides must be string pairs"
+    end)
+  end
+
+  defp validated_environment_overrides(_overrides),
+    do: raise(ArgumentError, "Codex environment overrides must be a keyword-like list")
+
+  defp port_environment(overrides),
+    do: Enum.map(overrides, fn {name, value} -> {String.to_charlist(name), String.to_charlist(value)} end)
+
+  defp remote_environment_export([]), do: nil
+
+  defp remote_environment_export(overrides) do
+    "export " <> Enum.map_join(overrides, " ", fn {name, value} -> "#{name}=#{shell_escape(value)}" end)
   end
 
   defp tracker_secret_unset_command(dynamic_tool_binding) do
