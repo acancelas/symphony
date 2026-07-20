@@ -144,7 +144,7 @@ defmodule SymphonyElixir.Audit.Outbox do
         state
 
       %{pending: pending, issue: issue} = run_state ->
-        flush_pending_batch(state, run_id, run_state, issue, pending)
+        flush_pending_batch(state, run_id, run_state, issue, Enum.take(pending, @batch_size))
     end
   end
 
@@ -171,7 +171,10 @@ defmodule SymphonyElixir.Audit.Outbox do
     atomic_write(receipt_path, Jason.encode!(receipt))
     File.rm(batch_path)
     Enum.each(pending, fn event -> File.rm(event_path(state.root, run_id, event)) end)
-    put_in(state, [:runs, run_id], %{run_state | pending: []})
+    confirmed_ids = MapSet.new(Enum.map(pending, & &1["eventId"]))
+    remaining = Enum.reject(run_state.pending, &MapSet.member?(confirmed_ids, &1["eventId"]))
+    next = put_in(state, [:runs, run_id], %{run_state | pending: remaining})
+    if remaining == [], do: next, else: flush_run(next, run_id)
   end
 
   defp persist_batch_result({:error, reason}, state, run_id, _run_state, _pending, _batch_id, _batch_path) do
