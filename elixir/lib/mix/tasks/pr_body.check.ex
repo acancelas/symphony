@@ -121,7 +121,14 @@ defmodule Mix.Tasks.PrBody.Check do
   end
 
   defp check_no_placeholders(errors, body) do
-    if String.contains?(body, "<!--") do
+    body_without_delivery_marker =
+      Regex.replace(
+        ~r/^<!-- bos:agent-run [A-Za-z0-9_.:-]+ -->\s*$/m,
+        body,
+        ""
+      )
+
+    if String.contains?(body_without_delivery_marker, "<!--") do
       errors ++ ["PR description still contains template placeholder comments (<!-- ... -->)."]
     else
       errors
