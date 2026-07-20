@@ -21,6 +21,16 @@ defmodule SymphonyElixir.Audit.Outbox do
   @sensitive_assignment ~r/(?i)\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|AUTHORIZATION|API[_-]?KEY)[A-Z0-9_]*)(\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s]+)/
   @sensitive_json_pair ~r/(?i)(["']?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)["']?\s*:\s*)(?:"[^"]*"|'[^']*'|[^\s,}\]]+)/
   @sensitive_flag ~r/(?i)(--?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s]+)/
+  @durable_event_types MapSet.new([
+                         "agent.turn_started",
+                         "agent.turn_completed",
+                         "agent.turn_failed",
+                         "agent.turn_cancelled",
+                         "command.started",
+                         "command.completed",
+                         "tool.requested",
+                         "tool.confirmed"
+                       ])
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -38,6 +48,7 @@ defmodule SymphonyElixir.Audit.Outbox do
     root = Keyword.get(opts, :root, outbox_root())
     File.mkdir_p!(root)
     recover_incomplete_rebases(root)
+    compact_legacy_telemetry(root)
     runs = recover_pending(root)
     if map_size(runs) > 0, do: send(self(), :flush)
     Process.send_after(self(), :flush, @flush_interval_ms)
@@ -46,26 +57,32 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   @impl true
   def handle_cast({:record, issue, update}, state) do
-    if not auditable_update?(update) do
-      {:noreply, state}
-    else
-      case build_event(issue, update, state) do
-        {:ok, event, run_state} ->
-          run_id = event["runId"]
-          next = put_in(state, [:runs, run_id], run_state)
-          next = persist_pending(next, issue, event)
+    if auditable_update?(update), do: record_auditable(issue, update, state), else: {:noreply, state}
+  end
 
-          if critical?(update) or length(run_state.pending) >= @batch_size do
-            {:noreply, flush_run(next, run_id)}
-          else
-            {:noreply, next}
-          end
+  defp record_auditable(issue, update, state) do
+    case build_event(issue, update, state) do
+      {:ok, event, run_state} ->
+        run_id = event["runId"]
 
-        {:error, reason} ->
-          Logger.warning("Skipping invalid BOS audit event: #{inspect(reason)}")
-          {:noreply, state}
-      end
+        next =
+          state
+          |> put_in([:runs, run_id], run_state)
+          |> persist_pending(issue, event)
+          |> maybe_flush_run(run_id, update, run_state)
+
+        {:noreply, next}
+
+      {:error, reason} ->
+        Logger.warning("Skipping invalid BOS audit event: #{inspect(reason)}")
+        {:noreply, state}
     end
+  end
+
+  defp maybe_flush_run(state, run_id, update, run_state) do
+    if critical?(update) or length(run_state.pending) >= @batch_size,
+      do: flush_run(state, run_id),
+      else: state
   end
 
   @impl true
@@ -315,7 +332,8 @@ defmodule SymphonyElixir.Audit.Outbox do
     Path.wildcard(Path.join([root, "*", "events", "*.json"]))
     |> Enum.reduce(%{}, fn path, runs ->
       with {:ok, contents} <- File.read(path),
-           {:ok, %{"issue" => identity, "event" => event}} <- Jason.decode(contents),
+           {:ok, %{"issue" => identity, "event" => raw_event}} <- Jason.decode(contents),
+           event <- normalize_recovered_event(raw_event),
            run_id when is_binary(run_id) <- event["runId"],
            false <- MapSet.member?(confirmed_event_ids, event["eventId"]) do
         current =
@@ -344,6 +362,54 @@ defmodule SymphonyElixir.Audit.Outbox do
        }}
     end)
   end
+
+  @doc false
+  @spec compact_legacy_telemetry(Path.t()) :: %{kept: non_neg_integer(), quarantined: non_neg_integer()}
+  def compact_legacy_telemetry(root) do
+    Path.wildcard(Path.join([root, "*", "events", "*.json"]))
+    |> Enum.reduce(%{kept: 0, quarantined: 0}, &compact_legacy_event/2)
+  end
+
+  defp compact_legacy_event(event_path, counts) do
+    with {:ok, contents} <- File.read(event_path),
+         {:ok, %{"event" => event}} <- Jason.decode(contents) do
+      classify_legacy_event(event, event_path, counts)
+    else
+      _ -> counts
+    end
+  end
+
+  defp classify_legacy_event(event, event_path, counts) do
+    if durable_recovered_event?(event) do
+      Map.update!(counts, :kept, &(&1 + 1))
+    else
+      quarantine_legacy_event(event_path)
+      Map.update!(counts, :quarantined, &(&1 + 1))
+    end
+  end
+
+  defp durable_recovered_event?(%{"eventType" => event_type} = event) do
+    MapSet.member?(@durable_event_types, event_type) or
+      (event_type == "agent.progress_recorded" and get_in(event, ["payload", "method"]) == "turn/started")
+  end
+
+  defp durable_recovered_event?(_event), do: false
+
+  defp quarantine_legacy_event(event_path) do
+    events_dir = Path.dirname(event_path)
+    run_dir = Path.dirname(events_dir)
+    quarantine_dir = Path.join(run_dir, "legacy-telemetry")
+    File.mkdir_p!(quarantine_dir)
+    File.rename!(event_path, Path.join(quarantine_dir, Path.basename(event_path)))
+  end
+
+  defp normalize_recovered_event(%{"eventType" => "agent.progress_recorded", "payload" => %{"method" => "turn/started"}} = event) do
+    event
+    |> Map.put("eventType", "agent.turn_started")
+    |> Map.put("summary", "Codex App Server event: turn/started")
+  end
+
+  defp normalize_recovered_event(event), do: event
 
   defp recover_incomplete_rebases(root) do
     Path.wildcard(Path.join([root, "*"]))
@@ -484,6 +550,7 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   defp event_type("item/completed", payload), do: item_event_type(payload, "completed")
   defp event_type("item/started", payload), do: item_event_type(payload, "started")
+  defp event_type("turn/started", _payload), do: "agent.turn_started"
   defp event_type("turn/completed", _payload), do: "agent.turn_completed"
   defp event_type("turn/failed", _payload), do: "agent.turn_failed"
   defp event_type("turn/cancelled", _payload), do: "agent.turn_cancelled"

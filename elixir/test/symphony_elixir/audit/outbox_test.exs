@@ -94,6 +94,55 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "account/rateLimits/updated"}})
   end
 
+  test "quarantines legacy telemetry while preserving commands, tools and turn lifecycle" do
+    root = Path.join(System.tmp_dir!(), "bos-outbox-compaction-test-#{System.unique_integer([:positive])}")
+    events_path = Path.join([root, "run_legacy", "events"])
+    File.mkdir_p!(events_path)
+
+    issue = %{"repositoryId" => "bos-front", "issueNumber" => 42, "runId" => "run_legacy"}
+
+    events = [
+      %{
+        "eventId" => "event_turn",
+        "runId" => "run_legacy",
+        "sequence" => 10,
+        "eventHash" => "sha256:turn",
+        "eventType" => "agent.progress_recorded",
+        "payload" => %{"method" => "turn/started"}
+      },
+      %{
+        "eventId" => "event_delta",
+        "runId" => "run_legacy",
+        "sequence" => 11,
+        "eventHash" => "sha256:delta",
+        "eventType" => "agent.progress_recorded",
+        "payload" => %{"method" => "item/agentMessage/delta"}
+      },
+      %{
+        "eventId" => "event_command",
+        "runId" => "run_legacy",
+        "sequence" => 12,
+        "eventHash" => "sha256:command",
+        "eventType" => "command.completed",
+        "payload" => %{"command" => "mix test", "exitCode" => 0}
+      }
+    ]
+
+    Enum.each(events, fn event ->
+      filename = String.pad_leading(to_string(event["sequence"]), 8, "0") <> ".json"
+      File.write!(Path.join(events_path, filename), Jason.encode!(%{"issue" => issue, "event" => event}))
+    end)
+
+    assert Outbox.compact_legacy_telemetry(root) == %{kept: 2, quarantined: 1}
+    recovered = Outbox.recover_pending(root)["run_legacy"]
+
+    assert Enum.map(recovered.pending, & &1["eventType"]) == ["agent.turn_started", "command.completed"]
+    assert File.exists?(Path.join([root, "run_legacy", "legacy-telemetry", "00000011.json"]))
+    refute File.exists?(Path.join(events_path, "00000011.json"))
+
+    File.rm_rf!(root)
+  end
+
   test "command metadata is redacted and excludes the raw App Server payload" do
     payload = %{
       "method" => "item/completed",
