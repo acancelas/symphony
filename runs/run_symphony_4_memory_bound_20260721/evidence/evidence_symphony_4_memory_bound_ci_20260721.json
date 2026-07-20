@@ -1,0 +1,58 @@
+{
+  "evidenceId": "evidence_symphony_4_memory_bound_ci_20260721",
+  "runId": "run_symphony_4_memory_bound_20260721",
+  "commitSha": "22bd598b6ca9137b79b0c4f37fb796b4fe46496f",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Codex worker updates retain only a bounded human-readable summary",
+      "status": "passed",
+      "evidence": "summarize_codex_update stores StatusDashboard.humanize_codex_message output"
+    },
+    {
+      "criterion": "Multi-megabyte event payloads do not remain in orchestrator state",
+      "status": "passed",
+      "evidence": "regression retains less than 1 KiB and contains no raw marker"
+    },
+    {
+      "criterion": "Complete Elixir quality gate passes",
+      "status": "passed",
+      "evidence": "274 tests, 0 failures, 2 skipped; 100% coverage; format, Credo, specs and Dialyzer passed"
+    },
+    {
+      "criterion": "Canonical pull request description passes upstream validation",
+      "status": "passed",
+      "evidence": "validate-pr-description check 88502315567 succeeded"
+    }
+  ],
+  "checks": [
+    {
+      "name": "Targeted orchestrator suite",
+      "status": "passed",
+      "summary": "44 tests passed"
+    },
+    {
+      "name": "make -C elixir all",
+      "status": "passed",
+      "summary": "274 tests passed with complete quality gates"
+    },
+    {
+      "name": "validate-pr-description",
+      "status": "passed",
+      "checkRunId": 88502315567
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pullRequest",
+      "number": 5,
+      "url": "https://github.com/acancelas/symphony/pull/5"
+    },
+    {
+      "type": "commit",
+      "sha": "22bd598b6ca9137b79b0c4f37fb796b4fe46496f"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "The orchestrator no longer retains arbitrary Codex event payloads; regression, full quality gates, and PR policy checks pass on the exact commit."
+}
