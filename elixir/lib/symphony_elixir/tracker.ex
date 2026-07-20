@@ -11,6 +11,7 @@ defmodule SymphonyElixir.Tracker do
   alias SymphonyElixir.Tracker.Issue
 
   @adapters %{
+    "game_api" => SymphonyElixir.GameApi.Adapter,
     "linear" => SymphonyElixir.Linear.Adapter,
     "memory" => SymphonyElixir.Tracker.Memory
   }
@@ -21,10 +22,14 @@ defmodule SymphonyElixir.Tracker do
   @callback execute_agent_tool(String.t(), term(), keyword()) :: map()
   @callback secret_environment_names(map()) :: [String.t()]
   @callback validate_config(map()) :: :ok | {:error, term()}
+  @callback claim_issue(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}
+  @callback heartbeat_issue(Issue.t()) :: :ok | {:error, term()}
 
   @optional_callbacks agent_tool_specs: 0,
                       execute_agent_tool: 3,
-                      validate_config: 1
+                      validate_config: 1,
+                      claim_issue: 1,
+                      heartbeat_issue: 1
 
   @spec fetch_issues_by_states([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
   def fetch_issues_by_states(states) do
@@ -34,6 +39,28 @@ defmodule SymphonyElixir.Tracker do
   @spec fetch_issues_by_ids([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
   def fetch_issues_by_ids(issue_ids) do
     adapter().fetch_issues_by_ids(issue_ids)
+  end
+
+  @spec claim_issue(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}
+  def claim_issue(%Issue{} = issue) do
+    adapter = adapter()
+
+    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :claim_issue, 1) do
+      adapter.claim_issue(issue)
+    else
+      {:ok, issue}
+    end
+  end
+
+  @spec heartbeat_issue(Issue.t()) :: :ok | {:error, term()}
+  def heartbeat_issue(%Issue{} = issue) do
+    adapter = adapter()
+
+    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :heartbeat_issue, 1) do
+      adapter.heartbeat_issue(issue)
+    else
+      :ok
+    end
   end
 
   @doc """
