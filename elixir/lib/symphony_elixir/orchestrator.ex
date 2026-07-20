@@ -1670,11 +1670,13 @@ defmodule SymphonyElixir.Orchestrator do
   defp turn_count_for_update(_existing_count, _existing_session_id, _update), do: 0
 
   defp summarize_codex_update(update) do
-    %{
+    summary = %{
       event: update[:event],
       message: update[:payload] || update[:raw],
       timestamp: update[:timestamp]
     }
+
+    %{summary | message: StatusDashboard.humanize_codex_message(summary)}
   end
 
   defp schedule_tick(%State{} = state, delay_ms) when is_integer(delay_ms) and delay_ms >= 0 do
