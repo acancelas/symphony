@@ -938,18 +938,19 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp do_dispatch_issue(%State{} = state, issue, attempt, preferred_worker_host) do
-    with {:ok, claimed_issue} <- Tracker.claim_issue(issue) do
-      recipient = self()
+    case Tracker.claim_issue(issue) do
+      {:ok, claimed_issue} ->
+        recipient = self()
 
-      case select_worker_host(state, preferred_worker_host) do
-        :no_worker_capacity ->
-          Logger.debug("No SSH worker slots available for #{issue_context(claimed_issue)} preferred_worker_host=#{inspect(preferred_worker_host)}")
-          state
+        case select_worker_host(state, preferred_worker_host) do
+          :no_worker_capacity ->
+            Logger.debug("No SSH worker slots available for #{issue_context(claimed_issue)} preferred_worker_host=#{inspect(preferred_worker_host)}")
+            state
 
-        worker_host ->
-          spawn_issue_on_worker_host(state, claimed_issue, attempt, recipient, worker_host)
-      end
-    else
+          worker_host ->
+            spawn_issue_on_worker_host(state, claimed_issue, attempt, recipient, worker_host)
+        end
+
       {:error, reason} ->
         Logger.warning("Unable to claim issue before dispatch: #{issue_context(issue)} reason=#{inspect(reason)}")
         state

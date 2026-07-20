@@ -115,7 +115,15 @@ defmodule SymphonyElixir.Audit.Outbox do
 
       hash = event |> Map.delete("eventHash") |> CanonicalJson.encode() |> IO.iodata_to_binary() |> sha256()
       event = Map.put(event, "eventHash", hash)
-      run_state = %{current | sequence: sequence, previous_hash: hash, pending: current.pending ++ [event], issue: issue}
+
+      run_state = %{
+        current
+        | sequence: sequence,
+          previous_hash: hash,
+          pending: current.pending ++ [event],
+          issue: issue
+      }
+
       {:ok, event, run_state}
     end
   rescue
@@ -136,33 +144,39 @@ defmodule SymphonyElixir.Audit.Outbox do
         state
 
       %{pending: pending, issue: issue} = run_state ->
-        batch_id = "batch_#{run_id}_#{hd(pending)["sequence"]}_#{List.last(pending)["sequence"]}"
-
-        request = %{
-          "operationId" => "append_#{batch_id}",
-          "batchId" => batch_id,
-          "repository" => repository_identity(issue),
-          "events" => pending
-        }
-
-        batch_path = Path.join([state.root, run_id, "batches", batch_id <> ".json"])
-        File.mkdir_p!(Path.dirname(batch_path))
-        atomic_write(batch_path, Jason.encode!(request))
-
-        case Client.append_audit_batch(request) do
-          {:ok, receipt} ->
-            receipt_path = Path.join([state.root, run_id, "receipts", batch_id <> ".json"])
-            File.mkdir_p!(Path.dirname(receipt_path))
-            atomic_write(receipt_path, Jason.encode!(receipt))
-            File.rm(batch_path)
-            Enum.each(pending, fn event -> File.rm(event_path(state.root, run_id, event)) end)
-            put_in(state, [:runs, run_id], %{run_state | pending: []})
-
-          {:error, reason} ->
-            Logger.warning("BOS audit flush deferred run_id=#{run_id}: #{inspect(reason)}")
-            state
-        end
+        flush_pending_batch(state, run_id, run_state, issue, pending)
     end
+  end
+
+  defp flush_pending_batch(state, run_id, run_state, issue, pending) do
+    batch_id = "batch_#{run_id}_#{hd(pending)["sequence"]}_#{List.last(pending)["sequence"]}"
+
+    request = %{
+      "operationId" => "append_#{batch_id}",
+      "batchId" => batch_id,
+      "repository" => repository_identity(issue),
+      "events" => pending
+    }
+
+    batch_path = Path.join([state.root, run_id, "batches", batch_id <> ".json"])
+    File.mkdir_p!(Path.dirname(batch_path))
+    atomic_write(batch_path, Jason.encode!(request))
+
+    persist_batch_result(Client.append_audit_batch(request), state, run_id, run_state, pending, batch_id, batch_path)
+  end
+
+  defp persist_batch_result({:ok, receipt}, state, run_id, run_state, pending, batch_id, batch_path) do
+    receipt_path = Path.join([state.root, run_id, "receipts", batch_id <> ".json"])
+    File.mkdir_p!(Path.dirname(receipt_path))
+    atomic_write(receipt_path, Jason.encode!(receipt))
+    File.rm(batch_path)
+    Enum.each(pending, fn event -> File.rm(event_path(state.root, run_id, event)) end)
+    put_in(state, [:runs, run_id], %{run_state | pending: []})
+  end
+
+  defp persist_batch_result({:error, reason}, state, run_id, _run_state, _pending, _batch_id, _batch_path) do
+    Logger.warning("BOS audit flush deferred run_id=#{run_id}: #{inspect(reason)}")
+    state
   end
 
   defp repository_identity(%Issue{native_ref: native_ref}) do
