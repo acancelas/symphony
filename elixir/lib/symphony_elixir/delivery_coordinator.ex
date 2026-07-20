@@ -24,48 +24,63 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     roles = Keyword.get(opts, :review_roles, @review_roles)
     max_cycles = Keyword.get(opts, :max_repair_cycles, @max_repair_cycles)
 
-    with :ok <- review_and_repair(workspace, issue, recipient, worker_host, app_server, client, roles, 1, max_cycles),
-         :ok <- run_finalizer(workspace, issue, recipient, worker_host, app_server) do
-      :ok
+    context = %{
+      workspace: workspace,
+      issue: issue,
+      recipient: recipient,
+      worker_host: worker_host,
+      app_server: app_server,
+      client: client,
+      roles: roles
+    }
+
+    with :ok <- review_and_repair(context, 1, max_cycles) do
+      run_finalizer(workspace, issue, recipient, worker_host, app_server)
     end
   end
 
-  defp review_and_repair(workspace, issue, recipient, worker_host, app_server, client, roles, cycle, max_cycles) do
-    with :ok <- run_reviews(workspace, issue, recipient, worker_host, app_server, roles, cycle),
-         {:ok, reviews} <- fetch_cycle_reviews(client, issue, roles, cycle) do
-      if Enum.all?(reviews, &(&1["status"] == "passed")) do
-        :ok
-      else
-        if cycle >= max_cycles do
-          findings = summarize_findings(reviews)
+  defp review_and_repair(context, cycle, max_cycles) do
+    with :ok <- run_reviews(context, cycle),
+         {:ok, reviews} <- fetch_cycle_reviews(context.client, context.issue, context.roles, cycle) do
+      handle_reviews(context, reviews, cycle, max_cycles)
+    end
+  end
 
-          with :ok <- run_escalation(workspace, issue, recipient, worker_host, app_server, findings, cycle) do
-            {:error, {:review_repair_limit_reached, findings}}
-          end
-        else
-          with :ok <- run_repair(workspace, issue, recipient, worker_host, app_server, reviews, cycle) do
-            review_and_repair(
-              workspace,
-              issue,
-              recipient,
-              worker_host,
-              app_server,
-              client,
-              roles,
-              cycle + 1,
-              max_cycles
-            )
-          end
-        end
+  defp handle_reviews(context, reviews, cycle, max_cycles) do
+    if Enum.all?(reviews, &(&1["status"] == "passed")) do
+      :ok
+    else
+      continue_review_cycle(context, reviews, cycle, max_cycles)
+    end
+  end
+
+  defp continue_review_cycle(context, reviews, cycle, max_cycles) do
+    findings = summarize_findings(reviews)
+
+    if cycle >= max_cycles do
+      with :ok <- run_escalation(context, findings, cycle) do
+        {:error, {:review_repair_limit_reached, findings}}
+      end
+    else
+      with :ok <- run_repair(context, reviews, cycle) do
+        review_and_repair(context, cycle + 1, max_cycles)
       end
     end
   end
 
-  defp run_reviews(workspace, issue, recipient, worker_host, app_server, roles, cycle) do
-    Enum.reduce_while(roles, :ok, fn role, :ok ->
-      prompt = review_prompt(issue, role, cycle)
+  defp run_reviews(context, cycle) do
+    Enum.reduce_while(context.roles, :ok, fn role, :ok ->
+      prompt = review_prompt(context.issue, role, cycle)
 
-      case run_role(app_server, workspace, issue, worker_host, "#{role}-reviewer", prompt, recipient) do
+      case run_role(
+             context.app_server,
+             context.workspace,
+             context.issue,
+             context.worker_host,
+             "#{role}-reviewer",
+             prompt,
+             context.recipient
+           ) do
         :ok -> {:cont, :ok}
         {:error, reason} -> {:halt, {:error, {:reviewer_failed, role, reason}}}
       end
@@ -92,11 +107,11 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp run_repair(workspace, issue, recipient, worker_host, app_server, reviews, cycle) do
+  defp run_repair(context, reviews, cycle) do
     findings = summarize_findings(reviews)
 
     prompt = """
-    You are the BOS repair agent for #{issue.identifier}, repair cycle #{cycle}.
+    You are the BOS repair agent for #{context.issue.identifier}, repair cycle #{cycle}.
     Work only in the existing workspace and exact AgentRun. Review the durable
     findings below, inspect the current diff, implement every valid correction,
     run the complete repository validation, commit the repaired exact HEAD, and
@@ -107,7 +122,15 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     #{findings}
     """
 
-    run_role(app_server, workspace, issue, worker_host, "repair-agent", prompt, recipient)
+    run_role(
+      context.app_server,
+      context.workspace,
+      context.issue,
+      context.worker_host,
+      "repair-agent",
+      prompt,
+      context.recipient
+    )
   end
 
   defp run_finalizer(workspace, issue, recipient, worker_host, app_server) do
@@ -124,9 +147,9 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     run_role(app_server, workspace, issue, worker_host, "delivery-coordinator", prompt, recipient)
   end
 
-  defp run_escalation(workspace, issue, recipient, worker_host, app_server, findings, cycle) do
+  defp run_escalation(context, findings, cycle) do
     prompt = """
-    You are the BOS delivery coordinator for #{issue.identifier}. Independent
+    You are the BOS delivery coordinator for #{context.issue.identifier}. Independent
     review and repair exhausted #{cycle} bounded cycles. Record a durable blocker
     through bos_block_issue with the concrete unresolved findings below. Do not
     modify code, approve, merge, deploy, release, or start another Attempt.
@@ -135,7 +158,15 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     #{findings}
     """
 
-    run_role(app_server, workspace, issue, worker_host, "delivery-coordinator", prompt, recipient)
+    run_role(
+      context.app_server,
+      context.workspace,
+      context.issue,
+      context.worker_host,
+      "delivery-coordinator",
+      prompt,
+      context.recipient
+    )
   end
 
   defp run_role(app_server, workspace, issue, worker_host, actor, prompt, recipient) do
@@ -145,7 +176,9 @@ defmodule SymphonyElixir.DeliveryCoordinator do
              environment_overrides: [{"BOS_MCP_ACTOR", actor}]
            ) do
       try do
-        case app_server.run_turn(session, prompt, issue, on_message: fn message -> send_update(recipient, issue, actor, message) end) do
+        callback = fn message -> send_update(recipient, issue, actor, message) end
+
+        case app_server.run_turn(session, prompt, issue, on_message: callback) do
           {:ok, _turn} -> :ok
           {:error, reason} -> {:error, reason}
         end
@@ -175,11 +208,9 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   end
 
   defp summarize_findings(reviews) do
-    reviews
-    |> Enum.map(fn review ->
+    Enum.map_join(reviews, "\n", fn review ->
       "#{review["reviewType"]}: #{review["status"]} — #{review["summary"]}\n#{inspect(review["findings"] || [])}"
     end)
-    |> Enum.join("\n")
   end
 
   defp send_update(recipient, %Issue{id: issue_id}, actor, message)

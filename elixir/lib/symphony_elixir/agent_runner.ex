@@ -45,18 +45,16 @@ defmodule SymphonyElixir.AgentRunner do
 
       try do
         with :ok <- Workspace.run_before_run_hook(workspace, issue, worker_host) do
-          cond do
-            post_approval_issue?(issue) ->
-              PostApprovalCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
-
-            true ->
-              with :ok <- run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
-                if bos_delivery_issue?(issue) do
-                  DeliveryCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
-                else
-                  :ok
-                end
+          if post_approval_issue?(issue) do
+            PostApprovalCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
+          else
+            with :ok <- run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
+              if bos_delivery_issue?(issue) do
+                DeliveryCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
+              else
+                :ok
               end
+            end
           end
         end
       after

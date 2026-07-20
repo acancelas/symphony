@@ -5,8 +5,8 @@ defmodule SymphonyElixir.GameApi.Client do
   It has no GitHub token and never calls GitHub directly.
   """
 
-  alias SymphonyElixir.Config
   alias SymphonyElixir.Audit.CanonicalJson
+  alias SymphonyElixir.Config
   alias SymphonyElixir.Tracker.Issue
 
   @spec fetch_ready_issues() :: {:ok, [map()]} | {:error, term()}

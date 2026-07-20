@@ -349,47 +349,64 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp normalize_item_payload(method, item, sanitized, occurred_at) do
     type = String.downcase(to_string(item["type"] || ""))
 
-    cond do
-      String.contains?(type, "command") ->
-        command = normalize_command(item["command"] || item["parsedCmd"])
-        output = item["aggregatedOutput"] || item["output"] || item["stdout"]
-
-        %{
-          "commandId" => item["id"] || "command_unknown",
-          "command" => command || "[command unavailable]",
-          "workingDirectory" => normalize_optional_path(item["cwd"]),
-          "startedAt" => if(method == "item/started", do: occurred_at, else: item["startedAt"]),
-          "finishedAt" => if(method == "item/completed", do: occurred_at, else: nil),
-          "exitCode" => item["exitCode"],
-          "durationMs" => item["durationMs"] || item["duration_ms"],
-          "status" => item["status"],
-          "outputSummary" => output_summary(output),
-          "stdoutReference" => nil,
-          "stderrReference" => nil,
-          "environmentPolicy" => "restricted",
-          "redacted" => true,
-          "source" => sanitized
-        }
-
-      String.contains?(type, "mcp") or String.contains?(type, "tool") ->
-        %{
-          "toolCallId" => item["id"],
-          "tool" => item["name"] || item["tool"] || item["server"],
-          "status" => item["status"],
-          "source" => sanitized
-        }
-
-      true ->
-        sanitized
+    case item_kind(type) do
+      :command -> command_payload(method, item, sanitized, occurred_at)
+      :tool -> tool_payload(item, sanitized)
+      :other -> sanitized
     end
     |> drop_nil_values()
+  end
+
+  defp item_kind(type) do
+    cond do
+      String.contains?(type, "command") -> :command
+      String.contains?(type, "mcp") or String.contains?(type, "tool") -> :tool
+      true -> :other
+    end
+  end
+
+  defp command_payload(method, item, sanitized, occurred_at) do
+    command = normalize_command(item["command"] || item["parsedCmd"])
+    output = item["aggregatedOutput"] || item["output"] || item["stdout"]
+
+    %{
+      "commandId" => item["id"] || "command_unknown",
+      "command" => command || "[command unavailable]",
+      "workingDirectory" => normalize_optional_path(item["cwd"]),
+      "startedAt" => if(method == "item/started", do: occurred_at, else: item["startedAt"]),
+      "finishedAt" => if(method == "item/completed", do: occurred_at, else: nil),
+      "exitCode" => item["exitCode"],
+      "durationMs" => item["durationMs"] || item["duration_ms"],
+      "status" => item["status"],
+      "outputSummary" => output_summary(output),
+      "stdoutReference" => nil,
+      "stderrReference" => nil,
+      "environmentPolicy" => "restricted",
+      "redacted" => true,
+      "source" => sanitized
+    }
+  end
+
+  defp tool_payload(item, sanitized) do
+    %{
+      "toolCallId" => item["id"],
+      "tool" => item["name"] || item["tool"] || item["server"],
+      "status" => item["status"],
+      "source" => sanitized
+    }
   end
 
   defp codex_item(payload),
     do: get_in(payload, ["params", "item"]) || payload["item"]
 
   defp normalize_command(command) when is_binary(command), do: normalize_paths(command)
-  defp normalize_command(command) when is_list(command), do: command |> Enum.map(&to_string/1) |> Enum.join(" ") |> normalize_paths()
+
+  defp normalize_command(command) when is_list(command) do
+    command
+    |> Enum.map_join(" ", &to_string/1)
+    |> normalize_paths()
+  end
+
   defp normalize_command(_command), do: nil
 
   defp normalize_optional_path(path) when is_binary(path), do: normalize_paths(path)

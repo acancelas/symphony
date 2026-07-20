@@ -23,9 +23,8 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
          :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),
          {:ok, request} <- load_probe_request(workspace, issue),
          {:ok, receipt} <- client.record_runtime_probe(request),
-         :ok <- require_confirmed_receipt(receipt),
-         :ok <- run_release_turn(app_server, workspace, issue, recipient, worker_host) do
-      :ok
+         :ok <- require_confirmed_receipt(receipt) do
+      run_release_turn(app_server, workspace, issue, recipient, worker_host)
     end
   end
 
@@ -125,7 +124,9 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
              environment_overrides: [{"BOS_MCP_ACTOR", actor}]
            ) do
       try do
-        case app_server.run_turn(session, prompt, issue, on_message: fn message -> send_update(recipient, issue, actor, message) end) do
+        callback = fn message -> send_update(recipient, issue, actor, message) end
+
+        case app_server.run_turn(session, prompt, issue, on_message: callback) do
           {:ok, _turn} -> :ok
           {:error, reason} -> {:error, reason}
         end
