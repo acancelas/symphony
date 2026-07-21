@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3f057861-0526-4892-aed7-41507e44e7cf",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628908606_522",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:15:08.532Z",
+  "command": "/bin/bash -lc \"grep -RIn \\\"reviewId\\\\|reviewType\\\\|bos_record_review\\\" . --exclude-dir=.git --exclude='*.beam' 2>/dev/null | head -160\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./elixir/test/symphony_elixir/delivery_coordinator_test.exs:95:      \"reviewId\" => \"review_run_001_1_#{role}\",\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:96:      \"reviewType\" => role,\n./elixir/test/symphony_elixir/goal_planning_coordinator_test.exs:23:         \"review\" => %{\"reviewId\" => \"review_001\", \"status\" => \"passed\"}\n./elixir/lib/symphony_elixir/goal_planning_coordinator.ex:100:    #{native_ref[\"issueNumber\"]}, runId #{native_ref[\"runId\"]}, reviewId\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:100:          Enum.find(artifacts, &(&1[\"reviewId\"] == expected_ids[role]))\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:201:    bos_record_review with reviewId `review_#{run_id}_#{cycle}_#{role}`, runId\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:202:    `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:212:      \"#{review[\"reviewType\"]}: #{review[\"status\"]} — #{review[\"summary\"]}\\n#{inspect(review[\"findings\"] || [])}\"\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
