@@ -1,0 +1,52 @@
+{
+  "evidenceId": "evidence_symphony_12_integrated_7c654dc",
+  "runId": "run_12_1784633032713",
+  "commitSha": "7c654dccccc9855479f16831289d288e0eb42010",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "No-slot events consume no Attempt or retry budget",
+      "status": "passed",
+      "evidence": "Capacity entries remove retry state while retaining the current attempt identity."
+    },
+    {
+      "criterion": "Recovered work receives deterministic priority",
+      "status": "passed",
+      "evidence": "State, recovery membership, priority and creation-time ordering are tested across restart reconstruction."
+    },
+    {
+      "criterion": "agent:merging cannot starve behind agent:ready",
+      "status": "passed",
+      "evidence": "Delivery state ranking places merging, rework and running before ready work."
+    },
+    {
+      "criterion": "Queue state is observable",
+      "status": "passed",
+      "evidence": "API, terminal and LiveView expose count, position, reason and state."
+    },
+    {
+      "criterion": "Integrated Symphony gates pass",
+      "status": "passed",
+      "evidence": "320 tests, 0 failures, 2 intentional skips, 100 percent coverage, Credo and Dialyzer clean after merging current main."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all-integrated",
+      "status": "passed",
+      "tests": 320,
+      "coveragePercent": 100
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [],
+  "summary": "The capacity queue is validated together with every Symphony change already integrated into main."
+}
