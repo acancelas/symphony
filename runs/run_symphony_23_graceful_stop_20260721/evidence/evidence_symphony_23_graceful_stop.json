@@ -1,0 +1,54 @@
+{
+  "evidenceId": "evidence_symphony_23_graceful_stop",
+  "runId": "run_symphony_23_graceful_stop_20260721",
+  "commitSha": "406070d49289bf2ccf3cd2d930fd04f20bbd0243",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Service termination propagates a controlled shutdown to the orchestrator",
+      "status": "passed",
+      "evidence": "CLI signal handling explicitly stops the supervision tree and exits successfully."
+    },
+    {
+      "criterion": "Systemd stop is reported as success rather than failure",
+      "status": "passed",
+      "evidence": "CLI regression verifies shutdown returns :ok and the prior live candidate stopped with Result=success and ExecMainStatus=0."
+    },
+    {
+      "criterion": "Outbox and child processes receive the normal supervision shutdown path",
+      "status": "passed",
+      "evidence": "Application stop executes before the CLI process exits."
+    },
+    {
+      "criterion": "Full Symphony gate passes",
+      "status": "passed",
+      "evidence": "305 tests, 100% coverage, zero Credo issues and zero Dialyzer errors."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 305,
+      "coveragePercent": 100,
+      "credoIssues": 0,
+      "dialyzerErrors": 0
+    },
+    {
+      "name": "git-diff-check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "406070d49289bf2ccf3cd2d930fd04f20bbd0243"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-23"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Graceful service termination is implemented and validated on the exact rebased HEAD."
+}
