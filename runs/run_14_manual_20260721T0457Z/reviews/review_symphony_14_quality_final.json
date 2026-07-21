@@ -1,0 +1,13 @@
+{
+  "reviewId": "review_symphony_14_quality_final",
+  "runId": "run_14_manual_20260721T0457Z",
+  "reviewType": "quality",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "commitSha": "927666a5434c52298fd02d0152dd54e9e106db3f",
+  "status": "passed",
+  "findings": [],
+  "summary": "No blockers remain. The exact publishable commit passes 296 tests with 100% coverage, format, Credo and Dialyzer; the integrated runtime passes 297 tests."
+}
