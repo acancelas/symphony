@@ -11,6 +11,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   require Logger
 
   alias SymphonyElixir.Codex.AppServer
+  alias SymphonyElixir.CandidateHead
   alias SymphonyElixir.GameApi.Client
   alias SymphonyElixir.Tracker.Issue
 
@@ -48,6 +49,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     max_cycles = Keyword.get(opts, :max_repair_cycles, @max_repair_cycles)
     max_lookup_attempts = Keyword.get(opts, :max_review_lookup_attempts, @max_review_lookup_attempts)
     sleep_fn = Keyword.get(opts, :review_lookup_sleep, &Process.sleep/1)
+    candidate_head = Keyword.get(opts, :candidate_head_module, CandidateHead)
 
     context = %{
       workspace: workspace,
@@ -58,24 +60,32 @@ defmodule SymphonyElixir.DeliveryCoordinator do
       client: client,
       roles: roles,
       max_lookup_attempts: max_lookup_attempts,
-      sleep_fn: sleep_fn
+      sleep_fn: sleep_fn,
+      candidate_head: candidate_head
     }
 
-    with :ok <- review_and_repair(context, 1, max_cycles) do
-      run_finalizer(workspace, issue, recipient, worker_host, app_server)
+    with {:ok, _reviewed_candidate} <- review_and_repair(context, 1, max_cycles),
+         {:ok, final_candidate} <- candidate_head.confirm(workspace, issue, worker_host) do
+      run_finalizer(workspace, issue, recipient, worker_host, app_server, final_candidate)
     end
   end
 
   defp review_and_repair(context, cycle, max_cycles) do
-    with :ok <- run_reviews(context, cycle),
+    with {:ok, candidate} <-
+           context.candidate_head.confirm(
+             context.workspace,
+             context.issue,
+             context.worker_host
+           ),
+         :ok <- run_reviews(context, cycle, candidate),
          {:ok, reviews} <- fetch_cycle_reviews(context, cycle) do
-      handle_reviews(context, reviews, cycle, max_cycles)
+      handle_reviews(context, reviews, candidate, cycle, max_cycles)
     end
   end
 
-  defp handle_reviews(context, reviews, cycle, max_cycles) do
+  defp handle_reviews(context, reviews, candidate, cycle, max_cycles) do
     if Enum.all?(reviews, &(&1["status"] == "passed")) do
-      :ok
+      {:ok, candidate}
     else
       continue_review_cycle(context, reviews, cycle, max_cycles)
     end
@@ -95,31 +105,31 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp run_reviews(context, cycle) do
+  defp run_reviews(context, cycle, candidate) do
     Enum.reduce_while(context.roles, :ok, fn role, :ok ->
-      case run_or_reuse_review(context, role, cycle) do
+      case run_or_reuse_review(context, role, cycle, candidate) do
         :ok -> {:cont, :ok}
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
   end
 
-  defp run_or_reuse_review(context, role, cycle) do
+  defp run_or_reuse_review(context, role, cycle, candidate) do
     case review_recorded?(context, role, cycle) do
       {:ok, true} ->
         Logger.info("Reusing durable specialist Review role=#{role} cycle=#{cycle}")
         :ok
 
       {:ok, false} ->
-        run_review_until_durable(context, role, cycle, 1)
+        run_review_until_durable(context, role, cycle, candidate, 1)
 
       {:error, reason} ->
         {:error, {:review_lookup_failed, role, reason}}
     end
   end
 
-  defp run_review_until_durable(context, role, cycle, record_attempt) do
-    prompt = review_prompt(context.issue, role, cycle, record_attempt)
+  defp run_review_until_durable(context, role, cycle, candidate, record_attempt) do
+    prompt = review_prompt(context.issue, role, cycle, candidate, record_attempt)
 
     case run_role(
            context.app_server,
@@ -130,12 +140,12 @@ defmodule SymphonyElixir.DeliveryCoordinator do
            prompt,
            context.recipient
          ) do
-      :ok -> verify_or_retry_review(context, role, cycle, record_attempt)
+      :ok -> verify_or_retry_review(context, role, cycle, candidate, record_attempt)
       {:error, reason} -> {:error, {:reviewer_failed, role, reason}}
     end
   end
 
-  defp verify_or_retry_review(context, role, cycle, record_attempt) do
+  defp verify_or_retry_review(context, role, cycle, candidate, record_attempt) do
     case review_recorded?(context, role, cycle) do
       {:ok, true} ->
         :ok
@@ -143,7 +153,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
       {:ok, false} when record_attempt < @max_review_record_attempts ->
         Logger.warning("Reviewer ended without a durable artifact; retrying role=#{role} cycle=#{cycle} record_attempt=#{record_attempt + 1}")
 
-        run_review_until_durable(context, role, cycle, record_attempt + 1)
+        run_review_until_durable(context, role, cycle, candidate, record_attempt + 1)
 
       {:ok, false} ->
         {:error, {:review_artifact_missing, role, cycle}}
@@ -232,12 +242,14 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     )
   end
 
-  defp run_finalizer(workspace, issue, recipient, worker_host, app_server) do
+  defp run_finalizer(workspace, issue, recipient, worker_host, app_server, candidate) do
     prompt = """
     You are the BOS delivery coordinator for #{issue.identifier}. All five
     independent specialist Reviews have passed for the current repair cycle.
-    Re-read the exact HEAD, acceptance contract, checks, reviews and evidence
-    through bos-mcp. Ensure the PR exists for that HEAD, record the final
+    Re-read the exact confirmed candidate HEAD `#{candidate.head_sha}`, acceptance
+    contract, checks, reviews and evidence through bos-mcp. Confirm the remote
+    `#{candidate.branch}` branch still equals that SHA. Ensure the PR exists for
+    that HEAD, record the final
     EvidenceReport and Attempt outcome, then request only the next transition
     allowed by the configured risk and approval policy. Never grant Approval,
     lower risk, bypass checks, force merge, or fabricate deployment evidence.
@@ -287,19 +299,21 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp review_prompt(issue, role, cycle, record_attempt) do
+  defp review_prompt(issue, role, cycle, candidate, record_attempt) do
     native_ref = issue.native_ref || %{}
     run_id = native_ref["runId"]
     attempt_id = native_ref["attemptId"]
 
     """
     You are the independent BOS #{role} reviewer for #{issue.identifier}, cycle #{cycle}.
-    Begin with the compact delivery context, current diff, exact git HEAD and
-    existing evidence. Inspect only the repository instructions and files needed
-    to decide this review; do not repeatedly load broad context or rerun an
-    unchanged passing validation unless its evidence is missing, stale or
-    insufficient for the #{role} decision. Prefer targeted search and summaries
-    before full documents. Do not modify files, commits,
+    Begin with the compact delivery context, issue acceptance contract, current
+    diff, exact confirmed git HEAD `#{candidate.head_sha}` and existing evidence.
+    Confirm the local HEAD and remote `#{candidate.branch}` branch both still
+    equal that SHA. Inspect only the instructions and files needed to decide this
+    review; do not repeatedly load broad context or rerun an unchanged passing
+    validation unless its evidence is missing, stale or insufficient for the
+    #{role} decision. Prefer targeted search and summaries before full documents.
+    Do not modify files, commits,
     issue state, PR state, risk or approvals. Record exactly one typed Review via
     bos_record_review with reviewId `review_#{run_id}_#{cycle}_#{role}`, runId
     `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type
