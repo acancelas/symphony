@@ -1305,7 +1305,8 @@ defmodule SymphonyElixir.OrchestratorStatusTest do
     rendered = StatusDashboard.format_snapshot_content_for_test(snapshot_data, 0.0)
     plain = Regex.replace(~r/\e\[[0-9;]*m/, rendered, "")
 
-    assert plain =~ ~r/No active agents\r?\n│\s*\r?\n├─ Backoff queue/
+    assert plain =~
+             ~r/No active agents\r?\n│\s*\r?\n├─ Capacity queue.*No work waiting for capacity.*├─ Backoff queue/s
   end
 
   test "status dashboard adds a spacer line before backoff queue when agents are active" do

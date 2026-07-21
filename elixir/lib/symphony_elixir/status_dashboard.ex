@@ -314,6 +314,7 @@ defmodule SymphonyElixir.StatusDashboard do
           {:ok,
            %{
              running: running,
+             capacity_waiting: Map.get(snapshot, :capacity_waiting, []),
              retrying: retrying,
              codex_totals: codex_totals,
              rate_limits: Map.get(snapshot, :rate_limits),
@@ -344,6 +345,8 @@ defmodule SymphonyElixir.StatusDashboard do
         max_agents = Config.settings!().agent.max_concurrent_agents
         running_event_width = running_event_width(terminal_columns_override)
         running_rows = format_running_rows(running, running_event_width)
+        capacity_waiting = Map.get(snapshot, :capacity_waiting, [])
+        capacity_rows = format_capacity_rows(capacity_waiting)
         running_to_backoff_spacer = if(running == [], do: [], else: ["│"])
         backoff_rows = format_retry_rows(retrying)
 
@@ -372,6 +375,9 @@ defmodule SymphonyElixir.StatusDashboard do
          ] ++
            running_rows ++
            running_to_backoff_spacer ++
+           [colorize("├─ Capacity queue", @ansi_bold), "│"] ++
+           capacity_rows ++
+           ["│"] ++
            [colorize("├─ Backoff queue", @ansi_bold), "│"] ++
            backoff_rows ++
            [closing_border()])
@@ -560,6 +566,7 @@ defmodule SymphonyElixir.StatusDashboard do
           {:ok,
            %{
              running: running,
+             capacity_waiting: Map.get(snapshot, :capacity_waiting, []),
              retrying: retrying,
              codex_totals: codex_totals,
              rate_limits: Map.get(snapshot, :rate_limits),
@@ -654,6 +661,25 @@ defmodule SymphonyElixir.StatusDashboard do
       |> Enum.sort_by(& &1.due_in_ms)
       |> Enum.map_join(", ", &format_retry_summary/1)
       |> String.split(", ")
+    end
+  end
+
+  defp format_capacity_rows(waiting) do
+    if waiting == [] do
+      ["│  " <> colorize("No work waiting for capacity", @ansi_gray)]
+    else
+      Enum.map(waiting, fn entry ->
+        identifier = entry.identifier || entry.issue_id || "unknown"
+        position = entry.position || 0
+        reason = entry.reason || "waiting for execution capacity"
+
+        "│  " <>
+          colorize("↥", @ansi_orange) <>
+          " " <>
+          colorize(identifier, @ansi_yellow) <>
+          colorize(" position=#{position} ", @ansi_cyan) <>
+          colorize(reason, @ansi_dim)
+      end)
     end
   end
 
