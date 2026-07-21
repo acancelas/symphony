@@ -1,0 +1,18 @@
+{
+  "runId": "run_symphony_28_reconciliation_cycle_20260721",
+  "issueNumber": 28,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "github:acancelas"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "ff1b82f6"
+  },
+  "startedAt": "2026-07-21T19:10:00Z",
+  "branch": "bos/issue-28",
+  "currentAttemptId": "attempt_run_symphony_28_reconciliation_cycle_20260721_1"
+}
