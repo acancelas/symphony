@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-166aa2c4-25e4-4759-b9d8-315ce8be9053",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629410027_806",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:23:30.935Z",
+  "command": "/bin/bash -lc \"grep -RInE \\\"fetch_pull_request|pull-requests/[#\\\\{]|expectedHeadSha|\\\\\\\"head\\\\\\\".*\\\\\\\"sha\\\\\\\"|headSha\\\" elixir/lib elixir/test SPEC.md README.md WORKFLOW.md .bos/project.yaml | head -n 240\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/post_approval_coordinator.ex:67:           \"expectedHeadSha\" => head_sha\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:106:    runId, issueNumber, pullRequestNumber, and expectedHeadSha. Do not create a\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:113:    pullRequest with number, headSha, state, and draft from the confirmed result,\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:153:         pull_request[\"headSha\"] == handoff[\"expectedHeadSha\"] and\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:165:           client.fetch_pull_request(readiness[\"repositoryId\"], readiness[\"pullRequestNumber\"]) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:175:         get_in(pull_request, [\"head\", \"sha\"]) == readiness[\"expectedHeadSha\"] and\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:185:      ~w(schemaVersion operationId repositoryId issueNumber runId pullRequestNumber expectedHeadSha),\nelixir/lib/symphony_elixir/game_api/client.ex:133:          \"expectedHeadSha\" => readiness[\"expectedHeadSha\"]\nelixir/lib/symphony_elixir/game_api/client.ex:139:  @spec fetch_pull_request(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\nelixir/lib/symphony_elixir/game_api/client.ex:140:  def fetch_pull_request(repository_id, pull_request_number)\nelixir/lib/symphony_elixir/game_api/client.ex:143:      request(:get, \"/v1/internal/bos/github/pull-requests/#{pull_request_number}\", params: repository_query(repository))\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:79:          \"headSha\" => intent[\"expectedHeadSha\"],\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:99:    def fetch_pull_request(\"bos-front\", 17) do\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:103:         \"head\" => %{\"sha\" => \"a1b2c3d4\"},\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:219:      \"expectedHeadSha\" => \"a1b2c3d4\",\nelixir/test/symphony_elixir/post_approval_coordina",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
