@@ -1,0 +1,33 @@
+{
+  "reviewId": "review_run_10_1784616755042_2_security",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "c3554e69d100bbf2a0fe5ec4badfbd8459138dc4",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "none",
+      "area": "authorization-boundary",
+      "finding": "Agent-writable readiness handoff is not trusted as authorization: Symphony replays the deterministic readiness operation through GameApi.Client, requires a completed durable receipt, and independently fetches the normalized pull request before starting the merge-capable deployment-verifier role.",
+      "evidence": "post_approval_coordinator.ex confirm_authoritative_readiness/2 and validate_current_pull_request/2; exact-commit adversarial fabricated-confirmation test passed."
+    },
+    {
+      "severity": "none",
+      "area": "exact-head-and-state-validation",
+      "finding": "Readiness remains bound to the AgentRun repository, issue, run, pull request number, and exact head SHA; current PR state must be open and non-draft. Stale HEAD, closed PR, provider failure, malformed handoff, or unconfirmed receipt fail closed before merge/deployment.",
+      "evidence": "readiness_identity/2, readiness_identity_matches?/2, readiness_outcome/1, validate_readiness_receipt/1, and exact-commit targeted/full-suite evidence."
+    },
+    {
+      "severity": "none",
+      "area": "credential-and-provider-isolation",
+      "finding": "The change adds only game-api internal endpoints via GameApi.Client and introduces no direct GitHub REST/GraphQL access or GitHub credential handling in Symphony.",
+      "evidence": "Diff from origin/main at c3554e69d100bbf2a0fe5ec4badfbd8459138dc4 changes three files and routes readiness mutation/readback through GameApi.Client."
+    }
+  ],
+  "summary": "Passed: exact-commit evidence and targeted source review affirm that PR readiness is idempotent, exact-HEAD-bound, authoritative through game-api, and fail-closed against forged workspace handoffs before any merge-capable role starts."
+}
