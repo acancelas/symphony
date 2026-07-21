@@ -11,7 +11,7 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     @spec fetch_issues_by_states([String.t()]) :: {:ok, [map()]}
     def fetch_issues_by_states(_states) do
       {:ok,
-       [
+       Application.get_env(:symphony_elixir, :game_api_test_issues, [
          %{
            "number" => 42,
            "title" => "Implement BOS Delivery",
@@ -22,7 +22,7 @@ defmodule SymphonyElixir.GameApiAdapterTest do
            "claim" => nil,
            "_repositoryId" => "bos-front"
          }
-       ]}
+       ])}
     end
 
     @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()}
@@ -41,6 +41,16 @@ defmodule SymphonyElixir.GameApiAdapterTest do
        }}
     end
 
+    def claim_issue("game-api", 80, "run_80_existing") do
+      {:ok,
+       %{
+         "status" => "completed",
+         "disposition" => "resume_run",
+         "claim" => %{"runId" => "run_80_existing", "runnerId" => "x1"},
+         "issue" => %{"labels" => ["bos:issue", "agent:running"]}
+       }}
+    end
+
     @spec start_execution(SymphonyElixir.Tracker.Issue.t(), pos_integer()) ::
             {:ok, String.t()}
     def start_execution(%SymphonyElixir.Tracker.Issue{native_ref: %{"runId" => "run_42_001"}}, 1) do
@@ -53,6 +63,8 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     Application.put_env(:symphony_elixir, :game_api_client_module, FakeClient)
 
     on_exit(fn ->
+      Application.delete_env(:symphony_elixir, :game_api_test_issues)
+
       if previous_client do
         Application.put_env(:symphony_elixir, :game_api_client_module, previous_client)
       else
@@ -69,6 +81,37 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert issue.identifier == "bos-front-42"
     assert issue.state == "agent:ready"
     assert issue.dispatchable
+  end
+
+  test "preserves the exact run identity for an expired running claim" do
+    Application.put_env(:symphony_elixir, :game_api_test_issues, [
+      %{
+        "number" => 80,
+        "title" => "Recover repository settings",
+        "body" => "Resume the exact AgentRun",
+        "labels" => ["bos:issue", "agent:running"],
+        "url" => "https://github.test/issues/80",
+        "updatedAt" => "2026-07-21T03:00:00Z",
+        "claim" => %{
+          "runId" => "run_80_existing",
+          "runnerId" => "x1",
+          "leaseExpiresAt" => "2026-07-21T03:15:00Z"
+        },
+        "_repositoryId" => "game-api",
+        "_repositoryCloneUrl" => "git@github.com:acancelas/game-api.git"
+      }
+    ])
+
+    assert {:ok, [issue]} = Adapter.fetch_issues_by_states(["agent:running"])
+
+    assert issue.state == "agent:running"
+    assert issue.dispatchable
+    assert issue.native_ref["runId"] == "run_80_existing"
+    assert issue.native_ref["repositoryId"] == "game-api"
+
+    assert {:ok, resumed} = Adapter.claim_issue(issue)
+    assert resumed.native_ref["runId"] == "run_80_existing"
+    assert resumed.state == "agent:running"
   end
 
   test "claims through game-api before dispatch" do
