@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-5c34c356-42bf-443a-b44f-aad3a7dbd241",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628748625_408",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:12:28.545Z",
+  "command": "/bin/bash -lc \"git status --short --branch && git log -1 --format='%H%n%s%n%b'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-10\n1908764463438ee5658223e8be87e5c1237cfa7d\nfeat(delivery): promote draft PR before merge\nSummary:\n- add an exact-HEAD readiness gate to the post-approval lifecycle\n- persist and validate idempotent readiness handoffs across restarts\n- cover response loss, stale HEAD, closed PR, and provider failures\n\nRationale:\n- approved draft pull requests must become ready before policy merge\n- deterministic operation identity prevents duplicate provider mutations\n\nTests:\n- cd elixir && mise exec -- mix test\n- cd elixir && make all\n\nCo-authored-by: Codex <codex@openai.com>\n\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
