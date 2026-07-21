@@ -1,0 +1,15 @@
+{
+  "attemptId": "attempt_run_13_manual_20260721T0416Z_1",
+  "runId": "run_13_manual_20260721T0416Z",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp_internal_token"
+  },
+  "startedAt": "2026-07-21T04:16:00Z",
+  "reason": "Manual Remote Control execution to bootstrap portable Symphony BOS context and implement expired-claim recovery.",
+  "metrics": {}
+}
