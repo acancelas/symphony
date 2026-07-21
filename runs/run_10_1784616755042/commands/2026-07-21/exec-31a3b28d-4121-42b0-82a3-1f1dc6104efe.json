@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-31a3b28d-4121-42b0-82a3-1f1dc6104efe",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628833672_467",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:13:53.672Z",
+  "command": "/bin/bash -lc \"rg -n \\\"post.?approval|pull-request-readiness|deployment-verifier|BOS_MCP_ACTOR|mark_pull_request_ready|request_merge|\\\\.bos-local\\\" README.md SPEC.md elixir/README.md WORKFLOW.md elixir/lib elixir/test | head -n 240 && sed -n '200,320p' elixir/lib/symphony_elixir/post_approval_coordinator.ex && rg -n \\\"def fetch_run|headCommit|pullRequestNumber\\\" elixir/lib/symphony_elixir\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n    criticalDependencies, stability, residualRisk, and evidenceReferences.\n    Do not call the runner-only probe endpoint, record final DeploymentVerification,\n    create a Release, or mark the Issue done. If verification fails, encode the\n    real failed status and evidence; never manufacture a passed result.\n    \"\"\"\n\n    run_role(app_server, workspace, issue, worker_host, \"deployment-verifier\", prompt, recipient)\n  end\n\n  defp run_release_turn(app_server, workspace, issue, recipient, worker_host) do\n    prompt = \"\"\"\n    You are the BOS release manager for #{issue.identifier}. Symphony has now\n    persisted the runner-authenticated DeploymentRuntimeProbe. Retrieve that\n    probe and the provider inspection through bos-mcp. Record the final\n    DeploymentVerification only when their exact commit, deployment, environment,\n    provider result and runtime fields agree. Only a passed verification may\n    complete the Deployment or Release. Create the GitHub Release when required,\n    record learnings, finalize the AgentRun and Attempt, and transition the Issue\n    from agent:merging to agent:done. On any mismatch or failed/inconclusive probe,\n    diagnose and perform only the controlled retry or rollback allowed by policy;\n    every rollback requires a new full verification. Never fabricate evidence or\n    bypass the human Approval and exact-HEAD checks.\n    \"\"\"\n\n    run_role(app_server, workspace, issue, worker_host, \"release-manager\", prompt, recipient)\n  end\n\n  defp load_probe_request(workspace, %Issue{native_ref: native_ref}) do\n    path = Path.join(workspace, @probe_path)\n\n    with {:ok, stat} <- File.lstat(path),\n         true <- stat.type == :regular || {:error, :probe_handoff_not_regular},\n         true <- stat.size <= 1_000_000 || {:error, :probe_handoff_too_large},\n         {:ok, content} <- File.read(path),\n         {:ok, probe} when is_map(probe) <- Jason.decode(content),\n         :ok <- validate_probe_identity(probe,",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "long"
+  }
+}
