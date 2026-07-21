@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d74ad0f6-42fd-4fe6-ba2c-848229b77458",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629350643_761",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:22:30.493Z",
+  "command": "/bin/bash -lc 'git rev-parse HEAD && git status --short && git show --stat --oneline --decorate HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "c3554e69d100bbf2a0fe5ec4badfbd8459138dc4\nc3554e6 (HEAD -> bos/issue-10) fix(delivery): verify PR readiness through game-api\n elixir/lib/symphony_elixir/game_api/client.ex      | 24 +++++++++\n .../symphony_elixir/post_approval_coordinator.ex   | 35 ++++++++++---\n .../post_approval_coordinator_test.exs             | 57 ++++++++++++++++++++++\n 3 files changed, 110 insertions(+), 6 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
