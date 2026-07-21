@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run_symphony_28_reconciliation_cycle_20260721",
+  "issueNumber": 28,
+  "pullRequestNumber": 29,
+  "expectedHeadSha": "f44719b4614ba88160ae36bb282200bb18583b3a",
+  "status": "requested"
+}
