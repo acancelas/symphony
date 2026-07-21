@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-00f78d93-b784-44ce-88b8-37b339fb2819",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628022521_24",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:00:22.353Z",
+  "command": "/bin/bash -lc \"sed -n '1,240p' AGENTS.md && sed -n '1,280p' WORKFLOW.md && sed -n '1,240p' .bos/project.yaml && sed -n '1,220p' README.md && sed -n '1,260p' SPEC.md && sed -n '1,240p' elixir/README.md\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "# BOS Symphony Agent Instructions\n\nThis repository is the BOS-maintained Symphony fork used by the X1 delivery orchestrator.\n\n## Read First\n\n1. `README.md`\n2. `SPEC.md`\n3. `elixir/README.md`\n4. `WORKFLOW.md`\n5. `.bos/project.yaml`\n6. Nearby source and tests\n\n## Operating Rules\n\n- Preserve upstream Symphony concepts unless the BOS architecture requires a deliberate specialization.\n- Use `GameApiTrackerAdapter`; Symphony must not call GitHub REST/GraphQL or hold GitHub credentials.\n- Use `bos-mcp` as Codex's exclusive interface for BOS context and durable Delivery operations.\n- Keep runner credentials, tokens, and X1 paths in secure host or service configuration.\n- Preserve outbox durability, idempotent recovery, automatic command auditing, and exact actor identity.\n- Run the required checks in `.bos/project.yaml` after changes.\n- A deployment, release, or rollback is incomplete until its exact-commit `DeploymentVerification` passes.\n# BOS Delivery Workflow\n\nUse `bos-mcp` for all product context and durable Delivery operations. Do not call GitHub REST/GraphQL, `gh`, or BOS Delivery endpoints directly from Codex.\n\nBefore starting an Issue, recover existing state and resume any active AgentRun, Attempt, workspace, branch, or pull request. Work only on the issue branch, execute every required command from `.bos/project.yaml`, review the diff, and record evidence against the exact commit.\n\nDeployment, release, and rollback remain incomplete until `DeploymentVerification` is `passed`. Credentials, host-specific paths, and X1 runtime configuration belong in secure user or service configuration, never in this repository.\nschemaVersion: 1\nprojectId: bos\nrepositoryId: symphony\nworkflowId: bos-autonomous-delivery\nremote: https://github.com/acancelas/symphony\ndelivery:\n  issueProvider: github\n  issueRequired: true\n  branchStrategy: issue-based\nquality:\n  commands:\n    - id: test\n      runner: shell\n      script: cd elixir && mise exec -- mix test\n      required: true\n      timeo",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
