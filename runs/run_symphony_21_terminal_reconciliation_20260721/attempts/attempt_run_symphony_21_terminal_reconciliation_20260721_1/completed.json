@@ -1,0 +1,20 @@
+{
+  "attemptId": "attempt_run_symphony_21_terminal_reconciliation_20260721_1",
+  "runId": "run_symphony_21_terminal_reconciliation_20260721",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-21T18:41:00Z",
+  "completedAt": "2026-07-21T18:42:00Z",
+  "reason": "Rebased exact-HEAD implementation and quality gate completed.",
+  "summary": "Symphony now reconciles stale terminal AgentRuns through the canonical game-api contracts at startup and during polling.",
+  "metrics": {
+    "testsPassed": 301,
+    "coveragePercent": 100,
+    "credoIssues": 0,
+    "dialyzerErrors": 0
+  }
+}
