@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-92e9b6bf-8a6a-4cb2-9e47-7366b1eef363",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629707092_996",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:28:26.583Z",
+  "command": "/bin/bash -lc \"sed -n '80,110p' elixir/test/symphony_elixir/delivery_coordinator_test.exs && sed -n '185,210p' elixir/lib/symphony_elixir/delivery_coordinator.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "  end\n\n  defp collect_actors(0, actors), do: Enum.reverse(actors)\n\n  defp collect_actors(remaining, actors) do\n    receive do\n      {:session_started, actor} -> collect_actors(remaining - 1, [actor | actors])\n      {:turn, _actor, _prompt} -> collect_actors(remaining, actors)\n    after\n      1_000 -> flunk(\"expected #{remaining} additional role sessions\")\n    end\n  end\n\n  defp review(role, status) do\n    %{\n      \"reviewId\" => \"review_run_001_1_#{role}\",\n      \"reviewType\" => role,\n      \"status\" => status,\n      \"summary\" => \"#{role} result\",\n      \"findings\" => []\n    }\n  end\n\n  defp issue do\n    %Issue{\n      id: \"bos-front#42\",\n      identifier: \"bos-front-42\",\n      title: \"Delivery\",\n      state: \"agent:running\",\n      branch_name: \"bos/issue-42\",\n      native_ref: %{\n      after\n        app_server.stop_session(session)\n      end\n    end\n  end\n\n  defp review_prompt(issue, role, cycle) do\n    native_ref = issue.native_ref || %{}\n    run_id = native_ref[\"runId\"]\n    attempt_id = native_ref[\"attemptId\"]\n\n    \"\"\"\n    You are the independent BOS #{role} reviewer for #{issue.identifier}, cycle #{cycle}.\n    Inspect the issue acceptance contract, repository instructions, current diff,\n    exact git HEAD, tests and existing evidence. Do not modify files, commits,\n    issue state, PR state, risk or approvals. Record exactly one typed Review via\n    bos_record_review with reviewId `review_#{run_id}_#{cycle}_#{role}`, runId\n    `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type\n    `agent` and subjectId `#{role}-reviewer`, the exact HEAD SHA, a status of\n    `passed`, `changes_requested`, or `inconclusive`, concrete findings, and a\n    concise summary. Passing requires affirmative evidence; missing evidence is\n    inconclusive. End after the durable Review receipt is confirmed.\n    \"\"\"\n  end\n\n  defp summarize_findings(reviews) do\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
