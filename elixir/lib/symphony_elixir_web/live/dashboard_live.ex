@@ -86,6 +86,12 @@ defmodule SymphonyElixirWeb.DashboardLive do
           </article>
 
           <article class="metric-card">
+            <p class="metric-label">Capacity queue</p>
+            <p class="metric-value numeric"><%= @payload.counts.capacity_waiting %></p>
+            <p class="metric-detail">Eligible work waiting for an execution slot.</p>
+          </article>
+
+          <article class="metric-card">
             <p class="metric-label">Retrying</p>
             <p class="metric-value numeric"><%= @payload.counts.retrying %></p>
             <p class="metric-detail">Issues waiting for the next retry window.</p>
@@ -112,6 +118,45 @@ defmodule SymphonyElixirWeb.DashboardLive do
             <p class="metric-value numeric"><%= format_runtime_seconds(total_runtime_seconds(@payload, @now)) %></p>
             <p class="metric-detail">Total Codex runtime across completed and active sessions.</p>
           </article>
+        </section>
+
+        <section class="section-card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Capacity queue</h2>
+              <p class="section-copy">Ordered work that has not consumed an Attempt or retry budget.</p>
+            </div>
+          </div>
+
+          <%= if @payload.capacity_waiting == [] do %>
+            <p class="empty-state">No issues are waiting for capacity.</p>
+          <% else %>
+            <div class="table-wrap">
+              <table class="data-table" style="min-width: 680px;">
+                <thead>
+                  <tr>
+                    <th>Position</th>
+                    <th>Issue</th>
+                    <th>State</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr :for={entry <- @payload.capacity_waiting}>
+                    <td class="numeric"><%= entry.position %></td>
+                    <td>
+                      <div class="issue-stack">
+                        <.issue_identifier identifier={entry.issue_identifier} url={entry.issue_url} />
+                        <a class="issue-link" href={"/api/v1/#{entry.issue_identifier}"}>JSON details</a>
+                      </div>
+                    </td>
+                    <td><span class={state_badge_class(entry.state)}><%= entry.state %></span></td>
+                    <td><%= entry.reason %></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          <% end %>
         </section>
 
         <section class="section-card">

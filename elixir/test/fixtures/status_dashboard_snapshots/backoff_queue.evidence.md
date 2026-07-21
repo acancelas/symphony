@@ -13,6 +13,10 @@
 │   ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
 │ ● MT-638   retrying       4242     20m 25s / 7      14,200 thre...567890  agent message streaming: waiting on ...
 │
+├─ Capacity queue
+│
+│  No work waiting for capacity
+│
 ├─ Backoff queue
 │
 │  ↻ MT-450 attempt=4 in 1.250s error=rate limit exhausted

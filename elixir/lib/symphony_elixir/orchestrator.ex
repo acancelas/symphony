@@ -43,6 +43,7 @@ defmodule SymphonyElixir.Orchestrator do
       completed: MapSet.new(),
       claimed: MapSet.new(),
       blocked: %{},
+      capacity_waiting: %{},
       retry_attempts: %{},
       codex_totals: nil,
       codex_rate_limits: nil
@@ -288,8 +289,7 @@ defmodule SymphonyElixir.Orchestrator do
       |> reconcile_blocked_issues()
 
     with :ok <- Config.validate!(),
-         {:ok, issues} <- Tracker.fetch_issues_by_states(Config.settings!().tracker.active_states),
-         true <- available_slots(state) > 0 do
+         {:ok, issues} <- Tracker.fetch_issues_by_states(Config.settings!().tracker.active_states) do
       choose_issues(issues, state)
     else
       {:error, :missing_linear_api_token} ->
@@ -328,9 +328,6 @@ defmodule SymphonyElixir.Orchestrator do
 
       {:error, reason} ->
         Logger.error("Failed to fetch from issue tracker: #{inspect(reason)}")
-        state
-
-      false ->
         state
     end
   end
@@ -426,7 +423,20 @@ defmodule SymphonyElixir.Orchestrator do
   @doc false
   @spec sort_issues_for_dispatch_for_test([Issue.t()]) :: [Issue.t()]
   def sort_issues_for_dispatch_for_test(issues) when is_list(issues) do
-    sort_issues_for_dispatch(issues)
+    sort_issues_for_dispatch(issues, %State{})
+  end
+
+  @doc false
+  @spec sort_issues_for_dispatch_for_test([Issue.t()], term()) :: [Issue.t()]
+  def sort_issues_for_dispatch_for_test(issues, %State{} = state) when is_list(issues) do
+    sort_issues_for_dispatch(issues, state)
+  end
+
+  @doc false
+  @spec queue_capacity_wait_for_test(term(), Issue.t(), non_neg_integer() | nil, map()) :: term()
+  def queue_capacity_wait_for_test(%State{} = state, %Issue{} = issue, attempt, metadata)
+      when (is_integer(attempt) or is_nil(attempt)) and is_map(metadata) do
+    queue_for_capacity(state, issue, attempt, metadata)
   end
 
   @doc false
@@ -812,24 +822,75 @@ defmodule SymphonyElixir.Orchestrator do
     terminal_states = terminal_state_set()
 
     issues
-    |> sort_issues_for_dispatch()
+    |> sort_issues_for_dispatch(state)
     |> Enum.reduce(state, fn issue, state_acc ->
       if should_dispatch_issue?(issue, state_acc, active_states, terminal_states) do
         dispatch_issue(state_acc, issue)
       else
-        state_acc
+        maybe_queue_capacity_candidate(state_acc, issue, active_states, terminal_states)
       end
     end)
   end
 
-  defp sort_issues_for_dispatch(issues) when is_list(issues) do
+  defp maybe_queue_capacity_candidate(state, issue, active_states, terminal_states) do
+    if capacity_candidate_issue?(issue, state, active_states, terminal_states) and
+         capacity_blocked?(issue, state) do
+      queue_for_capacity(state, issue, nil, %{})
+    else
+      state
+    end
+  end
+
+  defp capacity_candidate_issue?(
+         %Issue{} = issue,
+         %State{running: running, claimed: claimed, blocked: blocked},
+         active_states,
+         terminal_states
+       ) do
+    candidate_issue?(issue, active_states, terminal_states) and
+      !MapSet.member?(claimed, issue.id) and
+      !Map.has_key?(running, issue.id) and
+      !Map.has_key?(blocked, issue.id)
+  end
+
+  defp capacity_candidate_issue?(_issue, _state, _active_states, _terminal_states), do: false
+
+  defp capacity_blocked?(issue, state) do
+    available_slots(state) <= 0 or
+      !state_slots_available?(issue, state.running) or
+      !worker_slots_available?(state)
+  end
+
+  defp sort_issues_for_dispatch(issues, %State{} = state) when is_list(issues) do
     Enum.sort_by(issues, fn
       %Issue{} = issue ->
-        {priority_rank(issue.priority), issue_created_at_sort_key(issue), issue.identifier || issue.id || ""}
+        {
+          delivery_state_rank(issue.state),
+          capacity_waiting_rank(issue, state),
+          priority_rank(issue.priority),
+          issue_created_at_sort_key(issue),
+          issue.identifier || issue.id || ""
+        }
 
       _ ->
-        {priority_rank(nil), issue_created_at_sort_key(nil), ""}
+        {9, 1, issue_created_at_sort_key(nil), priority_rank(nil), ""}
     end)
+  end
+
+  defp delivery_state_rank(state) when is_binary(state) do
+    case normalize_issue_state(state) do
+      "agent:merging" -> 0
+      "agent:rework" -> 1
+      "agent:running" -> 2
+      "agent:ready" -> 3
+      _ -> 4
+    end
+  end
+
+  defp delivery_state_rank(_state), do: 4
+
+  defp capacity_waiting_rank(%Issue{id: issue_id}, %State{capacity_waiting: waiting}) do
+    if Map.has_key?(waiting, issue_id), do: 0, else: 1
   end
 
   defp priority_rank(priority) when is_integer(priority) and priority in 1..4, do: priority
@@ -961,7 +1022,10 @@ defmodule SymphonyElixir.Orchestrator do
         case select_worker_host(state, preferred_worker_host) do
           :no_worker_capacity ->
             Logger.debug("No SSH worker slots available for #{issue_context(claimed_issue)} preferred_worker_host=#{inspect(preferred_worker_host)}")
-            state
+
+            queue_for_capacity(state, claimed_issue, attempt, %{
+              worker_host: preferred_worker_host
+            })
 
           worker_host ->
             spawn_issue_on_worker_host(state, claimed_issue, attempt, recipient, worker_host)
@@ -1014,6 +1078,7 @@ defmodule SymphonyElixir.Orchestrator do
         %{
           state
           | running: running,
+            capacity_waiting: Map.delete(state.capacity_waiting, issue.id),
             claimed: MapSet.put(state.claimed, issue.id),
             retry_attempts: Map.delete(state.retry_attempts, issue.id)
         }
@@ -1227,19 +1292,32 @@ defmodule SymphonyElixir.Orchestrator do
          worker_slots_available?(state, metadata[:worker_host]) do
       {:noreply, dispatch_issue(state, issue, attempt, metadata[:worker_host])}
     else
-      Logger.debug("No available slots for retrying #{issue_context(issue)}; retrying again")
+      Logger.debug("No available slots for retrying #{issue_context(issue)}; preserving queue position")
 
-      {:noreply,
-       schedule_issue_retry(
-         state,
-         issue.id,
-         attempt + 1,
-         Map.merge(metadata, %{
-           identifier: issue.identifier,
-           error: "no available orchestrator slots"
-         })
-       )}
+      {:noreply, queue_for_capacity(state, issue, attempt, metadata)}
     end
+  end
+
+  defp queue_for_capacity(%State{} = state, %Issue{} = issue, attempt, metadata) do
+    previous = Map.get(state.capacity_waiting, issue.id, %{})
+
+    entry = %{
+      issue: issue,
+      identifier: issue.identifier,
+      issue_url: issue.url,
+      attempt: attempt || Map.get(previous, :attempt),
+      worker_host: metadata[:worker_host] || Map.get(previous, :worker_host),
+      workspace_path: metadata[:workspace_path] || Map.get(previous, :workspace_path),
+      queued_at: Map.get(previous, :queued_at, DateTime.utc_now()),
+      reason: "waiting for execution capacity"
+    }
+
+    %{
+      state
+      | capacity_waiting: Map.put(state.capacity_waiting, issue.id, entry),
+        retry_attempts: Map.delete(state.retry_attempts, issue.id),
+        claimed: MapSet.delete(state.claimed, issue.id)
+    }
   end
 
   defp release_issue_claim(%State{} = state, issue_id) do
@@ -1247,6 +1325,7 @@ defmodule SymphonyElixir.Orchestrator do
       state
       | claimed: MapSet.delete(state.claimed, issue_id),
         blocked: Map.delete(state.blocked, issue_id),
+        capacity_waiting: Map.delete(state.capacity_waiting, issue_id),
         retry_attempts: Map.delete(state.retry_attempts, issue_id)
     }
   end
@@ -1479,6 +1558,35 @@ defmodule SymphonyElixir.Orchestrator do
         }
       end)
 
+    capacity_waiting =
+      state.capacity_waiting
+      |> Map.values()
+      |> Enum.sort_by(fn entry ->
+        issue = entry.issue
+
+        {
+          delivery_state_rank(issue.state),
+          issue_created_at_sort_key(issue),
+          priority_rank(issue.priority),
+          issue.identifier || issue.id || ""
+        }
+      end)
+      |> Enum.with_index(1)
+      |> Enum.map(fn {entry, position} ->
+        %{
+          issue_id: entry.issue.id,
+          identifier: entry.identifier,
+          issue_url: entry.issue_url,
+          state: entry.issue.state,
+          position: position,
+          attempt: entry.attempt,
+          reason: entry.reason,
+          worker_host: entry.worker_host,
+          workspace_path: entry.workspace_path,
+          queued_at: entry.queued_at
+        }
+      end)
+
     blocked =
       state.blocked
       |> Enum.map(fn {issue_id, metadata} ->
@@ -1501,6 +1609,7 @@ defmodule SymphonyElixir.Orchestrator do
     {:reply,
      %{
        running: running,
+       capacity_waiting: capacity_waiting,
        retrying: retrying,
        blocked: blocked,
        codex_totals: state.codex_totals,

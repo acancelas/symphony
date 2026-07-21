@@ -77,6 +77,12 @@ session, so Symphony resets its comparison watermark—not its cumulative totals
 role starts a fresh session. Operational token budgets should use uncached input while retaining
 the full totals for capacity and audit reporting.
 
+Lack of an execution slot is a queue condition, not a failed Attempt. Eligible work remains in a
+separate capacity queue without incrementing retry/backoff state. `agent:merging`, rework and
+recovered running work sort ahead of newly ready work; creation time provides deterministic FIFO
+ordering that can be reconstructed from the canonical tracker after a restart. The terminal and
+web dashboards expose queue position and reason separately from genuine retry failures.
+
 Before auto-approving a Codex command request, Symphony enforces the BOS integration boundary.
 Direct `gh` invocations—including absolute paths, `env`/`command` prefixes and nested shell
 wrappers—and direct `api.github.com` or GitHub GraphQL traffic are declined before process launch.

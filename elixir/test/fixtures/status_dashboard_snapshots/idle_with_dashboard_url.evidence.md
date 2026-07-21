@@ -14,6 +14,10 @@
 │   ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
 │  No active agents
 │
+├─ Capacity queue
+│
+│  No work waiting for capacity
+│
 ├─ Backoff queue
 │
 │  No queued retries
