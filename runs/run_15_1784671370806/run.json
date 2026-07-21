@@ -1,0 +1,18 @@
+{
+  "runId": "run_15_1784671370806",
+  "issueNumber": 15,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "runner",
+    "runnerId": "x1"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "0.0.1"
+  },
+  "startedAt": "2026-07-21T22:02:52.782000Z",
+  "branch": "bos/issue-15",
+  "currentAttemptId": "attempt_run_15_1784671370806_1"
+}
