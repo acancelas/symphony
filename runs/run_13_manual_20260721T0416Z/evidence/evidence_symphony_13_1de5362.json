@@ -1,0 +1,68 @@
+{
+  "evidenceId": "evidence_symphony_13_1de5362",
+  "runId": "run_13_manual_20260721T0416Z",
+  "commitSha": "1de53620dc77f2755741b62b39b1d225bc37c961",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "An expired agent:running claim cannot disappear from the scheduler",
+      "status": "passed",
+      "evidence": "Eligible running claims preserve the canonical runId and remain dispatchable."
+    },
+    {
+      "criterion": "A restart with no local workspace reconstructs from GitHub state",
+      "status": "passed",
+      "evidence": "start_execution resolves the confirmed run and attempt before Workspace.create_for_issue; workspaces remain reconstructible runtime state."
+    },
+    {
+      "criterion": "A valid existing run resumes without creating another AgentRun or PR",
+      "status": "passed",
+      "evidence": "Existing run and attempt dispositions preserve run_80_existing in regression coverage and emit recovery.resumed."
+    },
+    {
+      "criterion": "Repeated reconciliation is idempotent",
+      "status": "passed",
+      "evidence": "Recovery uses stable operation and batch IDs derived from the existing attempt."
+    },
+    {
+      "criterion": "Recovery decisions are audit-confirmed before irreversible actions",
+      "status": "passed",
+      "evidence": "append_recovery_event must return a confirmed receipt before start_execution succeeds and before workspace creation/Codex launch."
+    },
+    {
+      "criterion": "All Symphony gates pass",
+      "status": "passed",
+      "evidence": "make all passed at exact commit 1de53620dc77f2755741b62b39b1d225bc37c961."
+    }
+  ],
+  "checks": [
+    {
+      "id": "make-all",
+      "command": "cd elixir && mise exec -- make all",
+      "status": "passed",
+      "summary": "275 tests, 0 failures, 2 skipped; 100% coverage; Credo clean; Dialyzer 0 errors; format/spec/build passed."
+    },
+    {
+      "id": "diff-check",
+      "command": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "1de53620dc77f2755741b62b39b1d225bc37c961"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-13"
+    }
+  ],
+  "residualRisk": [
+    {
+      "severity": "low",
+      "summary": "End-to-end restart proof will be repeated after game-api#90 pagination is deployed so the latest expired claim is always selected from long issue histories."
+    }
+  ],
+  "summary": "Exact-run restart recovery is fail-closed and audit-confirmed before workspace recreation; the complete Symphony gate passed."
+}
