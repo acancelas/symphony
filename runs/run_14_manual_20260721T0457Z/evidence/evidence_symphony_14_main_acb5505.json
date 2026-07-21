@@ -1,0 +1,77 @@
+{
+  "evidenceId": "evidence_symphony_14_main_acb5505",
+  "runId": "run_14_manual_20260721T0457Z",
+  "commitSha": "acb5505e889e3a73f76a5bbb70e675eaf9ce20c6",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "A streamed agent message cannot create one permanent AuditEvent per token or text delta",
+      "status": "passed",
+      "evidence": "Outbox.auditable_update?/1 rejects item/agentMessage/delta and token-count updates; regression coverage asserts the classification."
+    },
+    {
+      "criterion": "One long turn produces bounded telemetry events",
+      "status": "passed",
+      "evidence": "Only semantic lifecycle updates enter the durable outbox; retained App Server summaries are explicitly bounded."
+    },
+    {
+      "criterion": "Final agent messages and command/tool lifecycle events remain reconstructible",
+      "status": "passed",
+      "evidence": "Final messages, failures, command metadata and tool lifecycle classes remain auditable and covered."
+    },
+    {
+      "criterion": "Restart flushes aggregates without duplication or loss",
+      "status": "passed",
+      "evidence": "Confirmed legacy telemetry is compacted, unconfirmed events are preserved/restored, and damaged legacy chains are deterministically rebased from the confirmed ledger head."
+    },
+    {
+      "criterion": "Audit chain remains RFC 8785-valid",
+      "status": "passed",
+      "evidence": "The integrated canonical JSON and outbox hash-chain tests pass with 100 percent project coverage."
+    },
+    {
+      "criterion": "Full Symphony gate passes",
+      "status": "passed",
+      "evidence": "Clean integrated main: 320 tests, 0 failures, 2 intentional skips, 100 percent coverage, format/spec checks, Credo and Dialyzer clean."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all-final-main",
+      "status": "passed",
+      "tests": 320,
+      "coveragePercent": 100
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "acb5505e889e3a73f76a5bbb70e675eaf9ce20c6"
+    },
+    {
+      "type": "pull_request",
+      "number": 3,
+      "role": "initial durable volume bound"
+    },
+    {
+      "type": "pull_request",
+      "number": 5,
+      "role": "retained App Server summary bound"
+    },
+    {
+      "type": "pull_request",
+      "number": 26,
+      "role": "batched durable checkpoints and provider backpressure"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Issue #14 is satisfied by the integrated, later-hardened main implementation. Its obsolete divergent branch is intentionally not merged."
+}
