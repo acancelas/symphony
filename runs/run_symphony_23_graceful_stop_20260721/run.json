@@ -2,7 +2,7 @@
   "runId": "run_symphony_23_graceful_stop_20260721",
   "issueNumber": 23,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "human",
     "subjectId": "github:acancelas"
@@ -14,5 +14,21 @@
   },
   "startedAt": "2026-07-21T18:57:00Z",
   "branch": "bos/issue-23",
-  "currentAttemptId": "attempt_run_symphony_23_graceful_stop_20260721_1"
+  "currentAttemptId": "attempt_run_symphony_23_graceful_stop_20260721_1",
+  "completedAt": "2026-07-21T20:35:31.331374Z",
+  "headCommit": "406070d49289bf2ccf3cd2d930fd04f20bbd0243",
+  "pullRequestNumber": 27,
+  "reconciliation": {
+    "operationId": "reconcile_terminal_run_symphony_23_graceful_stop_20260721",
+    "classification": "verified_success",
+    "previousStatus": "running",
+    "issueState": "closed",
+    "issueStateReason": "completed",
+    "pullRequestNumber": 27,
+    "pullRequestMerged": true,
+    "mergeCommitSha": "ff1b82f6c962266cd3b1ba307824f514cc7fd2b2",
+    "verifiedHeadSha": "406070d49289bf2ccf3cd2d930fd04f20bbd0243",
+    "evidenceId": "evidence_symphony_23_graceful_stop",
+    "reconciledAt": "2026-07-21T20:35:31.331374Z"
+  }
 }
