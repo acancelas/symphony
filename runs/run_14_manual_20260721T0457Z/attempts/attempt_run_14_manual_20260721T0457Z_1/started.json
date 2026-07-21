@@ -1,0 +1,15 @@
+{
+  "attemptId": "attempt_run_14_manual_20260721T0457Z_1",
+  "runId": "run_14_manual_20260721T0457Z",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp_internal_token"
+  },
+  "startedAt": "2026-07-21T04:57:00Z",
+  "reason": "Complete bounded audit telemetry and enforce a shared game-api rate-limit circuit after production recovery exposed a 429 request storm.",
+  "metrics": {}
+}
