@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d628116a-f85c-4d63-abdd-6f5d0ae1fee0",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628900313_516",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:15:00.239Z",
+  "command": "/bin/bash -lc \"grep -RInE \\\"pull-request-readiness-coordinator|BOS_MCP_ACTOR|allowed_tools|mark_pull_request_ready|readiness\\\" elixir/lib elixir/config elixir/test README.md SPEC.md WORKFLOW.md 2>/dev/null | head -240 && sed -n '220,380p' elixir/lib/symphony_elixir/post_approval_coordinator.ex && grep -RIn \\\"defp run_role\\\\|def run_role\\\" elixir/lib/symphony_elixir/post_approval_coordinator.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/post_approval_coordinator.ex:16:  @readiness_path \".bos-local/pull-request-readiness.json\"\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:24:         {:ok, readiness} <- prepare_readiness_intent(client, workspace, issue),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:25:         :ok <- ensure_pull_request_ready(app_server, workspace, issue, recipient, worker_host, readiness),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:36:  defp prepare_readiness_intent(client, workspace, %Issue{native_ref: native_ref}) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:41:         {:ok, identity} <- readiness_identity(native_ref, run) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:42:      load_or_create_readiness_handoff(workspace, identity)\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:46:  defp readiness_identity(native_ref, run) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:53:        {:error, :readiness_head_missing}\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:56:        {:error, :readiness_pull_request_missing}\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:72:  defp load_or_create_readiness_handoff(workspace, identity) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:73:    path = Path.join(workspace, @readiness_path)\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:78:             true <- readiness_identity_matches?(handoff, identity) || {:error, :readiness_identity_changed} do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:81:          {:error, reason} -> {:error, {:readiness_handoff_invalid, reason}}\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:82:          false -> {:error, {:readiness_handoff_invalid, :readiness_identity_changed}}\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:93:        {:error, {:readiness_handoff_invalid, reason}}\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:98:    validate_",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
