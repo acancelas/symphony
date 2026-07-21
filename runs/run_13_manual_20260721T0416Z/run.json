@@ -1,0 +1,20 @@
+{
+  "runId": "run_13_manual_20260721T0416Z",
+  "issueNumber": 13,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "github:acancelas"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "bos-symphony-candidate",
+    "codexVersion": "codex-desktop"
+  },
+  "startedAt": "2026-07-21T04:16:00Z",
+  "branch": "bos/issue-13",
+  "baseCommit": "7b22f4b7c618f06f7ba3cc95bc8bd4ca6511721e",
+  "currentAttemptId": "attempt_run_13_manual_20260721T0416Z_1"
+}
