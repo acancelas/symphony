@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e043044f-0734-4ee3-8047-8097e981d957",
+  "runId": "run_7_1784674055434",
+  "attemptId": "attempt_run_7_1784674055434_1",
+  "eventId": "event_1784674125637_23",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:48:45.591Z",
+  "command": "/bin/bash -lc \"sed -n '600,720p' elixir/lib/symphony_elixir/workspace.ex; sed -n '1,260p' elixir/lib/symphony_elixir/audit/outbox.ex | grep -nE 'record|flush|event' | head -80; sed -n '1,120p' elixir/lib/symphony_elixir/audit/outbox.ex; grep -Rni 'Outbox.record' elixir/lib | head -50\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\n  defp parse_remote_workspace_output(output) do\n    lines = String.split(IO.iodata_to_binary(output), \"\\n\", trim: true)\n\n    payload =\n      Enum.find_value(lines, fn line ->\n        case String.split(line, \"\\t\", parts: 3) do\n          [@remote_workspace_marker, created, path] when created in [\"0\", \"1\"] and path != \"\" ->\n            {created == \"1\", path}\n\n          _ ->\n            nil\n        end\n      end)\n\n    case payload do\n      {created?, workspace} when is_boolean(created?) and is_binary(workspace) ->\n        {:ok, workspace, created?}\n\n      _ ->\n        {:error, {:workspace_prepare_failed, :invalid_output, output}}\n    end\n  end\n\n  defp run_remote_command(worker_host, script, timeout_ms)\n       when is_binary(worker_host) and is_binary(script) and is_integer(timeout_ms) and timeout_ms > 0 do\n    task =\n      Task.async(fn ->\n        SSH.run(worker_host, script, stderr_to_stdout: true)\n      end)\n\n    case Task.yield(task, timeout_ms) do\n      {:ok, result} ->\n        result\n\n      nil ->\n        Task.shutdown(task, :brutal_kill)\n        {:error, {:workspace_hook_timeout, \"remote_command\", timeout_ms}}\n    end\n  end\n\n  defp shell_escape(value) when is_binary(value) do\n    \"'\" <> String.replace(value, \"'\", \"'\\\"'\\\"'\") <> \"'\"\n  end\n\n  defp worker_host_for_log(nil), do: \"local\"\n  defp worker_host_for_log(worker_host), do: worker_host\n\n  defp issue_context(%{id: issue_id, identifier: identifier} = issue) do\n    native_ref = Map.get(issue, :native_ref) || %{}\n\n    %{\n      issue_id: issue_id,\n      issue_identifier: identifier || \"issue\",\n      repository_id: native_ref[\"repositoryId\"],\n      repository_owner: native_ref[\"repositoryOwner\"],\n      repository_name: native_ref[\"repositoryName\"],\n      repository_clone_url: native_ref[\"repositoryCloneUrl\"],\n      issue_number: native_ref[\"issueNumber\"],\n      run_id: native_ref[\"runId\"]\n    }\n  end\n\n  defp issue_context(identifier) when is_binary(identifier) do\n    %{\n      issue_id: nil,\n      issue_identifier: id",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-7",
+  "retention": {
+    "category": "permanent"
+  }
+}

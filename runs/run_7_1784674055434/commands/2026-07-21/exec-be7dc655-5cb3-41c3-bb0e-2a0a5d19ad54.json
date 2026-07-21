@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-be7dc655-5cb3-41c3-bb0e-2a0a5d19ad54",
+  "runId": "run_7_1784674055434",
+  "attemptId": "attempt_run_7_1784674055434_1",
+  "eventId": "event_1784674137119_25",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:48:57.073Z",
+  "command": "/bin/bash -lc \"sed -n '1,180p' elixir/WORKFLOW.md; grep -Rni 'hooks:' -A20 . | grep -E 'clone|checkout|after_create' | head -100\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "---\ntracker:\n  kind: linear\n  provider:\n    project_slug: \"symphony-0c79b11b75ea\"\n  required_labels: []\n  active_states:\n    - Todo\n    - In Progress\n    - Merging\n    - Rework\n  terminal_states:\n    - Closed\n    - Cancelled\n    - Canceled\n    - Duplicate\n    - Done\npolling:\n  interval_ms: 5000\nworkspace:\n  root: ~/code/symphony-workspaces\nhooks:\n  after_create: |\n    git clone --depth 1 https://github.com/openai/symphony .\n    if command -v mise >/dev/null 2>&1; then\n      cd elixir && mise trust && mise exec -- mix deps.get\n    fi\n  before_remove: |\n    cd elixir && mise exec -- mix workspace.before_remove\nagent:\n  max_concurrent_agents: 10\n  max_turns: 20\ncodex:\n  command: codex --config shell_environment_policy.inherit=all --config 'model=\"gpt-5.5\"' --config model_reasoning_effort=xhigh app-server\n  approval_policy: never\n  thread_sandbox: workspace-write\n  turn_sandbox_policy:\n    type: workspaceWrite\n    networkAccess: true\n---\n\nYou are working on a Linear ticket `{{ issue.identifier }}`\n\n{% if attempt %}\nFollow-up context:\n\n- This is follow-up attempt #{{ attempt }}. It may be a normal continuation or a retry after a failure.\n- Resume from the current workspace state instead of restarting from scratch.\n- Do not repeat already-completed investigation or validation unless needed for new code changes.\n- Do not end the turn while the work item remains in an active state unless you are blocked by missing required access.\n  {% endif %}\n\nIssue context:\nIdentifier: {{ issue.identifier }}\nTitle: {{ issue.title }}\nCurrent status: {{ issue.state }}\nLabels: {{ issue.labels }}\nURL: {{ issue.url }}\n\nDescription:\n{% if issue.description %}\n{{ issue.description }}\n{% else %}\nNo description provided.\n{% endif %}\n\nInstructions:\n\n1. This is an unattended orchestration session. Do not ask a human to perform follow-up actions.\n2. Only stop early for a true external blocker (missing required tools, auth, permissions, or secrets). If blocked, record it in the workpad and move the i",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-7",
+  "retention": {
+    "category": "permanent"
+  }
+}

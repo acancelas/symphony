@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3c7cb454-39a8-4109-8acb-081ae99844fe",
+  "runId": "run_7_1784674055434",
+  "attemptId": "attempt_run_7_1784674055434_1",
+  "eventId": "event_1784674121094_21",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:48:41.048Z",
+  "command": "/bin/bash -lc \"sed -n '1,260p' elixir/test/symphony_elixir/game_api_adapter_test.exs; grep -Rni 'start_execution' elixir/test elixir/lib | head -100; grep -Rni 'headCommit\\\\|baseCommit\\\\|repositoryCloneUrl' elixir/lib elixir/test | head -200; sed -n '1,130p' elixir/lib/symphony_elixir/tracker.ex; sed -n '1,180p' elixir/test/symphony_elixir/workspace_and_config_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.GameApiAdapterTest do\n  use ExUnit.Case, async: false\n\n  alias SymphonyElixir.GameApi.Adapter\n  alias SymphonyElixir.GameApi.Client\n\n  defmodule FakeClient do\n    @spec validate_config(map()) :: :ok\n    def validate_config(_settings), do: :ok\n\n    @spec fetch_ready_issues() :: {:ok, [map()]}\n    def fetch_ready_issues do\n      {:ok,\n       [\n         %{\n           \"number\" => 42,\n           \"title\" => \"Implement BOS Delivery\",\n           \"body\" => \"Acceptance contract\",\n           \"labels\" => [\"bos:issue\", \"agent:ready\"],\n           \"url\" => \"https://github.test/issues/42\",\n           \"updatedAt\" => \"2026-07-19T18:00:00Z\",\n           \"claim\" => nil,\n           \"_repositoryId\" => \"bos-front\"\n         }\n       ]}\n    end\n\n    @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()}\n    def fetch_issue(\"bos-front\", 42), do: fetch_ready_issues() |> then(fn {:ok, [issue]} -> {:ok, issue} end)\n\n    @spec claim_issue(String.t(), pos_integer(), String.t() | nil) :: {:ok, map()}\n    def claim_issue(\"bos-front\", 42, nil) do\n      {:ok,\n       %{\n         \"status\" => \"completed\",\n         \"disposition\" => \"new_run\",\n         \"claim\" => %{\"runId\" => \"run_42_001\", \"runnerId\" => \"x1\"}\n       }}\n    end\n\n    @spec start_execution(SymphonyElixir.Tracker.Issue.t(), pos_integer()) ::\n            {:ok, String.t()}\n    def start_execution(%SymphonyElixir.Tracker.Issue{native_ref: %{\"runId\" => \"run_42_001\"}}, 1) do\n      {:ok, \"attempt_run_42_001_1\"}\n    end\n  end\n\n  setup do\n    previous_client = Application.get_env(:symphony_elixir, :game_api_client_module)\n    Application.put_env(:symphony_elixir, :game_api_client_module, FakeClient)\n\n    on_exit(fn ->\n      if previous_client do\n        Application.put_env(:symphony_elixir, :game_api_client_module, previous_client)\n      else\n        Application.delete_env(:symphony_elixir, :game_api_client_module)\n      end\n    end)\n\n    :ok\n  end\n\n  test \"normalizes ready issues without exposing GitHub credentials\" do\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-7",
+  "retention": {
+    "category": "permanent"
+  }
+}
