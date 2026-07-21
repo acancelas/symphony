@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_symphony_18_dirty_workspace_recovery_20260721",
-  "lastSequence": 2,
-  "lastEventHash": "sha256:c7d2b5c1189596aee1083dc6f083c16572908ed08c6df64c72a76189336cd7e7",
-  "lastEventId": "event_14d21d03a8eba8fe47a6765c71",
-  "updatedAt": "2026-07-21T10:03:51.018190Z"
+  "lastSequence": 3,
+  "lastEventHash": "sha256:f5f234d45e831c37a58d5aaebd1f5b3a7972b192f206b758c7945084d4daf23c",
+  "lastEventId": "event_e0827dd823120b989952551fdc",
+  "updatedAt": "2026-07-21T10:04:21.122559Z"
 }
