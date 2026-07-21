@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-61a21a05-baf4-4e04-a6ff-e9cf709f8eab",
+  "runId": "run_6_1784672525776",
+  "attemptId": "attempt_run_6_1784672525776_1",
+  "eventId": "event_1784672644394_30",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:24:04.394Z",
+  "command": "/bin/bash -lc \"sed -n '1,220p' elixir/Makefile; git status --short\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": ".PHONY: help all setup deps build fmt fmt-check lint test coverage ci dialyzer e2e\n\nMIX ?= mix\n\nhelp:\n\t@echo \"Targets: setup, deps, fmt, fmt-check, lint, test, coverage, dialyzer, e2e, ci\"\n\nsetup:\n\t$(MIX) setup\n\ndeps:\n\t$(MIX) deps.get\n\nbuild:\n\t$(MIX) build\n\nfmt:\n\t$(MIX) format\n\nfmt-check:\n\t$(MIX) format --check-formatted\n\nlint:\n\t$(MIX) lint\n\ncoverage:\n\t$(MIX) test --cover\n\ntest:\n\t$(MIX) test\n\ndialyzer:\n\t$(MIX) deps.get\n\t$(MIX) dialyzer --format short\n\ne2e:\n\tSYMPHONY_RUN_LIVE_E2E=1 $(MIX) test test/symphony_elixir/live_e2e_test.exs\n\nci:\n\t$(MAKE) setup\n\t$(MAKE) build\n\t$(MAKE) fmt-check\n\t$(MAKE) lint\n\t$(MAKE) coverage\n\t$(MAKE) dialyzer\n\nall: ci\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-6",
+  "retention": {
+    "category": "permanent"
+  }
+}
