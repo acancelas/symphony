@@ -77,13 +77,17 @@ defmodule SymphonyElixir.CandidateHeadTest do
       {:ok, {" M lib/example.ex\n", 0}}
     end
 
-    assert {:error, {:candidate_workspace_dirty, "M lib/example.ex"}} =
+    assert {:error, {:candidate_workspace_dirty, diagnosis}} =
              CandidateHead.confirm(
                "/workspace",
                %Issue{branch_name: "bos/issue-6"},
                nil,
                command_runner: runner
              )
+
+    assert diagnosis.paths == ["lib/example.ex"]
+    assert diagnosis.status == "M lib/example.ex"
+    assert String.length(diagnosis.fingerprint) == 64
   end
 
   test "never force-pushes a divergent remote branch" do

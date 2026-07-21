@@ -97,7 +97,23 @@ defmodule SymphonyElixir.CandidateHead do
   end
 
   defp require_clean(""), do: :ok
-  defp require_clean(status), do: {:error, {:candidate_workspace_dirty, status}}
+
+  defp require_clean(status) do
+    paths =
+      status
+      |> String.split("\n", trim: true)
+      |> Enum.map(&String.replace(&1, ~r/^.{1,2}\s+/, ""))
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    {:error,
+     {:candidate_workspace_dirty,
+      %{
+        fingerprint: :crypto.hash(:sha256, status) |> Base.encode16(case: :lower),
+        paths: paths,
+        status: status
+      }}}
+  end
 
   defp require_issue_branch(%Issue{branch_name: nil}, _branch), do: :ok
   defp require_issue_branch(%Issue{branch_name: ""}, _branch), do: :ok

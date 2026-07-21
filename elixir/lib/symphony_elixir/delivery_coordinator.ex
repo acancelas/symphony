@@ -61,13 +61,123 @@ defmodule SymphonyElixir.DeliveryCoordinator do
       roles: roles,
       max_lookup_attempts: max_lookup_attempts,
       sleep_fn: sleep_fn,
-      candidate_head: candidate_head
+      candidate_head: candidate_head,
+      prior_command_context: Keyword.get(opts, :prior_command_context)
     }
 
-    with {:ok, _reviewed_candidate} <- review_and_repair(context, 1, max_cycles),
-         {:ok, final_candidate} <- candidate_head.confirm(workspace, issue, worker_host) do
-      run_finalizer(workspace, issue, recipient, worker_host, app_server, final_candidate)
+    run_delivery_cycle(context, 1, max_cycles, [])
+  end
+
+  defp run_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints) do
+    case review_and_repair(context, cycle, max_cycles) do
+      {:ok, reviewed_candidate} ->
+        confirm_reviewed_candidate(context, reviewed_candidate, cycle, max_cycles, dirty_fingerprints)
+
+      {:error, {:candidate_workspace_dirty, diagnosis}} ->
+        repair_dirty_candidate(context, diagnosis, cycle, max_cycles, dirty_fingerprints)
+
+      other ->
+        other
     end
+  end
+
+  defp confirm_reviewed_candidate(context, reviewed, cycle, max_cycles, dirty_fingerprints) do
+    case context.candidate_head.confirm(context.workspace, context.issue, context.worker_host) do
+      {:ok, %{head_sha: head_sha} = candidate} when head_sha == reviewed.head_sha ->
+        run_finalizer(
+          context.workspace,
+          context.issue,
+          context.recipient,
+          context.worker_host,
+          context.app_server,
+          candidate
+        )
+
+      {:ok, candidate} when cycle < max_cycles ->
+        Logger.warning("Candidate HEAD changed after review; restarting reviews at exact HEAD=#{candidate.head_sha}")
+        run_delivery_cycle(context, cycle + 1, max_cycles, dirty_fingerprints)
+
+      {:ok, candidate} ->
+        {:error, {:candidate_changed_after_reviews, reviewed.head_sha, candidate.head_sha}}
+
+      {:error, {:candidate_workspace_dirty, diagnosis}} ->
+        repair_dirty_candidate(context, diagnosis, cycle, max_cycles, dirty_fingerprints)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp repair_dirty_candidate(context, diagnosis, cycle, max_cycles, dirty_fingerprints) do
+    fingerprint = diagnosis.fingerprint
+
+    if fingerprint in dirty_fingerprints or dirty_fingerprints != [] do
+      escalate_unresolved_dirty(context, diagnosis)
+    else
+      with :ok <- run_dirty_repair(context, diagnosis),
+           {:ok, candidate} <- context.candidate_head.confirm(context.workspace, context.issue, context.worker_host) do
+        next_cycle = next_review_cycle(cycle, max_cycles)
+        Logger.info("Dirty candidate repaired and remotely confirmed at exact HEAD=#{candidate.head_sha}; restarting reviews")
+        run_delivery_cycle(context, next_cycle, max_cycles, [fingerprint | dirty_fingerprints])
+      else
+        {:error, {:candidate_workspace_dirty, next_diagnosis}} ->
+          escalate_unresolved_dirty(context, next_diagnosis)
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  defp next_review_cycle(cycle, max_cycles) when cycle < max_cycles, do: cycle + 1
+  defp next_review_cycle(cycle, _max_cycles), do: cycle
+
+  defp escalate_unresolved_dirty(context, diagnosis) do
+    with :ok <- run_dirty_escalation(context, diagnosis) do
+      {:error, {:candidate_dirty_repair_unresolved, diagnosis}}
+    end
+  end
+
+  defp run_dirty_repair(context, diagnosis) do
+    prompt = """
+    You are the bounded BOS dirty-candidate repair agent for #{context.issue.identifier}.
+    Work only in the existing workspace and exact AgentRun. Candidate durability
+    failed because tracked files changed after implementation or validation.
+    Inspect every listed path and the generating command context. For each change,
+    either validate and commit it when it is legitimate generated project output,
+    or deliberately restore it only when that is safe and intended. Never discard
+    tracked changes automatically. Never commit secrets, credentials, runtime files,
+    or unrelated changes. If any path is unsafe or unrelated, leave the tree
+    unchanged and stop; the coordinator owns durable escalation. Otherwise run the
+    relevant validation, commit the repair, and publish the non-forced issue branch.
+    Do not record Evidence or Reviews; those restart only after Symphony confirms a
+    clean tree and the new exact remote HEAD. This is the only dirty repair turn for
+    fingerprint `#{diagnosis.fingerprint}`.
+
+    Dirty tracked paths:
+    #{Enum.map_join(diagnosis.paths, "\n", &"- #{&1}")}
+
+    Porcelain status:
+    #{diagnosis.status}
+
+    Prior completed command context:
+    #{inspect(context.prior_command_context || "unavailable; recover it from the durable bos-mcp run history")}
+    """
+
+    run_role(context.app_server, context.workspace, context.issue, context.worker_host, "dirty-candidate-repair-agent", prompt, context.recipient)
+  end
+
+  defp run_dirty_escalation(context, diagnosis) do
+    prompt = """
+    You are the BOS delivery coordinator for #{context.issue.identifier}. The single
+    bounded dirty-candidate repair turn did not produce a clean, remotely confirmed
+    candidate. Record a durable blocker through bos_block_issue. Include fingerprint
+    `#{diagnosis.fingerprint}`, exact paths #{inspect(diagnosis.paths)}, and status
+    #{inspect(diagnosis.status)}. Do not modify files, start another repair or
+    implementation Attempt, record Evidence or Reviews, approve, or merge.
+    """
+
+    run_role(context.app_server, context.workspace, context.issue, context.worker_host, "delivery-coordinator", prompt, context.recipient)
   end
 
   defp review_and_repair(context, cycle, max_cycles) do
