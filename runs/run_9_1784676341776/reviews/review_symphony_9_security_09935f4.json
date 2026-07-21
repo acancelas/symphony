@@ -1,0 +1,13 @@
+{
+  "reviewId": "review_symphony_9_security_09935f4",
+  "runId": "run_9_1784676341776",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "commitSha": "09935f47b1326cffc6351fb52c6978cd92ebc080",
+  "status": "passed",
+  "findings": [],
+  "summary": "The repair prompt forbids secrets and unrelated runtime files, never auto-discards tracked changes, and receives only a bounded redacted command summary."
+}
