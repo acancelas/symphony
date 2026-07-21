@@ -19,6 +19,27 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   @max_review_record_attempts 2
   @max_review_lookup_attempts 3
 
+  @doc """
+  Returns whether this AgentRun has already crossed the durable review-stage
+  boundary. Scheduler retries use this projection to avoid reopening the
+  implementation Codex session after at least one specialist Review exists.
+  """
+  @spec review_stage_started?(Issue.t(), keyword()) :: {:ok, boolean()} | {:error, term()}
+  def review_stage_started?(%Issue{} = issue, opts \\ []) do
+    client = Keyword.get(opts, :game_api_client_module, Client)
+    native_ref = issue.native_ref || %{}
+
+    with repository_id when is_binary(repository_id) <- native_ref["repositoryId"],
+         run_id when is_binary(run_id) <- native_ref["runId"],
+         {:ok, artifacts} <- client.fetch_run_artifacts(repository_id, run_id, "reviews") do
+      {:ok, artifacts != []}
+    else
+      nil -> {:ok, false}
+      {:error, reason} -> {:error, reason}
+      _ -> {:ok, false}
+    end
+  end
+
   @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}
   def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do
     app_server = Keyword.get(opts, :app_server_module, AppServer)
@@ -76,11 +97,25 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   defp run_reviews(context, cycle) do
     Enum.reduce_while(context.roles, :ok, fn role, :ok ->
-      case run_review_until_durable(context, role, cycle, 1) do
+      case run_or_reuse_review(context, role, cycle) do
         :ok -> {:cont, :ok}
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
+  end
+
+  defp run_or_reuse_review(context, role, cycle) do
+    case review_recorded?(context, role, cycle) do
+      {:ok, true} ->
+        Logger.info("Reusing durable specialist Review role=#{role} cycle=#{cycle}")
+        :ok
+
+      {:ok, false} ->
+        run_review_until_durable(context, role, cycle, 1)
+
+      {:error, reason} ->
+        {:error, {:review_lookup_failed, role, reason}}
+    end
   end
 
   defp run_review_until_durable(context, role, cycle, record_attempt) do
