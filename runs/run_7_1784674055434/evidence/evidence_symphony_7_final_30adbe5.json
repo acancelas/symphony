@@ -1,0 +1,57 @@
+{
+  "evidenceId": "evidence_symphony_7_final_30adbe5",
+  "runId": "run_7_1784674055434",
+  "commitSha": "30adbe5674efe678725f588a708c6a001784fd45",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "One recovery path owns each local workspace",
+      "status": "passed",
+      "evidence": "Per-workspace global transactions serialize local creation, quarantine and atomic publication."
+    },
+    {
+      "criterion": "Invalid workspaces never start Codex",
+      "status": "passed",
+      "evidence": "A ready marker bound to path and inode is required; incomplete directories are quarantined before bootstrap."
+    },
+    {
+      "criterion": "Partial and root-owned artifacts cannot leave the canonical path half-removed",
+      "status": "passed",
+      "evidence": "Bootstrap occurs in a staging sibling and is atomically renamed only after success; original data remains under quarantine."
+    },
+    {
+      "criterion": "Existing safe-removal protections remain intact",
+      "status": "passed",
+      "evidence": "Current-main dirty, unreadable and unpublished workspace preservation was retained during conflict integration."
+    },
+    {
+      "criterion": "Complete Symphony quality gates pass",
+      "status": "passed",
+      "evidence": "332 tests, 0 failures, 2 intentional skips, 100% coverage, formatting, Credo and Dialyzer clean."
+    }
+  ],
+  "checks": [
+    {
+      "name": "workspace-recovery",
+      "status": "passed",
+      "tests": 60
+    },
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 332,
+      "coveragePercent": 100
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [],
+  "summary": "Workspace recovery is serialized, quarantines invalid state, bootstraps off-path and publishes atomically."
+}
