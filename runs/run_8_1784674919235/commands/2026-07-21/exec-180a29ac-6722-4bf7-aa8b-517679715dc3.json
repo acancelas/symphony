@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-180a29ac-6722-4bf7-aa8b-517679715dc3",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675265322_66",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:07:45.291Z",
+  "command": "/bin/bash -lc \"head -n 40 elixir/test/symphony_elixir/candidate_head_test.exs\ngrep -RIn \\\"audit.*volume\\\\|volume.*audit\\\" . --exclude-dir=.git --exclude-dir=deps --exclude-dir=_build | head -n 100\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.CandidateHeadTest do\n  use ExUnit.Case, async: true\n\n  alias SymphonyElixir.CandidateHead\n  alias SymphonyElixir.Tracker.Issue\n\n  test \"uses real local git to publish and confirm the default candidate path\" do\n    root = Path.join(System.tmp_dir!(), \"candidate-head-real-#{System.unique_integer([:positive])}\")\n    remote = Path.join(root, \"remote.git\")\n    workspace = Path.join(root, \"workspace\")\n\n    try do\n      File.mkdir_p!(root)\n      assert {_, 0} = System.cmd(\"git\", [\"init\", \"--bare\", remote])\n      assert {_, 0} = System.cmd(\"git\", [\"init\", \"-b\", \"bos/issue-6\", workspace])\n      assert {_, 0} = System.cmd(\"git\", [\"-C\", workspace, \"config\", \"user.name\", \"Test User\"])\n      assert {_, 0} = System.cmd(\"git\", [\"-C\", workspace, \"config\", \"user.email\", \"test@example.com\"])\n      File.write!(Path.join(workspace, \"README.md\"), \"candidate\\n\")\n      assert {_, 0} = System.cmd(\"git\", [\"-C\", workspace, \"add\", \"README.md\"])\n      assert {_, 0} = System.cmd(\"git\", [\"-C\", workspace, \"commit\", \"-m\", \"candidate\"])\n      assert {_, 0} = System.cmd(\"git\", [\"-C\", workspace, \"remote\", \"add\", \"origin\", remote])\n\n      assert {:ok, %{branch: \"bos/issue-6\", head_sha: head, remote_sha: head}} =\n               CandidateHead.confirm(workspace, %Issue{branch_name: \"bos/issue-6\"})\n\n      assert String.length(head) == 40\n    after\n      File.rm_rf(root)\n    end\n  end\n\n  test \"pushes an unpublished clean candidate and confirms the exact remote SHA\" do\n    parent = self()\n    head = \"0123456789abcdef0123456789abcdef01234567\"\n\n    runner = fn workspace, worker_host, executable, args ->\n      send(parent, {:command, workspace, worker_host, executable, args})\n\n      case args do\n        [\"status\" | _] ->\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}

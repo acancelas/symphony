@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-1e90f41b-7844-4f19-a3e2-53996632e61b",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675260137_63",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:07:40.106Z",
+  "command": "/bin/bash -lc \"git diff --check && git diff --stat && git diff -- elixir/test/support/test_support.exs elixir/test/symphony_elixir/core_test.exs elixir/test/symphony_elixir/workspace_and_config_test.exs elixir/README.md\nps e -axo pid=,ppid=,command= | grep 'SYMPHONY_TEST_PROCESS_OWNER=' | grep -v grep || true\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": " elixir/README.md                                   |   6 ++\n elixir/test/support/test_support.exs               | 114 +++++++++++++++++++++\n elixir/test/symphony_elixir/core_test.exs          |  55 +---------\n .../symphony_elixir/workspace_and_config_test.exs  |  17 ++-\n 4 files changed, 137 insertions(+), 55 deletions(-)\ndiff --git a/elixir/README.md b/elixir/README.md\nindex 2f6720a..d447f0b 100644\n--- a/elixir/README.md\n+++ b/elixir/README.md\n@@ -77,6 +77,12 @@ session, so Symphony resets its comparison watermark—not its cumulative totals\n role starts a fresh session. Operational token budgets should use uncached input while retaining\n the full totals for capacity and audit reporting.\n \n+Tests that start operating-system processes own their complete lifecycle. Long-running shell, Git,\n+Codex, FIFO, SSH, and helper commands are tagged with a unique test owner and register an `on_exit`\n+callback before launch. Teardown sends TERM, waits for a bounded interval, escalates to KILL, and\n+asserts that no process carrying that exact owner remains. This applies when the test passes,\n+fails, or is interrupted by an ExUnit timeout; cleanup must never select an unrelated process.\n+\n Lack of an execution slot is a queue condition, not a failed Attempt. Eligible work remains in a\n separate capacity queue without incrementing retry/backoff state. `agent:merging`, rework and\n recovered running work sort ahead of newly ready work; creation time provides deterministic FIFO\ndiff --git a/elixir/test/support/test_support.exs b/elixir/test/support/test_support.exs\nindex 045090b..b2919d2 100644\n--- a/elixir/test/support/test_support.exs\n+++ b/elixir/test/support/test_support.exs\n@@ -23,7 +23,10 @@ defmodule SymphonyElixir.TestSupport do\n \n       import SymphonyElixir.TestSupport,\n         only: [\n+          assert_no_owned_processes!: 1,\n           ensure_test_runtime_started!: 0,\n+          owned_process_environment: 1,\n+          register_process_cleanup!: 1,\n           write_workflo",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}
