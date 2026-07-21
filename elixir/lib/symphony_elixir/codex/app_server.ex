@@ -4,7 +4,7 @@ defmodule SymphonyElixir.Codex.AppServer do
   """
 
   require Logger
-  alias SymphonyElixir.{Codex.DynamicTool, Config, PathSafety, SSH}
+  alias SymphonyElixir.{Codex.CommandPolicy, Codex.DynamicTool, Config, PathSafety, SSH}
 
   @initialize_id 1
   @thread_start_id 2
@@ -595,23 +595,38 @@ defmodule SymphonyElixir.Codex.AppServer do
   defp maybe_handle_approval_request(
          port,
          "item/commandExecution/requestApproval",
-         %{"id" => id} = payload,
+         %{"id" => id, "params" => params} = payload,
          payload_string,
          on_message,
          metadata,
          _tool_executor,
          auto_approve_requests
        ) do
-    approve_or_require(
-      port,
-      id,
-      "acceptForSession",
-      payload,
-      payload_string,
-      on_message,
-      metadata,
-      auto_approve_requests
-    )
+    case CommandPolicy.inspect_command(params["command"]) do
+      :ok ->
+        approve_or_require(
+          port,
+          id,
+          "acceptForSession",
+          payload,
+          payload_string,
+          on_message,
+          metadata,
+          auto_approve_requests
+        )
+
+      {:error, violation} ->
+        send_message(port, %{"id" => id, "result" => %{"decision" => "decline"}})
+
+        emit_message(
+          on_message,
+          :command_policy_blocked,
+          %{policy: violation, raw: nil},
+          metadata
+        )
+
+        :approved
+    end
   end
 
   defp maybe_handle_approval_request(
