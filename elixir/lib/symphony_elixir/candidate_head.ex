@@ -7,7 +7,6 @@ defmodule SymphonyElixir.CandidateHead do
   so recovery cannot silently replace work accepted by another runner.
   """
 
-  alias SymphonyElixir.SSH
   alias SymphonyElixir.Tracker.Issue
 
   @type confirmation :: %{
@@ -20,9 +19,9 @@ defmodule SymphonyElixir.CandidateHead do
           {:ok, confirmation()} | {:error, term()}
   def confirm(workspace, %Issue{} = issue, worker_host \\ nil, opts \\ [])
       when is_binary(workspace) do
-    command_runner = Keyword.get(opts, :command_runner, &run_command/4)
-
-    with {:ok, status} <- git(command_runner, workspace, worker_host, ["status", "--porcelain", "--untracked-files=no"]),
+    with :ok <- require_local_worker(worker_host),
+         command_runner <- Keyword.get(opts, :command_runner, &run_command/4),
+         {:ok, status} <- git(command_runner, workspace, worker_host, ["status", "--porcelain", "--untracked-files=no"]),
          :ok <- require_clean(status),
          {:ok, head_sha} <- git(command_runner, workspace, worker_host, ["rev-parse", "HEAD"]),
          {:ok, branch} <- git(command_runner, workspace, worker_host, ["symbolic-ref", "--short", "HEAD"]),
@@ -31,6 +30,11 @@ defmodule SymphonyElixir.CandidateHead do
       {:ok, %{branch: branch, head_sha: head_sha, remote_sha: remote_sha}}
     end
   end
+
+  defp require_local_worker(nil), do: :ok
+
+  defp require_local_worker(worker_host),
+    do: {:error, {:candidate_remote_worker_unsupported, worker_host}}
 
   defp ensure_remote_head(command_runner, workspace, worker_host, branch, head_sha) do
     case remote_head(command_runner, workspace, worker_host, branch) do
@@ -112,17 +116,5 @@ defmodule SymphonyElixir.CandidateHead do
 
   defp run_command(workspace, nil, executable, args) do
     {:ok, System.cmd(executable, args, cd: workspace, stderr_to_stdout: true)}
-  end
-
-  defp run_command(workspace, worker_host, executable, args) when is_binary(worker_host) do
-    command =
-      ["cd", shell_escape(workspace), "&&", shell_escape(executable) | Enum.map(args, &shell_escape/1)]
-      |> Enum.join(" ")
-
-    SSH.run(worker_host, command, stderr_to_stdout: true)
-  end
-
-  defp shell_escape(value) when is_binary(value) do
-    "'" <> String.replace(value, "'", "'\"'\"'") <> "'"
   end
 end
