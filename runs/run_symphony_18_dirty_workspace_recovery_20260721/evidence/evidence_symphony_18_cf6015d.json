@@ -1,0 +1,92 @@
+{
+  "evidenceId": "evidence_symphony_18_cf6015d",
+  "runId": "run_symphony_18_dirty_workspace_recovery_20260721",
+  "commitSha": "cf6015d19880e4150390f67c7217e4eeb564ba15",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Dirty workspaces survive cleanup",
+      "status": "passed",
+      "evidence": "Regression tests cover dirty and unreadable Git state."
+    },
+    {
+      "criterion": "Unpublished commits survive cleanup",
+      "status": "passed",
+      "evidence": "Regression tests fail closed unless local and remote HEAD publication can be confirmed."
+    },
+    {
+      "criterion": "Interrupted work is externally recoverable",
+      "status": "passed",
+      "evidence": "Redacted full-diff workspace.checkpointed events are critical and immediately flushed."
+    },
+    {
+      "criterion": "Audit retry storms are prevented",
+      "status": "passed",
+      "evidence": "Per-run exponential backoff with jitter is bounded from 2s to 300s."
+    },
+    {
+      "criterion": "Receipt migration fails closed",
+      "status": "passed",
+      "evidence": "A corrupt receipt preserves the complete receipt directory and prevents watermark creation or deletion."
+    },
+    {
+      "criterion": "Local audit cache remains bounded",
+      "status": "passed",
+      "evidence": "Confirmed receipts compact to per-run watermarks and non-durable legacy telemetry to bounded summaries."
+    },
+    {
+      "criterion": "Token cache efficiency is measurable",
+      "status": "passed",
+      "evidence": "State API distinguishes cached, derived uncached, output and reasoning tokens; a two-agent snapshot measured 94.8% input cache reuse."
+    },
+    {
+      "criterion": "Test teardown does not leak OS children",
+      "status": "passed",
+      "evidence": "The full suite completed without any matching blocked FIFO shell process."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make all",
+      "status": "passed",
+      "summary": "282 tests, 0 failures, 2 skipped; 100% coverage; format, specs, Credo and Dialyzer passed."
+    },
+    {
+      "name": "GitHub Actions make-all",
+      "status": "passed",
+      "commitSha": "cf6015d19880e4150390f67c7217e4eeb564ba15"
+    },
+    {
+      "name": "GitHub Actions validate-pr-description",
+      "status": "passed",
+      "commitSha": "cf6015d19880e4150390f67c7217e4eeb564ba15"
+    },
+    {
+      "name": "process leak probe",
+      "status": "passed",
+      "summary": "No symphony-elixir-orchestrator-restart FIFO shell process remained after the complete gate."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "number": 19,
+      "url": "https://github.com/acancelas/symphony/pull/19"
+    },
+    {
+      "type": "commit",
+      "sha": "cf6015d19880e4150390f67c7217e4eeb564ba15"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Per-session bos-mcp Node memory remains duplicated",
+      "mitigation": "Tracked by bos-mcp#12; sharing is prohibited until actor and workspace isolation are preserved."
+    },
+    {
+      "risk": "The final aggregation and corrupt-receipt build is not installed while active workers still hold recoverable work",
+      "mitigation": "The exact branch, PR and CI evidence are durable; installation waits for a safe idle boundary."
+    }
+  ],
+  "summary": "Recovery hardening, fail-closed receipt migration, bounded audit storage and cache-aware token telemetry pass local and GitHub checks on the exact PR HEAD."
+}
