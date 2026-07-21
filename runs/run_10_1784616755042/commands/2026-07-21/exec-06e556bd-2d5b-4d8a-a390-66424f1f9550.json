@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-06e556bd-2d5b-4d8a-a390-66424f1f9550",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629780952_1045",
+  "actor": {
+    "type": "agent",
+    "subjectId": "delivery-coordinator"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:29:40.952Z",
+  "command": "/bin/bash -lc 'rg -n \"run_10_1784616755042|c3554e69d100bbf2a0fe5ec4badfbd8459138dc4|pullRequestNumber\" .bos . 2>/dev/null | head -n 120'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
