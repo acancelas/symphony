@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d59fef1c-e5a0-4d2d-afc5-1cd75326f47c",
+  "runId": "run_6_1784672525776",
+  "attemptId": "attempt_run_6_1784672525776_1",
+  "eventId": "event_1784672747612_34",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:25:47.540Z",
+  "command": "/bin/bash -lc 'mix test test/symphony_elixir/orchestrator_status_test.exs:1508 test/symphony_elixir/orchestrator_status_test.exs:1534'",
+  "durationMs": 1200,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Running ExUnit with seed: 929698, max_cases: 20\nExcluding tags: [:test]\nIncluding tags: [location: {\"test/symphony_elixir/orchestrator_status_test.exs\", 1508}, location: {\"test/symphony_elixir/orchestrator_status_test.exs\", 1534}]\n\n..\nFinished in 0.4 seconds (0.00s async, 0.4s sync)\n2 tests, 0 failures (42 excluded)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-6/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
