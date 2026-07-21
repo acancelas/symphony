@@ -190,7 +190,13 @@ defmodule SymphonyElixir.OrchestratorStatusTest do
            "method" => "thread/tokenUsage/updated",
            "params" => %{
              "tokenUsage" => %{
-               "total" => %{"inputTokens" => 12, "outputTokens" => 4, "totalTokens" => 16}
+               "total" => %{
+                 "inputTokens" => 12,
+                 "cachedInputTokens" => 10,
+                 "outputTokens" => 4,
+                 "reasoningOutputTokens" => 2,
+                 "totalTokens" => 16
+               }
              }
            }
          },
@@ -203,7 +209,10 @@ defmodule SymphonyElixir.OrchestratorStatusTest do
     assert %{running: [snapshot_entry]} = snapshot
     assert snapshot_entry.codex_app_server_pid == "4242"
     assert snapshot_entry.codex_input_tokens == 12
+    assert snapshot_entry.codex_cached_input_tokens == 10
+    assert snapshot_entry.codex_uncached_input_tokens == 2
     assert snapshot_entry.codex_output_tokens == 4
+    assert snapshot_entry.codex_reasoning_output_tokens == 2
     assert snapshot_entry.codex_total_tokens == 16
     assert snapshot_entry.turn_count == 1
     assert is_integer(snapshot_entry.runtime_seconds)
@@ -212,7 +221,10 @@ defmodule SymphonyElixir.OrchestratorStatusTest do
     completed_state = :sys.get_state(pid)
 
     assert completed_state.codex_totals.input_tokens == 12
+    assert completed_state.codex_totals.cached_input_tokens == 10
+    assert completed_state.codex_totals.uncached_input_tokens == 2
     assert completed_state.codex_totals.output_tokens == 4
+    assert completed_state.codex_totals.reasoning_output_tokens == 2
     assert completed_state.codex_totals.total_tokens == 16
     assert is_integer(completed_state.codex_totals.seconds_running)
   end

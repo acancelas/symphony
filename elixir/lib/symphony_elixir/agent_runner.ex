@@ -63,13 +63,13 @@ defmodule SymphonyElixir.AgentRunner do
               PostApprovalCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
 
             true ->
-              with :ok <- run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do
-                if bos_delivery_issue?(issue) do
-                  DeliveryCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
-                else
-                  :ok
-                end
-              end
+              run_implementation_or_resume_reviews(
+                workspace,
+                issue,
+                codex_update_recipient,
+                opts,
+                worker_host
+              )
           end
         end
       after
@@ -78,6 +78,32 @@ defmodule SymphonyElixir.AgentRunner do
     else
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp run_implementation_or_resume_reviews(workspace, issue, recipient, opts, worker_host) do
+    if bos_delivery_issue?(issue) do
+      issue
+      |> DeliveryCoordinator.review_stage_started?(opts)
+      |> run_bos_delivery_stage(workspace, issue, recipient, opts, worker_host)
+    else
+      run_codex_turns(workspace, issue, recipient, opts, worker_host)
+    end
+  end
+
+  defp run_bos_delivery_stage({:ok, true}, workspace, issue, recipient, opts, worker_host) do
+    Logger.info("Resuming durable review stage without reopening implementation for #{issue_context(issue)}")
+
+    DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
+  end
+
+  defp run_bos_delivery_stage({:ok, false}, workspace, issue, recipient, opts, worker_host) do
+    with :ok <- run_codex_turns(workspace, issue, recipient, opts, worker_host) do
+      DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
+    end
+  end
+
+  defp run_bos_delivery_stage({:error, reason}, _workspace, _issue, _recipient, _opts, _worker_host) do
+    {:error, {:review_stage_lookup_failed, reason}}
   end
 
   defp codex_message_handler(recipient, issue) do

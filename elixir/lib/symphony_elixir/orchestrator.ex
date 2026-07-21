@@ -17,10 +17,14 @@ defmodule SymphonyElixir.Orchestrator do
   @poll_transition_render_delay_ms 20
   @empty_codex_totals %{
     input_tokens: 0,
+    cached_input_tokens: 0,
+    uncached_input_tokens: 0,
     output_tokens: 0,
+    reasoning_output_tokens: 0,
     total_tokens: 0,
     seconds_running: 0
   }
+  @terminal_run_reconciliation_interval_ms :timer.minutes(15)
 
   defmodule State do
     @moduledoc """
@@ -70,6 +74,8 @@ defmodule SymphonyElixir.Orchestrator do
           codex_rate_limits: nil
         }
 
+        run_terminal_run_reconciliation()
+        schedule_terminal_run_reconciliation()
         run_terminal_workspace_cleanup()
         state = schedule_tick(state, 0)
 
@@ -124,6 +130,16 @@ defmodule SymphonyElixir.Orchestrator do
     state = %{state | poll_check_in_progress: false}
 
     notify_dashboard()
+    {:noreply, state}
+  end
+
+  def handle_info(:reconcile_terminal_runs, state) do
+    _task =
+      Task.Supervisor.start_child(state.task_supervisor, fn ->
+        run_terminal_run_reconciliation()
+      end)
+
+    schedule_terminal_run_reconciliation()
     {:noreply, state}
   end
 
@@ -980,10 +996,15 @@ defmodule SymphonyElixir.Orchestrator do
             last_codex_event: nil,
             codex_app_server_pid: nil,
             codex_input_tokens: 0,
+            codex_cached_input_tokens: 0,
+            codex_uncached_input_tokens: 0,
             codex_output_tokens: 0,
+            codex_reasoning_output_tokens: 0,
             codex_total_tokens: 0,
             codex_last_reported_input_tokens: 0,
+            codex_last_reported_cached_input_tokens: 0,
             codex_last_reported_output_tokens: 0,
+            codex_last_reported_reasoning_output_tokens: 0,
             codex_last_reported_total_tokens: 0,
             turn_count: 0,
             retry_attempt: normalize_retry_attempt(attempt),
@@ -1177,6 +1198,25 @@ defmodule SymphonyElixir.Orchestrator do
     end
   end
 
+  defp run_terminal_run_reconciliation do
+    case Tracker.reconcile_terminal_runs() do
+      {:ok, results} ->
+        reconciled = Enum.count(results, &(&1["action"] == "reconciled"))
+        Logger.info("Terminal AgentRun reconciliation completed reconciled=#{reconciled} inspected=#{length(results)}")
+
+      {:error, reason} ->
+        Logger.warning("Skipping startup terminal AgentRun reconciliation; gateway request failed: #{inspect(reason)}")
+    end
+  end
+
+  defp schedule_terminal_run_reconciliation do
+    Process.send_after(
+      self(),
+      :reconcile_terminal_runs,
+      @terminal_run_reconciliation_interval_ms
+    )
+  end
+
   defp notify_dashboard do
     StatusDashboard.notify_update()
   end
@@ -1218,6 +1258,10 @@ defmodule SymphonyElixir.Orchestrator do
       failure_retry_delay(attempt)
     end
   end
+
+  @doc false
+  @spec retry_delay_for_test(pos_integer(), map()) :: pos_integer()
+  def retry_delay_for_test(attempt, metadata), do: retry_delay(attempt, metadata)
 
   defp failure_retry_delay(attempt) do
     max_delay_power = min(attempt - 1, 10)
@@ -1406,7 +1450,10 @@ defmodule SymphonyElixir.Orchestrator do
           session_id: metadata.session_id,
           codex_app_server_pid: metadata.codex_app_server_pid,
           codex_input_tokens: metadata.codex_input_tokens,
+          codex_cached_input_tokens: Map.get(metadata, :codex_cached_input_tokens, 0),
+          codex_uncached_input_tokens: Map.get(metadata, :codex_uncached_input_tokens, 0),
           codex_output_tokens: metadata.codex_output_tokens,
+          codex_reasoning_output_tokens: Map.get(metadata, :codex_reasoning_output_tokens, 0),
           codex_total_tokens: metadata.codex_total_tokens,
           turn_count: Map.get(metadata, :turn_count, 0),
           started_at: metadata.started_at,
@@ -1488,15 +1535,28 @@ defmodule SymphonyElixir.Orchestrator do
   defp blocked_issue_url(_metadata), do: nil
 
   defp integrate_codex_update(running_entry, %{event: event, timestamp: timestamp} = update) do
+    running_entry = reset_reported_usage_for_new_session(running_entry, update)
     token_delta = extract_token_delta(running_entry, update)
     codex_input_tokens = Map.get(running_entry, :codex_input_tokens, 0)
+    codex_cached_input_tokens = Map.get(running_entry, :codex_cached_input_tokens, 0)
     codex_output_tokens = Map.get(running_entry, :codex_output_tokens, 0)
+    codex_reasoning_output_tokens = Map.get(running_entry, :codex_reasoning_output_tokens, 0)
     codex_total_tokens = Map.get(running_entry, :codex_total_tokens, 0)
     codex_app_server_pid = Map.get(running_entry, :codex_app_server_pid)
     last_reported_input = Map.get(running_entry, :codex_last_reported_input_tokens, 0)
+    last_reported_cached_input = Map.get(running_entry, :codex_last_reported_cached_input_tokens, 0)
     last_reported_output = Map.get(running_entry, :codex_last_reported_output_tokens, 0)
+    last_reported_reasoning_output = Map.get(running_entry, :codex_last_reported_reasoning_output_tokens, 0)
     last_reported_total = Map.get(running_entry, :codex_last_reported_total_tokens, 0)
     turn_count = Map.get(running_entry, :turn_count, 0)
+    next_input_tokens = codex_input_tokens + token_delta.input_tokens
+    next_cached_input_tokens = codex_cached_input_tokens + token_delta.cached_input_tokens
+
+    next_reasoning_output_tokens =
+      codex_reasoning_output_tokens + token_delta.reasoning_output_tokens
+
+    next_reported_reasoning_output =
+      max(last_reported_reasoning_output, token_delta.reasoning_output_reported)
 
     {
       Map.merge(running_entry, %{
@@ -1505,11 +1565,16 @@ defmodule SymphonyElixir.Orchestrator do
         session_id: session_id_for_update(running_entry.session_id, update),
         last_codex_event: event,
         codex_app_server_pid: codex_app_server_pid_for_update(codex_app_server_pid, update),
-        codex_input_tokens: codex_input_tokens + token_delta.input_tokens,
+        codex_input_tokens: next_input_tokens,
+        codex_cached_input_tokens: next_cached_input_tokens,
+        codex_uncached_input_tokens: max(next_input_tokens - next_cached_input_tokens, 0),
         codex_output_tokens: codex_output_tokens + token_delta.output_tokens,
+        codex_reasoning_output_tokens: next_reasoning_output_tokens,
         codex_total_tokens: codex_total_tokens + token_delta.total_tokens,
         codex_last_reported_input_tokens: max(last_reported_input, token_delta.input_reported),
+        codex_last_reported_cached_input_tokens: max(last_reported_cached_input, token_delta.cached_input_reported),
         codex_last_reported_output_tokens: max(last_reported_output, token_delta.output_reported),
+        codex_last_reported_reasoning_output_tokens: next_reported_reasoning_output,
         codex_last_reported_total_tokens: max(last_reported_total, token_delta.total_reported),
         turn_count: turn_count_for_update(turn_count, running_entry.session_id, update)
       }),
@@ -1534,6 +1599,26 @@ defmodule SymphonyElixir.Orchestrator do
     do: session_id
 
   defp session_id_for_update(existing, _update), do: existing
+
+  defp reset_reported_usage_for_new_session(running_entry, %{
+         event: :session_started,
+         session_id: session_id
+       })
+       when is_binary(session_id) do
+    if Map.get(running_entry, :session_id) in [nil, session_id] do
+      running_entry
+    else
+      Map.merge(running_entry, %{
+        codex_last_reported_input_tokens: 0,
+        codex_last_reported_cached_input_tokens: 0,
+        codex_last_reported_output_tokens: 0,
+        codex_last_reported_reasoning_output_tokens: 0,
+        codex_last_reported_total_tokens: 0
+      })
+    end
+  end
+
+  defp reset_reported_usage_for_new_session(running_entry, _update), do: running_entry
 
   defp turn_count_for_update(existing_count, existing_session_id, %{
          event: :session_started,
@@ -1655,7 +1740,16 @@ defmodule SymphonyElixir.Orchestrator do
 
   defp apply_token_delta(codex_totals, token_delta) do
     input_tokens = Map.get(codex_totals, :input_tokens, 0) + token_delta.input_tokens
+
+    cached_input_tokens =
+      Map.get(codex_totals, :cached_input_tokens, 0) + Map.get(token_delta, :cached_input_tokens, 0)
+
     output_tokens = Map.get(codex_totals, :output_tokens, 0) + token_delta.output_tokens
+
+    reasoning_output_tokens =
+      Map.get(codex_totals, :reasoning_output_tokens, 0) +
+        Map.get(token_delta, :reasoning_output_tokens, 0)
+
     total_tokens = Map.get(codex_totals, :total_tokens, 0) + token_delta.total_tokens
 
     seconds_running =
@@ -1663,7 +1757,10 @@ defmodule SymphonyElixir.Orchestrator do
 
     %{
       input_tokens: max(0, input_tokens),
+      cached_input_tokens: max(0, cached_input_tokens),
+      uncached_input_tokens: max(0, input_tokens - cached_input_tokens),
       output_tokens: max(0, output_tokens),
+      reasoning_output_tokens: max(0, reasoning_output_tokens),
       total_tokens: max(0, total_tokens),
       seconds_running: max(0, seconds_running)
     }
@@ -1688,19 +1785,35 @@ defmodule SymphonyElixir.Orchestrator do
       ),
       compute_token_delta(
         running_entry,
+        :cached_input,
+        usage,
+        :codex_last_reported_cached_input_tokens
+      ),
+      compute_token_delta(
+        running_entry,
+        :reasoning_output,
+        usage,
+        :codex_last_reported_reasoning_output_tokens
+      ),
+      compute_token_delta(
+        running_entry,
         :total,
         usage,
         :codex_last_reported_total_tokens
       )
     }
     |> Tuple.to_list()
-    |> then(fn [input, output, total] ->
+    |> then(fn [input, output, cached_input, reasoning_output, total] ->
       %{
         input_tokens: input.delta,
+        cached_input_tokens: cached_input.delta,
         output_tokens: output.delta,
+        reasoning_output_tokens: reasoning_output.delta,
         total_tokens: total.delta,
         input_reported: input.reported,
+        cached_input_reported: cached_input.reported,
         output_reported: output.reported,
+        reasoning_output_reported: reasoning_output.reported,
         total_reported: total.reported
       }
     end)
@@ -1876,6 +1989,8 @@ defmodule SymphonyElixir.Orchestrator do
       :total_tokens,
       :prompt_tokens,
       :completion_tokens,
+      :cached_input_tokens,
+      :reasoning_output_tokens,
       :inputTokens,
       :outputTokens,
       :totalTokens,
@@ -1886,6 +2001,8 @@ defmodule SymphonyElixir.Orchestrator do
       "total_tokens",
       "prompt_tokens",
       "completion_tokens",
+      "cached_input_tokens",
+      "reasoning_output_tokens",
       "inputTokens",
       "outputTokens",
       "totalTokens",
@@ -1927,6 +2044,18 @@ defmodule SymphonyElixir.Orchestrator do
         :outputTokens,
         "completionTokens",
         :completionTokens
+      ])
+
+  defp get_token_usage(usage, :cached_input),
+    do: payload_get(usage, ["cached_input_tokens", :cached_input_tokens, "cachedInputTokens", :cachedInputTokens])
+
+  defp get_token_usage(usage, :reasoning_output),
+    do:
+      payload_get(usage, [
+        "reasoning_output_tokens",
+        :reasoning_output_tokens,
+        "reasoningOutputTokens",
+        :reasoningOutputTokens
       ])
 
   defp get_token_usage(usage, :total),

@@ -27,4 +27,19 @@ defmodule SymphonyElixir.Audit.CanonicalJsonTest do
   test "rejects floating point audit values" do
     assert_raise ArgumentError, fn -> CanonicalJson.encode(%{"value" => 1.5}) end
   end
+
+  test "uses lowercase RFC 8785 escapes for control characters" do
+    canonical = %{"output" => <<27, 0, 31, 8, 9, 10, 12, 13>>} |> CanonicalJson.encode() |> IO.iodata_to_binary()
+
+    assert canonical == ~S({"output":"\u001b\u0000\u001f\b\t\n\f\r"})
+  end
+
+  test "sorts object properties by UTF-16 code units" do
+    canonical = %{<<0xE000::utf8>> => 1, "😀" => 2} |> CanonicalJson.encode() |> IO.iodata_to_binary()
+    assert canonical == ~s({"😀":2,"":1})
+  end
+
+  test "rejects invalid UTF-8 strings" do
+    assert_raise ArgumentError, fn -> CanonicalJson.encode(%{"value" => <<255>>}) end
+  end
 end

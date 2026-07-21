@@ -7,26 +7,45 @@ defmodule SymphonyElixir.GameApi.Client do
 
   alias SymphonyElixir.Audit.CanonicalJson
   alias SymphonyElixir.Config
+  alias SymphonyElixir.GameApi.ProviderCircuit
   alias SymphonyElixir.Tracker.Issue
 
-  @spec fetch_ready_issues() :: {:ok, [map()]} | {:error, term()}
-  def fetch_ready_issues do
+  @recoverable_audit_error_codes ~w(
+    audit_chain_conflict
+    audit_chain_start_invalid
+    audit_event_hash_invalid
+    audit_hash_chain_mismatch
+    audit_sequence_gap
+  )
+
+  @spec fetch_issues_by_states([String.t()]) :: {:ok, [map()]} | {:error, term()}
+  def fetch_issues_by_states([]), do: {:ok, []}
+
+  def fetch_issues_by_states(state_names) when is_list(state_names) do
     repositories()
     |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->
-      params = repository_query(repository) ++ [{"runnerId", System.get_env("BOS_RUNNER_ID") || "x1"}]
+      params =
+        repository_query(repository) ++
+          Enum.map(state_names, &{"states", &1})
 
-      result =
-        with {:ok, issues} <-
-               request(:get, "/v1/internal/bos/delivery/issues/eligible", params: params)
-               |> response_list("issues"),
-             {:ok, goals} <-
-               request(:get, "/v1/internal/bos/delivery/goals/eligible", params: params)
-               |> response_list("goals") do
-          {:ok, issues ++ goals}
-        end
-
-      case result do
+      case request(:get, "/v1/internal/bos/delivery/issues/by-states", params: params)
+           |> response_list("issues") do
         {:ok, issues} -> {:cont, {:ok, accumulated ++ issues}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  @spec reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}
+  def reconcile_terminal_runs do
+    reconciliation_cycle_id = reconciliation_cycle_id()
+
+    repositories()
+    |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->
+      with {:ok, runs} <- list_runs(repository),
+           {:ok, reconciled} <- reconcile_repository_runs(repository, runs, reconciliation_cycle_id) do
+        {:cont, {:ok, accumulated ++ reconciled}}
+      else
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
@@ -197,10 +216,21 @@ defmodule SymphonyElixir.GameApi.Client do
         retry: false
       )
 
-    case Req.request(Keyword.merge(options, method: method, url: url)) do
-      {:ok, %Req.Response{status: status, body: body}} when status in 200..299 -> {:ok, body}
-      {:ok, %Req.Response{status: status, body: body}} -> {:error, http_error(status, body)}
-      {:error, reason} -> {:error, {:game_api_request_failed, reason}}
+    with :ok <- ProviderCircuit.before_request() do
+      case Req.request(Keyword.merge(options, method: method, url: url)) do
+        {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
+          ProviderCircuit.succeeded()
+          {:ok, body}
+
+        {:ok, %Req.Response{status: status} = response} when status in [403, 429] ->
+          {:error, {:game_api_rate_limited, ProviderCircuit.rate_limited(retry_after_ms(response))}}
+
+        {:ok, %Req.Response{status: status, body: body}} ->
+          {:error, http_error(status, body)}
+
+        {:error, reason} ->
+          {:error, {:game_api_request_failed, reason}}
+      end
     end
   end
 
@@ -208,7 +238,7 @@ defmodule SymphonyElixir.GameApi.Client do
   @spec http_error(non_neg_integer(), term()) :: tuple()
   def http_error(status, body) do
     case response_error_code(body) do
-      code when status == 409 and code in ["audit_chain_conflict", "audit_sequence_gap"] ->
+      code when status in [409, 422] and code in @recoverable_audit_error_codes ->
         {:game_api_http_error, status, code}
 
       _ ->
@@ -217,8 +247,32 @@ defmodule SymphonyElixir.GameApi.Client do
   end
 
   defp response_error_code(%{"detail" => %{"error" => code}}) when is_binary(code), do: code
+  defp response_error_code(%{"detail" => %{"code" => code}}) when is_binary(code), do: code
+  defp response_error_code(%{"detail" => detail}) when is_binary(detail), do: response_error_code(detail)
   defp response_error_code(%{"error" => code}) when is_binary(code), do: code
+  defp response_error_code(%{"code" => code}) when is_binary(code), do: code
+
+  defp response_error_code(body) when is_binary(body) do
+    case Jason.decode(body) do
+      {:ok, decoded} -> response_error_code(decoded)
+      {:error, _reason} -> nil
+    end
+  end
+
   defp response_error_code(_body), do: nil
+
+  defp retry_after_ms(response) do
+    case Req.Response.get_header(response, "retry-after") do
+      [value | _rest] ->
+        case Integer.parse(value) do
+          {seconds, ""} when seconds > 0 -> seconds * 1_000
+          _invalid -> nil
+        end
+
+      [] ->
+        nil
+    end
+  end
 
   defp response_list({:ok, payload}, key) when is_map(payload) do
     case Map.get(payload, key) do
@@ -228,6 +282,81 @@ defmodule SymphonyElixir.GameApi.Client do
   end
 
   defp response_list({:error, reason}, _key), do: {:error, reason}
+
+  defp list_runs(repository) do
+    request(:get, "/v1/internal/bos/delivery/runs", params: repository_query(repository))
+    |> response_list("runs")
+  end
+
+  defp reconcile_repository_runs(repository, runs, reconciliation_cycle_id) do
+    reconcile_run_projections(runs, &reconcile_run(repository, &1, reconciliation_cycle_id))
+  end
+
+  defp reconcile_run_projections(runs, reconcile_fun) do
+    runs
+    |> Enum.reject(&(&1["status"] in ["completed", "cancelled"]))
+    |> Enum.reduce_while({:ok, []}, fn run, {:ok, accumulated} ->
+      result =
+        if valid_run_projection?(run) do
+          reconcile_fun.(run)
+        else
+          {:ok,
+           %{
+             "action" => "skipped",
+             "reason" => "invalid_run_projection",
+             "runId" => run["runId"]
+           }}
+        end
+
+      case result do
+        {:ok, payload} -> {:cont, {:ok, [payload | accumulated]}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:ok, results} -> {:ok, Enum.reverse(results)}
+      error -> error
+    end
+  end
+
+  defp valid_run_projection?(%{"runId" => run_id, "issueNumber" => issue_number})
+       when is_binary(run_id) and run_id != "" and is_integer(issue_number) and issue_number > 0,
+       do: true
+
+  defp valid_run_projection?(_run), do: false
+
+  @doc false
+  @spec reconcile_run_projections_for_test([map()], (map() -> {:ok, map()} | {:error, term()})) ::
+          {:ok, [map()]} | {:error, term()}
+  def reconcile_run_projections_for_test(runs, reconcile_fun)
+      when is_list(runs) and is_function(reconcile_fun, 1) do
+    reconcile_run_projections(runs, reconcile_fun)
+  end
+
+  defp reconcile_run(repository, %{"runId" => run_id, "issueNumber" => issue_number}, reconciliation_cycle_id)
+       when is_binary(run_id) and run_id != "" and is_integer(issue_number) and issue_number > 0 do
+    request(:post, "/v1/internal/bos/delivery/runs/reconcile",
+      json: %{
+        "repository" => repository_body(repository),
+        "issueNumber" => issue_number,
+        "operationId" => reconciliation_operation_id_for_test(run_id, reconciliation_cycle_id),
+        "runId" => run_id
+      }
+    )
+  end
+
+  @doc false
+  @spec reconciliation_operation_id_for_test(String.t(), String.t()) :: String.t()
+  def reconciliation_operation_id_for_test(run_id, reconciliation_cycle_id)
+      when is_binary(run_id) and is_binary(reconciliation_cycle_id) do
+    "reconcile_terminal_#{run_id}_#{reconciliation_cycle_id}"
+  end
+
+  defp reconciliation_cycle_id do
+    timestamp = System.system_time(:millisecond)
+    entropy = 8 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+    "#{timestamp}_#{entropy}"
+  end
 
   defp ensure_run_record(repository, issue, run_id, issue_number, attempt_id) do
     case fetch_run(repository["repository_id"], run_id) do

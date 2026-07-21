@@ -136,4 +136,13 @@ defmodule SymphonyElixir.CLITest do
 
     assert :ok = CLI.evaluate([@ack_flag, "WORKFLOW.md"], deps)
   end
+
+  test "classifies intentional OTP shutdown as a successful service stop" do
+    assert CLI.shutdown_exit_status(:normal) == 0
+    assert CLI.shutdown_exit_status(:shutdown) == 0
+    assert CLI.shutdown_exit_status({:shutdown, :application_stopped}) == 0
+
+    assert CLI.shutdown_exit_status(:killed) == 1
+    assert CLI.shutdown_exit_status({:error, :boom}) == 1
+  end
 end

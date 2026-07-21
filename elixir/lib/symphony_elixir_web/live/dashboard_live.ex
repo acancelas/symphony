@@ -101,7 +101,9 @@ defmodule SymphonyElixirWeb.DashboardLive do
             <p class="metric-label">Total tokens</p>
             <p class="metric-value numeric"><%= format_int(@payload.codex_totals.total_tokens) %></p>
             <p class="metric-detail numeric">
-              In <%= format_int(@payload.codex_totals.input_tokens) %> / Out <%= format_int(@payload.codex_totals.output_tokens) %>
+              New in <%= format_int(Map.get(@payload.codex_totals, :uncached_input_tokens, @payload.codex_totals.input_tokens)) %>
+              / Cached <%= format_int(Map.get(@payload.codex_totals, :cached_input_tokens, 0)) %>
+              / Out <%= format_int(@payload.codex_totals.output_tokens) %>
             </p>
           </article>
 

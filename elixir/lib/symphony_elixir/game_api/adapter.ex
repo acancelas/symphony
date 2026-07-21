@@ -12,11 +12,14 @@ defmodule SymphonyElixir.GameApi.Adapter do
   def validate_config(tracker_settings), do: client_module().validate_config(tracker_settings)
 
   @spec fetch_issues_by_states([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
-  def fetch_issues_by_states(_states) do
-    with {:ok, issues} <- client_module().fetch_ready_issues() do
+  def fetch_issues_by_states(states) do
+    with {:ok, issues} <- client_module().fetch_issues_by_states(states) do
       {:ok, Enum.map(issues, &normalize_issue/1)}
     end
   end
+
+  @spec reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}
+  def reconcile_terminal_runs, do: client_module().reconcile_terminal_runs()
 
   @spec fetch_issues_by_ids([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
   def fetch_issues_by_ids(issue_ids) do

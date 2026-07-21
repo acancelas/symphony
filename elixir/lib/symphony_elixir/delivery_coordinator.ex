@@ -16,6 +16,29 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   @review_roles ~w(functional architecture security quality visual)
   @max_repair_cycles 3
+  @max_review_record_attempts 2
+  @max_review_lookup_attempts 3
+
+  @doc """
+  Returns whether this AgentRun has already crossed the durable review-stage
+  boundary. Scheduler retries use this projection to avoid reopening the
+  implementation Codex session after at least one specialist Review exists.
+  """
+  @spec review_stage_started?(Issue.t(), keyword()) :: {:ok, boolean()} | {:error, term()}
+  def review_stage_started?(%Issue{} = issue, opts \\ []) do
+    client = Keyword.get(opts, :game_api_client_module, Client)
+    native_ref = issue.native_ref || %{}
+
+    with repository_id when is_binary(repository_id) <- native_ref["repositoryId"],
+         run_id when is_binary(run_id) <- native_ref["runId"],
+         {:ok, artifacts} <- client.fetch_run_artifacts(repository_id, run_id, "reviews") do
+      {:ok, artifacts != []}
+    else
+      nil -> {:ok, false}
+      {:error, reason} -> {:error, reason}
+      _ -> {:ok, false}
+    end
+  end
 
   @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}
   def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do
@@ -23,6 +46,8 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     client = Keyword.get(opts, :game_api_client_module, Client)
     roles = Keyword.get(opts, :review_roles, @review_roles)
     max_cycles = Keyword.get(opts, :max_repair_cycles, @max_repair_cycles)
+    max_lookup_attempts = Keyword.get(opts, :max_review_lookup_attempts, @max_review_lookup_attempts)
+    sleep_fn = Keyword.get(opts, :review_lookup_sleep, &Process.sleep/1)
 
     context = %{
       workspace: workspace,
@@ -31,7 +56,9 @@ defmodule SymphonyElixir.DeliveryCoordinator do
       worker_host: worker_host,
       app_server: app_server,
       client: client,
-      roles: roles
+      roles: roles,
+      max_lookup_attempts: max_lookup_attempts,
+      sleep_fn: sleep_fn
     }
 
     with :ok <- review_and_repair(context, 1, max_cycles) do
@@ -41,7 +68,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   defp review_and_repair(context, cycle, max_cycles) do
     with :ok <- run_reviews(context, cycle),
-         {:ok, reviews} <- fetch_cycle_reviews(context.client, context.issue, context.roles, cycle) do
+         {:ok, reviews} <- fetch_cycle_reviews(context, cycle) do
       handle_reviews(context, reviews, cycle, max_cycles)
     end
   end
@@ -70,40 +97,112 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   defp run_reviews(context, cycle) do
     Enum.reduce_while(context.roles, :ok, fn role, :ok ->
-      prompt = review_prompt(context.issue, role, cycle)
-
-      case run_role(
-             context.app_server,
-             context.workspace,
-             context.issue,
-             context.worker_host,
-             "#{role}-reviewer",
-             prompt,
-             context.recipient
-           ) do
+      case run_or_reuse_review(context, role, cycle) do
         :ok -> {:cont, :ok}
-        {:error, reason} -> {:halt, {:error, {:reviewer_failed, role, reason}}}
+        {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
   end
 
-  defp fetch_cycle_reviews(client, issue, roles, cycle) do
-    native_ref = issue.native_ref || %{}
-    repository_id = native_ref["repositoryId"]
+  defp run_or_reuse_review(context, role, cycle) do
+    case review_recorded?(context, role, cycle) do
+      {:ok, true} ->
+        Logger.info("Reusing durable specialist Review role=#{role} cycle=#{cycle}")
+        :ok
+
+      {:ok, false} ->
+        run_review_until_durable(context, role, cycle, 1)
+
+      {:error, reason} ->
+        {:error, {:review_lookup_failed, role, reason}}
+    end
+  end
+
+  defp run_review_until_durable(context, role, cycle, record_attempt) do
+    prompt = review_prompt(context.issue, role, cycle, record_attempt)
+
+    case run_role(
+           context.app_server,
+           context.workspace,
+           context.issue,
+           context.worker_host,
+           "#{role}-reviewer",
+           prompt,
+           context.recipient
+         ) do
+      :ok -> verify_or_retry_review(context, role, cycle, record_attempt)
+      {:error, reason} -> {:error, {:reviewer_failed, role, reason}}
+    end
+  end
+
+  defp verify_or_retry_review(context, role, cycle, record_attempt) do
+    case review_recorded?(context, role, cycle) do
+      {:ok, true} ->
+        :ok
+
+      {:ok, false} when record_attempt < @max_review_record_attempts ->
+        Logger.warning("Reviewer ended without a durable artifact; retrying role=#{role} cycle=#{cycle} record_attempt=#{record_attempt + 1}")
+
+        run_review_until_durable(context, role, cycle, record_attempt + 1)
+
+      {:ok, false} ->
+        {:error, {:review_artifact_missing, role, cycle}}
+
+      {:error, reason} ->
+        {:error, {:review_lookup_failed, role, reason}}
+    end
+  end
+
+  defp review_recorded?(context, role, cycle) do
+    native_ref = context.issue.native_ref || %{}
+    expected_id = "review_#{native_ref["runId"]}_#{cycle}_#{role}"
+
+    with {:ok, artifacts} <- fetch_review_artifacts(context) do
+      {:ok, Enum.any?(artifacts, &(&1["reviewId"] == expected_id))}
+    end
+  end
+
+  defp fetch_cycle_reviews(context, cycle) do
+    native_ref = context.issue.native_ref || %{}
     run_id = native_ref["runId"]
 
-    with {:ok, artifacts} <- client.fetch_run_artifacts(repository_id, run_id, "reviews") do
-      expected_ids = Map.new(roles, &{&1, "review_#{run_id}_#{cycle}_#{&1}"})
+    with {:ok, artifacts} <- fetch_review_artifacts(context) do
+      expected_ids = Map.new(context.roles, &{&1, "review_#{run_id}_#{cycle}_#{&1}"})
 
       reviews =
-        Enum.map(roles, fn role ->
+        Enum.map(context.roles, fn role ->
           Enum.find(artifacts, &(&1["reviewId"] == expected_ids[role]))
         end)
 
       case Enum.find_index(reviews, &is_nil/1) do
         nil -> {:ok, reviews}
-        index -> {:error, {:review_artifact_missing, Enum.at(roles, index), cycle}}
+        index -> {:error, {:review_artifact_missing, Enum.at(context.roles, index), cycle}}
       end
+    end
+  end
+
+  defp fetch_review_artifacts(context, attempt \\ 1) do
+    native_ref = context.issue.native_ref || %{}
+
+    case context.client.fetch_run_artifacts(
+           native_ref["repositoryId"],
+           native_ref["runId"],
+           "reviews"
+         ) do
+      {:error, {:game_api_rate_limited, retry_after_ms}}
+      when attempt < context.max_lookup_attempts and is_integer(retry_after_ms) and retry_after_ms >= 0 ->
+        delay_ms = max(retry_after_ms, 50)
+
+        Logger.warning(
+          "Review lookup paused by the shared provider circuit; preserving the completed Codex stage " <>
+            "attempt=#{attempt} delay_ms=#{delay_ms}"
+        )
+
+        context.sleep_fn.(delay_ms)
+        fetch_review_artifacts(context, attempt + 1)
+
+      result ->
+        result
     end
   end
 
@@ -188,15 +287,19 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp review_prompt(issue, role, cycle) do
+  defp review_prompt(issue, role, cycle, record_attempt) do
     native_ref = issue.native_ref || %{}
     run_id = native_ref["runId"]
     attempt_id = native_ref["attemptId"]
 
     """
     You are the independent BOS #{role} reviewer for #{issue.identifier}, cycle #{cycle}.
-    Inspect the issue acceptance contract, repository instructions, current diff,
-    exact git HEAD, tests and existing evidence. Do not modify files, commits,
+    Begin with the compact delivery context, current diff, exact git HEAD and
+    existing evidence. Inspect only the repository instructions and files needed
+    to decide this review; do not repeatedly load broad context or rerun an
+    unchanged passing validation unless its evidence is missing, stale or
+    insufficient for the #{role} decision. Prefer targeted search and summaries
+    before full documents. Do not modify files, commits,
     issue state, PR state, risk or approvals. Record exactly one typed Review via
     bos_record_review with reviewId `review_#{run_id}_#{cycle}_#{role}`, runId
     `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type
@@ -204,7 +307,14 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     `passed`, `changes_requested`, or `inconclusive`, concrete findings, and a
     concise summary. Passing requires affirmative evidence; missing evidence is
     inconclusive. End after the durable Review receipt is confirmed.
+    #{review_record_retry_instruction(record_attempt)}
     """
+  end
+
+  defp review_record_retry_instruction(1), do: ""
+
+  defp review_record_retry_instruction(record_attempt) do
+    "A prior reviewer session ended without the required durable Review. This is record attempt #{record_attempt}; call bos_record_review and confirm its receipt before doing anything else."
   end
 
   defp summarize_findings(reviews) do

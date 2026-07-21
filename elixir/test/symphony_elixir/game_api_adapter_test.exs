@@ -8,8 +8,8 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     @spec validate_config(map()) :: :ok
     def validate_config(_settings), do: :ok
 
-    @spec fetch_ready_issues() :: {:ok, [map()]}
-    def fetch_ready_issues do
+    @spec fetch_issues_by_states([String.t()]) :: {:ok, [map()]}
+    def fetch_issues_by_states(_states) do
       {:ok,
        Application.get_env(:symphony_elixir, :game_api_test_issues, [
          %{
@@ -26,7 +26,10 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     end
 
     @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()}
-    def fetch_issue("bos-front", 42), do: fetch_ready_issues() |> then(fn {:ok, [issue]} -> {:ok, issue} end)
+    def fetch_issue("bos-front", 42), do: fetch_issues_by_states(["agent:ready"]) |> then(fn {:ok, [issue]} -> {:ok, issue} end)
+
+    @spec reconcile_terminal_runs() :: {:ok, [map()]}
+    def reconcile_terminal_runs, do: {:ok, [%{"action" => "reconciled"}]}
 
     @spec claim_issue(String.t(), pos_integer(), String.t() | nil) :: {:ok, map()}
     def claim_issue("bos-front", 42, nil) do
@@ -125,10 +128,78 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert started.native_ref["attemptId"] == "attempt_run_42_001_1"
   end
 
+  test "delegates durable terminal run reconciliation to game-api" do
+    assert {:ok, [%{"action" => "reconciled"}]} = Adapter.reconcile_terminal_runs()
+  end
+
+  test "uses a stable operation identity within one reconciliation cycle and a fresh identity later" do
+    run_id = "run_42_001"
+
+    first = Client.reconciliation_operation_id_for_test(run_id, "cycle_one")
+    repeated = Client.reconciliation_operation_id_for_test(run_id, "cycle_one")
+    later = Client.reconciliation_operation_id_for_test(run_id, "cycle_two")
+
+    assert first == repeated
+    assert first != later
+    assert first == "reconcile_terminal_run_42_001_cycle_one"
+  end
+
+  test "skips malformed run projections and continues with later valid records" do
+    runs = [
+      %{"runId" => "run_missing_issue", "status" => "running"},
+      %{"runId" => "run_valid_1", "issueNumber" => 41, "status" => "running"},
+      %{"runId" => "run_valid_2", "issueNumber" => 42, "status" => "running"}
+    ]
+
+    assert {:ok,
+            [
+              %{
+                "action" => "skipped",
+                "reason" => "invalid_run_projection",
+                "runId" => "run_missing_issue"
+              },
+              %{"action" => "reconciled", "runId" => "run_valid_1"},
+              %{"action" => "reconciled", "runId" => "run_valid_2"}
+            ]} =
+             Client.reconcile_run_projections_for_test(runs, fn run ->
+               {:ok, %{"action" => "reconciled", "runId" => run["runId"]}}
+             end)
+  end
+
+  test "keeps provider failures fatal while isolating malformed projections" do
+    runs = [
+      %{"runId" => "run_missing_issue", "status" => "running"},
+      %{"runId" => "run_provider_failure", "issueNumber" => 42, "status" => "running"},
+      %{"runId" => "run_never_reached", "issueNumber" => 43, "status" => "running"}
+    ]
+
+    assert {:error, {:game_api_http_error, 429, "github_rate_limited"}} =
+             Client.reconcile_run_projections_for_test(runs, fn run ->
+               send(self(), {:reconciled, run["runId"]})
+               {:error, {:game_api_http_error, 429, "github_rate_limited"}}
+             end)
+
+    assert_received {:reconciled, "run_provider_failure"}
+    refute_received {:reconciled, "run_never_reached"}
+  end
+
   test "preserves audit chain conflict identity for outbox recovery" do
     assert Client.http_error(409, %{
              "detail" => %{"error" => "audit_chain_conflict", "message" => "stale"}
            }) == {:game_api_http_error, 409, "audit_chain_conflict"}
+
+    assert Client.http_error(422, %{
+             "detail" => %{"error" => "audit_event_hash_invalid", "message" => "stale payload"}
+           }) == {:game_api_http_error, 422, "audit_event_hash_invalid"}
+
+    assert Client.http_error(
+             422,
+             ~s({"detail":{"error":"audit_event_hash_invalid","message":"stale payload"}})
+           ) == {:game_api_http_error, 422, "audit_event_hash_invalid"}
+
+    assert Client.http_error(422, %{
+             "detail" => ~s({"code":"audit_sequence_gap","message":"missing events"})
+           }) == {:game_api_http_error, 422, "audit_sequence_gap"}
 
     assert Client.http_error(404, %{"error" => "delivery_run_not_found"}) ==
              {:game_api_http_error, 404}
