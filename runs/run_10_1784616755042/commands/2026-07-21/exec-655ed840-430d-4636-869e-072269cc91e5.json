@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-655ed840-430d-4636-869e-072269cc91e5",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628551726_281",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:09:11.657Z",
+  "command": "/bin/bash -lc 'git status --short && git diff --check && git diff --stat && git diff --name-only && git diff --staged --stat'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": " M elixir/lib/symphony_elixir/post_approval_coordinator.ex\n M elixir/test/symphony_elixir/post_approval_coordinator_test.exs\n .../symphony_elixir/post_approval_coordinator.ex   | 151 ++++++++++++++++++++-\n .../post_approval_coordinator_test.exs             | 135 +++++++++++++++++-\n 2 files changed, 284 insertions(+), 2 deletions(-)\nelixir/lib/symphony_elixir/post_approval_coordinator.ex\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
