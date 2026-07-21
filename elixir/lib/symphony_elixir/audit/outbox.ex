@@ -23,6 +23,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   @bearer ~r/Bearer\s+[A-Za-z0-9._~+\/-]+=*/i
   @max_inline_string_bytes 8_000
   @max_checkpoint_bytes 3_000_000
+  @max_event_summary_characters 2_000
   @sensitive_assignment ~r/(?i)\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|AUTHORIZATION|API[_-]?KEY)[A-Z0-9_]*)(\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s]+)/
   @sensitive_json_pair ~r/(?i)(["']?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)["']?\s*:\s*)(?:"[^"]*"|'[^']*'|[^\s,}\]]+)/
   @sensitive_flag ~r/(?i)(--?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s]+)/
@@ -360,6 +361,23 @@ defmodule SymphonyElixir.Audit.Outbox do
   def provider_rate_limited_for_test?(reason), do: provider_rate_limited?(reason)
 
   @doc false
+  @spec immediate_flush_for_test?(map()) :: boolean()
+  def immediate_flush_for_test?(update), do: critical?(update)
+
+  @doc false
+  @spec event_summary_for_test(String.t(), map()) :: String.t()
+  def event_summary_for_test(method, payload), do: summary(method, payload)
+
+  @doc false
+  @spec hash_event_for_test(map()) :: String.t()
+  def hash_event_for_test(event) do
+    event
+    |> CanonicalJson.encode()
+    |> IO.iodata_to_binary()
+    |> sha256()
+  end
+
+  @doc false
   @spec rebase_pending_events([map()], non_neg_integer(), String.t() | nil) :: [map()]
   def rebase_pending_events(events, confirmed_sequence, confirmed_hash)
       when is_list(events) and is_integer(confirmed_sequence) and confirmed_sequence >= 0 do
@@ -370,6 +388,7 @@ defmodule SymphonyElixir.Audit.Outbox do
 
       rebased =
         event
+        |> normalize_recovered_event()
         |> Map.put("sequence", next_sequence)
         |> Map.put("previousEventHash", previous_hash)
         |> Map.delete("eventHash")
@@ -490,7 +509,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   end
 
   defp repair_recovered_run(root, run_id, run_state, remote_resolver) do
-    if pending_chain_valid?(run_state.pending) do
+    if pending_chain_valid?(run_state.pending) and not pending_requires_normalization?(run_state.pending) do
       run_state
     else
       case remote_resolver.(run_state.issue) do
@@ -515,6 +534,21 @@ defmodule SymphonyElixir.Audit.Outbox do
       end
     end
   end
+
+  defp pending_requires_normalization?(events) do
+    Enum.any?(events, fn
+      %{"summary" => summary} when is_binary(summary) ->
+        String.length(summary) > @max_event_summary_characters
+
+      _event ->
+        false
+    end)
+  end
+
+  defp normalize_recovered_event(%{"summary" => summary} = event) when is_binary(summary),
+    do: Map.put(event, "summary", bounded_summary(summary))
+
+  defp normalize_recovered_event(event), do: event
 
   defp pending_chain_valid?([]), do: true
   defp pending_chain_valid?([event]), do: event_hash_valid?(event)
@@ -1045,7 +1079,6 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp event_method(_event), do: ""
 
   defp critical?(%{event: event}) when event in [:turn_completed, :turn_failed, :turn_cancelled], do: true
-  defp critical?(%{payload: %{"method" => "turn/diff/updated"}}), do: true
   defp critical?(_update), do: false
 
   defp event_type("item/completed", payload), do: item_event_type(payload, "completed")
@@ -1080,13 +1113,24 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp summary(method, %{"command" => command} = payload)
        when method in ["item/started", "item/completed"] and is_binary(command) do
     result = if is_integer(payload["exitCode"]), do: " (exit #{payload["exitCode"]})", else: ""
-    "Codex command #{if method == "item/started", do: "started", else: "completed"}: #{command}#{result}"
+
+    bounded_summary("Codex command #{if method == "item/started", do: "started", else: "completed"}: #{command}#{result}")
   end
 
   defp summary(method, %{"tool" => tool}) when is_binary(tool),
-    do: "Codex tool #{if String.ends_with?(method, "started"), do: "requested", else: "confirmed"}: #{tool}"
+    do: bounded_summary("Codex tool #{if String.ends_with?(method, "started"), do: "requested", else: "confirmed"}: #{tool}")
 
-  defp summary(method, _payload), do: "Codex App Server event: #{method}"
+  defp summary(method, _payload), do: bounded_summary("Codex App Server event: #{method}")
+
+  defp bounded_summary(value) do
+    suffix = "… [truncated]"
+
+    if String.length(value) <= @max_event_summary_characters do
+      value
+    else
+      String.slice(value, 0, @max_event_summary_characters - String.length(suffix)) <> suffix
+    end
+  end
 
   @doc false
   @spec normalize_codex_payload(String.t(), map(), String.t()) :: map()

@@ -168,6 +168,22 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "account/rateLimits/updated"}})
   end
 
+  test "batches reconstructible checkpoints while immediately flushing terminal boundaries" do
+    refute Outbox.immediate_flush_for_test?(%{
+             event: :notification,
+             payload: %{"method" => "turn/diff/updated"}
+           })
+
+    refute Outbox.immediate_flush_for_test?(%{
+             event: :item_completed,
+             payload: %{"method" => "item/completed"}
+           })
+
+    assert Outbox.immediate_flush_for_test?(%{event: :turn_completed, payload: %{}})
+    assert Outbox.immediate_flush_for_test?(%{event: :turn_failed, payload: %{}})
+    assert Outbox.immediate_flush_for_test?(%{event: :turn_cancelled, payload: %{}})
+  end
+
   test "retains a complete redacted workspace checkpoint instead of a summary-only diff" do
     secret = "BOS_API_INTERNAL_TOKEN=do-not-persist"
     diff = "diff --git a/lib/example.ex b/lib/example.ex\n" <> String.duplicate("+safe change\n", 2_000) <> "+#{secret}\n"
@@ -435,6 +451,70 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     refute serialized =~ "output-secret"
     assert normalized["command"] =~ "[REDACTED]"
     assert normalized["outputSummary"] =~ "[REDACTED]"
+  end
+
+  test "bounds long command summaries without discarding command metadata" do
+    command = "mix run " <> String.duplicate("á", 3_000)
+    payload = %{"command" => command, "exitCode" => 0}
+
+    summary = Outbox.event_summary_for_test("item/completed", payload)
+
+    assert String.length(summary) == 2_000
+    assert String.ends_with?(summary, "… [truncated]")
+    assert payload["command"] == command
+  end
+
+  test "atomically normalizes and rehashes oversized summaries recovered from the local outbox" do
+    root = Path.join(System.tmp_dir!(), "bos-outbox-summary-repair-test-#{System.unique_integer([:positive])}")
+    events_path = Path.join([root, "run_summary_repair", "events"])
+    File.mkdir_p!(events_path)
+
+    issue = %{
+      "repositoryId" => "bos-front",
+      "repositoryOwner" => "acancelas",
+      "repositoryName" => "bos-front",
+      "issueNumber" => 2,
+      "runId" => "run_summary_repair",
+      "branchName" => "bos/issue-2"
+    }
+
+    oversized_summary = "Codex command completed: " <> String.duplicate("á", 3_000)
+
+    unhashed = %{
+      "eventId" => "event_legacy_summary",
+      "runId" => "run_summary_repair",
+      "sequence" => 10,
+      "previousEventHash" => "sha256:remote",
+      "summary" => oversized_summary,
+      "payload" => %{"command" => String.duplicate("á", 3_000)}
+    }
+
+    event = Map.put(unhashed, "eventHash", Outbox.hash_event_for_test(unhashed))
+
+    File.write!(
+      Path.join(events_path, "00000010.json"),
+      Jason.encode!(%{"issue" => issue, "event" => event})
+    )
+
+    repaired =
+      root
+      |> Outbox.recover_pending()
+      |> Outbox.repair_recovered_chains(root, fn _issue ->
+        %{remote_confirmed?: true, sequence: 5, previous_hash: "sha256:confirmed", current_attempt_id: "attempt_1"}
+      end)
+      |> Map.fetch!("run_summary_repair")
+
+    [normalized] = repaired.pending
+    assert normalized["sequence"] == 6
+    assert normalized["previousEventHash"] == "sha256:confirmed"
+    assert String.length(normalized["summary"]) == 2_000
+    assert String.ends_with?(normalized["summary"], "… [truncated]")
+    assert String.length(get_in(normalized, ["payload", "command"])) == 3_000
+    assert normalized["eventHash"] == Outbox.hash_event_for_test(Map.delete(normalized, "eventHash"))
+    assert File.exists?(Path.join(events_path, "00000006.json"))
+    refute File.exists?(Path.join(events_path, "00000010.json"))
+
+    File.rm_rf!(root)
   end
 
   test "attributes Codex lifecycle actions to the agent while retaining runner observation separately" do
