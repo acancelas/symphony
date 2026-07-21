@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9e900bf7-1bb1-46f7-b52f-4d663467051f",
+  "runId": "run_7_1784674055434",
+  "attemptId": "attempt_run_7_1784674055434_1",
+  "eventId": "event_1784674104758_17",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:48:24.662Z",
+  "command": "/bin/bash -lc \"find elixir/lib/symphony_elixir -maxdepth 2 -type f | sort; grep -RniE 'CandidateHead|candidate_head|create_for_issue|recover|startup|dispatch_issue|start.*agent' elixir/lib/symphony_elixir elixir/test/symphony_elixir | head -500; sed -n '1,280p' elixir/lib/symphony_elixir/candidate_head.ex; sed -n '1,360p' elixir/lib/symphony_elixir/orchestrator.ex; sed -n '1,300p' elixir/lib/symphony_elixir/agent_runner.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/agent_runner.ex\nelixir/lib/symphony_elixir/agent_runtime_supervisor.ex\nelixir/lib/symphony_elixir/audit/canonical_json.ex\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/lib/symphony_elixir/candidate_head.ex\nelixir/lib/symphony_elixir/cli.ex\nelixir/lib/symphony_elixir/codex/app_server.ex\nelixir/lib/symphony_elixir/codex/dynamic_tool.ex\nelixir/lib/symphony_elixir/config.ex\nelixir/lib/symphony_elixir/config/schema.ex\nelixir/lib/symphony_elixir/delivery_coordinator.ex\nelixir/lib/symphony_elixir/game_api/adapter.ex\nelixir/lib/symphony_elixir/game_api/client.ex\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex\nelixir/lib/symphony_elixir/http_server.ex\nelixir/lib/symphony_elixir/linear/adapter.ex\nelixir/lib/symphony_elixir/linear/agent_tool.ex\nelixir/lib/symphony_elixir/linear/client.ex\nelixir/lib/symphony_elixir/log_file.ex\nelixir/lib/symphony_elixir/orchestrator.ex\nelixir/lib/symphony_elixir/path_safety.ex\nelixir/lib/symphony_elixir/post_approval_coordinator.ex\nelixir/lib/symphony_elixir/prompt_builder.ex\nelixir/lib/symphony_elixir/specs_check.ex\nelixir/lib/symphony_elixir/ssh.ex\nelixir/lib/symphony_elixir/status_dashboard.ex\nelixir/lib/symphony_elixir/tracker.ex\nelixir/lib/symphony_elixir/tracker/issue.ex\nelixir/lib/symphony_elixir/tracker/memory.ex\nelixir/lib/symphony_elixir/workflow.ex\nelixir/lib/symphony_elixir/workflow_store.ex\nelixir/lib/symphony_elixir/workspace.ex\nelixir/lib/symphony_elixir/candidate_head.ex:1:defmodule SymphonyElixir.CandidateHead do\nelixir/lib/symphony_elixir/candidate_head.ex:7:  so recovery cannot silently replace work accepted by another runner.\nelixir/lib/symphony_elixir/codex/app_server.ex:143:        emit_message(on_message, :startup_failed, %{reason: reason}, metadata)\nelixir/lib/symphony_elixir/orchestrator.ex:397:  @spec should_dispatch_issue_for_test(Issue.t(), term()) :: boolean()\nelixir/lib/symphony_elixir/orchestrator.ex:398:  def should_dispatch_issue_for_test(%Issue{} = issue, %State{} = state)",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-7",
+  "retention": {
+    "category": "permanent"
+  }
+}

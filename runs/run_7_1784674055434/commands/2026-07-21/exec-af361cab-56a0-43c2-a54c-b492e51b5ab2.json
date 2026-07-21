@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-af361cab-56a0-43c2-a54c-b492e51b5ab2",
+  "runId": "run_7_1784674055434",
+  "attemptId": "attempt_run_7_1784674055434_1",
+  "eventId": "event_1784674091260_13",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:48:11.163Z",
+  "command": "/bin/bash -lc 'git status --short --branch; git log --oneline --decorate -8; rg -n \"quarantine|readiness|workspace lock|recover|candidate\" elixir/lib elixir/test | head -240'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-7...origin/bos/issue-7\nb4275bb (HEAD -> bos/issue-7, origin/bos/issue-7) fix(workspace): publish recovery atomically\n388664f test(delivery): cover candidate durability failures\n6f6406c fix(delivery): confirm candidate head before reviews\n7b22f4b Bound retained Codex event summaries (#5)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n59964ee Merge pull request #1 from acancelas/agent/bos-game-api-orchestration\n76f5dae (origin/agent/bos-game-api-orchestration) feat(delivery): orchestrate goal planning and terminal verification\n03ad8ca fix: satisfy delivery orchestration quality gate\n/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-7",
+  "retention": {
+    "category": "permanent"
+  }
+}

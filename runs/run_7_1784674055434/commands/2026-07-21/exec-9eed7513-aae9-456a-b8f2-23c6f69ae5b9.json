@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9eed7513-aae9-456a-b8f2-23c6f69ae5b9",
+  "runId": "run_7_1784674055434",
+  "attemptId": "attempt_run_7_1784674055434_1",
+  "eventId": "event_1784674098517_15",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:48:18.421Z",
+  "command": "/bin/bash -lc \"git show --stat --oneline --decorate HEAD; git show --format=fuller --find-renames HEAD -- elixir/lib elixir/test README.md | sed -n '1,2000p'; find elixir/lib elixir/test -type f -print0 | xargs -0 grep -nE 'quarantine|readiness|workspace_lock|candidate_sha|candidate.*commit|recovery' | head -300\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "b4275bb (HEAD -> bos/issue-7, origin/bos/issue-7) fix(workspace): publish recovery atomically\n README.md                                          |   4 +\n elixir/README.md                                   |   5 +\n elixir/lib/symphony_elixir/workspace.ex            | 167 ++++++++++++++++++---\n .../symphony_elixir/workspace_and_config_test.exs  | 111 ++++++++++++++\n 4 files changed, 269 insertions(+), 18 deletions(-)\ncommit b4275bb818d0ae28a5fa5c07c7fbdefdc83c9775\nAuthor:     Alejandro Cancelas <hola@alejandrocancelas.com>\nAuthorDate: Tue Jul 21 02:46:16 2026 +0200\nCommit:     Alejandro Cancelas <hola@alejandrocancelas.com>\nCommitDate: Tue Jul 21 02:46:16 2026 +0200\n\n    fix(workspace): publish recovery atomically\n\ndiff --git a/README.md b/README.md\nindex e0f24a0..6451ff3 100644\n--- a/README.md\n+++ b/README.md\n@@ -3,6 +3,10 @@\n Symphony turns project work into isolated, autonomous implementation runs, allowing teams to manage\n work instead of supervising coding agents.\n \n+The BOS fork publishes local workspaces atomically and confirms each clean candidate HEAD on its\n+non-forced remote issue branch before independent reviews or final evidence can begin. This makes\n+restart recovery depend on durable Git state rather than an X1 filesystem surviving intact.\n+\n [![Symphony demo video preview](.github/media/symphony-demo-poster.jpg)](https://player.vimeo.com/video/1186371009?h=5626e4b899)\n \n _In this [demo video](https://player.vimeo.com/video/1186371009?h=5626e4b899), Symphony monitors a Linear board for work and spawns agents to handle the tasks. The agents complete the tasks and provide proof of work: CI status, PR review feedback, complexity analysis, and walkthrough videos. When accepted, the agents land the PR safely. Engineers do not need to supervise Codex; they can manage the work at a higher level._\ndiff --git a/elixir/lib/symphony_elixir/workspace.ex b/elixir/lib/symphony_elixir/workspace.ex\nindex 87908ea..98ad838 100644\n--- a/elixir/lib/symphony_elixir/worksp",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-7",
+  "retention": {
+    "category": "permanent"
+  }
+}
