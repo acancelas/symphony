@@ -15,12 +15,18 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   @flush_interval_ms 60_000
   @batch_size 25
+  @telemetry_aggregate_size 100
   @sensitive_key ~r/(authorization|cookie|credential|password|secret|token)/i
   @bearer ~r/Bearer\s+[A-Za-z0-9._~+\/-]+=*/i
   @max_inline_string_bytes 8_000
 
   @spec start_link(keyword()) :: GenServer.on_start()
-  def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  def start_link(opts \\ []) do
+    case Keyword.get(opts, :name, __MODULE__) do
+      nil -> GenServer.start_link(__MODULE__, opts)
+      name -> GenServer.start_link(__MODULE__, opts, name: name)
+    end
+  end
 
   @spec record(Issue.t(), map()) :: :ok
   def record(%Issue{} = issue, update) when is_map(update) do
@@ -38,11 +44,22 @@ defmodule SymphonyElixir.Audit.Outbox do
     runs = recover_pending(root)
     if map_size(runs) > 0, do: send(self(), :flush)
     Process.send_after(self(), :flush, @flush_interval_ms)
-    {:ok, %{root: root, runs: runs}}
+    {:ok, %{root: root, runs: runs, telemetry: %{}}}
   end
 
   @impl true
   def handle_cast({:record, issue, update}, state) do
+    method = get_in(update, [:payload, "method"]) || Atom.to_string(update.event)
+
+    if telemetry_delta?(method) do
+      {:noreply, aggregate_telemetry(state, issue, update, method)}
+    else
+      state = flush_telemetry_aggregate(state, issue)
+      {:noreply, record_durable_event(state, issue, update)}
+    end
+  end
+
+  defp record_durable_event(state, issue, update) do
     case build_event(issue, update, state) do
       {:ok, event, run_state} ->
         run_id = event["runId"]
@@ -50,16 +67,95 @@ defmodule SymphonyElixir.Audit.Outbox do
         next = persist_pending(next, issue, event)
 
         if critical?(update) or length(run_state.pending) >= @batch_size do
-          {:noreply, flush_run(next, run_id)}
+          flush_run(next, run_id)
         else
-          {:noreply, next}
+          next
         end
 
       {:error, reason} ->
         Logger.warning("Skipping invalid BOS audit event: #{inspect(reason)}")
-        {:noreply, state}
+        state
     end
   end
+
+  @doc false
+  @spec telemetry_delta?(String.t()) :: boolean()
+  def telemetry_delta?(method) when is_binary(method) do
+    method
+    |> String.downcase()
+    |> String.ends_with?("/delta")
+  end
+
+  defp aggregate_telemetry(state, issue, update, method) do
+    run_id = issue.native_ref["runId"]
+    now = update_timestamp(update)
+    bytes = update |> Map.get(:payload, %{}) |> Jason.encode_to_iodata!() |> IO.iodata_length()
+
+    current =
+      get_in(state, [:telemetry, run_id]) ||
+        %{
+          count: 0,
+          bytes: 0,
+          first_at: now,
+          methods: %{},
+          delivery_actor: nil
+        }
+
+    aggregate = %{
+      count: current.count + 1,
+      bytes: current.bytes + bytes,
+      first_at: current.first_at,
+      last_at: now,
+      methods: Map.update(current.methods, method, 1, &(&1 + 1)),
+      delivery_actor: update[:delivery_actor] || current.delivery_actor
+    }
+
+    next = put_in(state, [:telemetry, run_id], aggregate)
+
+    if aggregate.count >= @telemetry_aggregate_size do
+      flush_telemetry_aggregate(next, issue)
+    else
+      next
+    end
+  rescue
+    error ->
+      Logger.warning("Skipping invalid BOS progress telemetry: #{inspect(error)}")
+      state
+  end
+
+  defp flush_telemetry_aggregate(state, issue) do
+    run_id = issue.native_ref["runId"]
+
+    case get_in(state, [:telemetry, run_id]) do
+      nil ->
+        state
+
+      aggregate ->
+        update = %{
+          event: :notification,
+          timestamp: aggregate.last_at,
+          delivery_actor: aggregate.delivery_actor,
+          payload: %{
+            "method" => "bos/telemetry/aggregated",
+            "params" => %{
+              "eventCount" => aggregate.count,
+              "payloadBytes" => aggregate.bytes,
+              "firstOccurredAt" => aggregate.first_at,
+              "lastOccurredAt" => aggregate.last_at,
+              "methods" => aggregate.methods
+            }
+          }
+        }
+
+        state
+        |> put_in([:telemetry, run_id], nil)
+        |> record_durable_event(issue, update)
+    end
+  end
+
+  defp update_timestamp(%{timestamp: %DateTime{} = value}), do: timestamp(value)
+  defp update_timestamp(%{timestamp: value}) when is_binary(value), do: value
+  defp update_timestamp(_update), do: DateTime.utc_now() |> DateTime.truncate(:millisecond) |> timestamp()
 
   @impl true
   def handle_call(:flush_all, _from, state) do
@@ -452,6 +548,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp event_type("turn/completed", _payload), do: "agent.turn_completed"
   defp event_type("turn/failed", _payload), do: "agent.turn_failed"
   defp event_type("turn/cancelled", _payload), do: "agent.turn_cancelled"
+  defp event_type("bos/telemetry/aggregated", _payload), do: "agent.telemetry_aggregated"
   defp event_type(_method, _payload), do: "agent.progress_recorded"
 
   defp item_event_type(payload, suffix) do
@@ -482,6 +579,9 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   defp summary(method, %{"tool" => tool}) when is_binary(tool),
     do: "Codex tool #{if String.ends_with?(method, "started"), do: "requested", else: "confirmed"}: #{tool}"
+
+  defp summary("bos/telemetry/aggregated", %{"params" => %{"eventCount" => count}}),
+    do: "Aggregated #{count} high-frequency Codex progress events"
 
   defp summary(method, _payload), do: "Codex App Server event: #{method}"
 

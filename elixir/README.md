@@ -43,6 +43,13 @@ outbox preserves event and operation identities, rebases only unconfirmed events
 remote head, atomically replaces the pending event set and retries idempotently. Receipted events
 are never replayed.
 
+High-frequency App Server methods ending in `/delta` are not written as one permanent event per
+fragment. The outbox replaces each bounded group of 100 fragments with one
+`agent.telemetry_aggregated` event containing method counts, byte totals and its UTC time window.
+The next non-delta lifecycle event also flushes a partial group. Command/tool boundaries, failures,
+completed messages and final turn outcomes remain individual durable events, so aggregation reduces
+provider pressure without removing information required to explain or recover a run.
+
 ## How to use it
 
 1. Make sure your codebase is set up to work well with agents: see

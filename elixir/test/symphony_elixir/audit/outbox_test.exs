@@ -1,7 +1,79 @@
 defmodule SymphonyElixir.Audit.OutboxTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias SymphonyElixir.Audit.Outbox
+  alias SymphonyElixir.Tracker.Issue
+
+  defmodule FakeClient do
+    def fetch_run(_repository_id, _run_id), do: {:error, :not_found}
+    def append_audit_batch(_request), do: {:error, :offline}
+  end
+
+  setup do
+    previous_client = Application.get_env(:symphony_elixir, :game_api_client_module)
+    Application.put_env(:symphony_elixir, :game_api_client_module, FakeClient)
+
+    on_exit(fn ->
+      if previous_client do
+        Application.put_env(:symphony_elixir, :game_api_client_module, previous_client)
+      else
+        Application.delete_env(:symphony_elixir, :game_api_client_module)
+      end
+    end)
+  end
+
+  test "aggregates high-frequency deltas while preserving a durable bounded summary" do
+    root = Path.join(System.tmp_dir!(), "bos-outbox-telemetry-test-#{System.unique_integer([:positive])}")
+    {:ok, pid} = Outbox.start_link(root: root, name: nil)
+
+    issue = %Issue{
+      id: "symphony:14",
+      identifier: "symphony-14",
+      branch_name: "bos/issue-14",
+      native_ref: %{
+        "repositoryId" => "symphony",
+        "repositoryOwner" => "acancelas",
+        "repositoryName" => "symphony",
+        "issueNumber" => 14,
+        "runId" => "run_14",
+        "attemptId" => "attempt_14_1"
+      }
+    }
+
+    Enum.each(1..100, fn sequence ->
+      GenServer.cast(pid, {
+        :record,
+        issue,
+        %{
+          event: :notification,
+          timestamp: "2026-07-21T03:00:00.000Z",
+          payload: %{
+            "method" => "item/agentMessage/delta",
+            "params" => %{"delta" => "fragment #{sequence}"}
+          }
+        }
+      })
+    end)
+
+    :sys.get_state(pid)
+    event_files = Path.wildcard(Path.join([root, "run_14", "events", "*.json"]))
+    assert length(event_files) == 1
+    event = event_files |> hd() |> File.read!() |> Jason.decode!() |> Map.fetch!("event")
+    assert event["eventType"] == "agent.telemetry_aggregated"
+    assert event["payload"]["params"]["eventCount"] == 100
+    assert event["payload"]["params"]["methods"] == %{"item/agentMessage/delta" => 100}
+    refute File.read!(hd(event_files)) =~ "fragment 100"
+
+    GenServer.stop(pid)
+    File.rm_rf!(root)
+  end
+
+  test "classifies only streaming delta methods as aggregatable telemetry" do
+    assert Outbox.telemetry_delta?("item/agentMessage/delta")
+    assert Outbox.telemetry_delta?("item/commandExecution/outputDelta/delta")
+    refute Outbox.telemetry_delta?("item/completed")
+    refute Outbox.telemetry_delta?("turn/failed")
+  end
 
   test "recovers ordered unconfirmed events and their last hash after restart" do
     root = Path.join(System.tmp_dir!(), "bos-outbox-test-#{System.unique_integer([:positive])}")
