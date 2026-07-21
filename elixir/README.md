@@ -77,6 +77,12 @@ session, so Symphony resets its comparison watermark—not its cumulative totals
 role starts a fresh session. Operational token budgets should use uncached input while retaining
 the full totals for capacity and audit reporting.
 
+Tests that start operating-system processes own their complete lifecycle. Long-running shell, Git,
+Codex, FIFO, SSH, and helper commands are tagged with a unique test owner and register an `on_exit`
+callback before launch. Teardown sends TERM, waits for a bounded interval, escalates to KILL, and
+asserts that no process carrying that exact owner remains. This applies when the test passes,
+fails, or is interrupted by an ExUnit timeout; cleanup must never select an unrelated process.
+
 Lack of an execution slot is a queue condition, not a failed Attempt. Eligible work remains in a
 separate capacity queue without incrementing retry/backoff state. `agent:merging`, rework and
 recovered running work sort ahead of newly ready work; creation time provides deterministic FIFO

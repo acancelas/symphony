@@ -1,5 +1,8 @@
 defmodule SymphonyElixir.CandidateHeadTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
+
+  import SymphonyElixir.TestSupport,
+    only: [register_process_cleanup!: 1, restore_env: 2]
 
   alias SymphonyElixir.CandidateHead
   alias SymphonyElixir.Tracker.Issue
@@ -8,6 +11,11 @@ defmodule SymphonyElixir.CandidateHeadTest do
     root = Path.join(System.tmp_dir!(), "candidate-head-real-#{System.unique_integer([:positive])}")
     remote = Path.join(root, "remote.git")
     workspace = Path.join(root, "workspace")
+    process_owner = register_process_cleanup!("candidate-head-git-push-#{System.unique_integer([:positive])}")
+    previous_owner = System.get_env("SYMPHONY_TEST_PROCESS_OWNER")
+
+    on_exit(fn -> restore_env("SYMPHONY_TEST_PROCESS_OWNER", previous_owner) end)
+    System.put_env("SYMPHONY_TEST_PROCESS_OWNER", process_owner)
 
     try do
       File.mkdir_p!(root)
