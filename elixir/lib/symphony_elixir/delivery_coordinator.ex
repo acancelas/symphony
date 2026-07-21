@@ -10,8 +10,8 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   require Logger
 
-  alias SymphonyElixir.Codex.AppServer
   alias SymphonyElixir.CandidateHead
+  alias SymphonyElixir.Codex.AppServer
   alias SymphonyElixir.GameApi.Client
   alias SymphonyElixir.Tracker.Issue
 
