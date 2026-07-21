@@ -57,6 +57,9 @@ Backlog recovery drains at most one 50-event batch every five seconds and rotate
 This keeps GitHub's canonical ledger complete while avoiding the secondary provider limits caused
 by recursive, unpaced appends. Critical lifecycle events may still request an immediate flush; a
 provider rejection leaves the batch in the append-only outbox for the paced retry loop.
+Event summaries are bounded to the `game-api` 2,000-character contract with Unicode-safe
+truncation. Startup recovery applies the same normalization to oversized unconfirmed historical
+summaries and re-hashes their pending chain before retrying.
 
 ## How to use it
 

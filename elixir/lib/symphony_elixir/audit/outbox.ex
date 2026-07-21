@@ -20,6 +20,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   @sensitive_key ~r/(authorization|cookie|credential|password|secret|token)/i
   @bearer ~r/Bearer\s+[A-Za-z0-9._~+\/-]+=*/i
   @max_inline_string_bytes 8_000
+  @max_summary_chars 2_000
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
@@ -228,7 +229,7 @@ defmodule SymphonyElixir.Audit.Outbox do
         "runner" => %{"id" => runner_id(), "type" => "local"},
         "eventType" => event_type(method, update.payload || %{}),
         "status" => event_status(update),
-        "summary" => summary(method, normalized_payload),
+        "summary" => method |> summary(normalized_payload) |> bounded_summary(),
         "references" => %{"branch" => issue.branch_name},
         "evidence" => [],
         "redaction" => %{"applied" => true, "policyVersion" => "1.0"},
@@ -472,12 +473,13 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   def compact_pending_telemetry(events) when is_list(events) do
     ordered = Enum.sort_by(events, & &1["sequence"])
+    normalized = Enum.map(ordered, &normalize_pending_event/1)
 
-    if Enum.any?(ordered, &telemetry_event?/1) do
-      first = hd(ordered)
+    if normalized != ordered or Enum.any?(normalized, &telemetry_event?/1) do
+      first = hd(normalized)
 
       compacted =
-        ordered
+        normalized
         |> Enum.chunk_by(&telemetry_event?/1)
         |> Enum.flat_map(&compact_telemetry_group/1)
 
@@ -486,6 +488,11 @@ defmodule SymphonyElixir.Audit.Outbox do
       ordered
     end
   end
+
+  defp normalize_pending_event(%{"summary" => summary} = event) when is_binary(summary),
+    do: Map.put(event, "summary", bounded_summary(summary))
+
+  defp normalize_pending_event(event), do: event
 
   defp telemetry_event?(event) do
     method = get_in(event, ["payload", "method"])
@@ -675,6 +682,16 @@ defmodule SymphonyElixir.Audit.Outbox do
     do: "Aggregated #{count} high-frequency Codex progress events"
 
   defp summary(method, _payload), do: "Codex App Server event: #{method}"
+
+  @doc false
+  @spec bounded_summary(String.t()) :: String.t()
+  def bounded_summary(value) when is_binary(value) do
+    if String.length(value) <= @max_summary_chars do
+      value
+    else
+      String.slice(value, 0, @max_summary_chars - 1) <> "…"
+    end
+  end
 
   @doc false
   @spec normalize_codex_payload(String.t(), map(), String.t()) :: map()

@@ -119,6 +119,23 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     assert last["previousEventHash"] == boundary["eventHash"]
   end
 
+  test "bounds new and recovered summaries to the game-api audit contract" do
+    oversized = String.duplicate("á", 2_500)
+    bounded = Outbox.bounded_summary(oversized)
+    assert String.length(bounded) == 2_000
+    assert String.ends_with?(bounded, "…")
+
+    event =
+      pending_event(1, "item/completed", "final", nil)
+      |> Map.put("summary", oversized)
+
+    [normalized] = Outbox.compact_pending_telemetry([event])
+    assert String.length(normalized["summary"]) == 2_000
+    assert normalized["sequence"] == 1
+    assert normalized["previousEventHash"] == nil
+    assert normalized["eventHash"] != event["eventHash"]
+  end
+
   defp pending_event(sequence, method, delta, previous_hash) do
     %{
       "schemaVersion" => "1.0",
