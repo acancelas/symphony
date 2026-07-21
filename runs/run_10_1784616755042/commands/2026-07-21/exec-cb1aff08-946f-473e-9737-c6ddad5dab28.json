@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-cb1aff08-946f-473e-9737-c6ddad5dab28",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629698909_988",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:28:18.400Z",
+  "command": "/bin/bash -lc 'git diff --unified=40 HEAD''^ HEAD -- elixir/lib/symphony_elixir/game_api/client.ex elixir/lib/symphony_elixir/post_approval_coordinator.ex elixir/test/symphony_elixir/post_approval_coordinator_test.exs'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "diff --git a/elixir/lib/symphony_elixir/game_api/client.ex b/elixir/lib/symphony_elixir/game_api/client.ex\nindex 906ff94..0bd4549 100644\n--- a/elixir/lib/symphony_elixir/game_api/client.ex\n+++ b/elixir/lib/symphony_elixir/game_api/client.ex\n@@ -83,80 +83,104 @@ defmodule SymphonyElixir.GameApi.Client do\n \n   @spec append_audit_batch(map()) :: {:ok, map()} | {:error, term()}\n   def append_audit_batch(batch) when is_map(batch) do\n     request(:post, \"/v1/internal/bos/delivery/audit/events\", json: batch)\n   end\n \n   @spec record_runtime_probe(map()) :: {:ok, map()} | {:error, term()}\n   def record_runtime_probe(probe) when is_map(probe) do\n     request(:post, \"/v1/internal/bos/delivery/deployment-verifications/runtime-probes\", json: probe)\n   end\n \n   @spec fetch_goal_planning(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\n   def fetch_goal_planning(repository_id, issue_number)\n       when is_binary(repository_id) and is_integer(issue_number) and issue_number > 0 do\n     with {:ok, repository} <- find_repository(repository_id) do\n       request(:get, \"/v1/internal/bos/delivery/goals/planning\", params: repository_query(repository) ++ [{\"issueNumber\", issue_number}])\n     end\n   end\n \n   @spec request_goal_breakdown_approval(Issue.t()) :: {:ok, map()} | {:error, term()}\n   def request_goal_breakdown_approval(%Issue{native_ref: native_ref}) do\n     with {:ok, repository} <- find_repository(native_ref[\"repositoryId\"]) do\n       request(:post, \"/v1/internal/bos/delivery/goals/breakdown-approval-requests\",\n         json: %{\n           \"repository\" => repository_body(repository),\n           \"issueNumber\" => native_ref[\"issueNumber\"],\n           \"operationId\" => \"goal_approval_request_#{native_ref[\"runId\"]}\",\n           \"runId\" => native_ref[\"runId\"]\n         }\n       )\n     end\n   end\n \n   @spec fetch_run(String.t(), String.t()) :: {:ok, map()} | {:error, term()}\n   def fetch_run(repository_id, run_id) when is_binary(repository_id) and is_binary(run_id) do\n    ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
