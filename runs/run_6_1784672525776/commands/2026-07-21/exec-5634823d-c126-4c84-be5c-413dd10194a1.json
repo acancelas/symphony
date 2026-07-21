@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-5634823d-c126-4c84-be5c-413dd10194a1",
+  "runId": "run_6_1784672525776",
+  "attemptId": "attempt_run_6_1784672525776_1",
+  "eventId": "event_1784672557690_10",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:22:37.618Z",
+  "command": "/bin/bash -lc 'git status --short --branch && rg -n \"EvidenceReport|reviewer|repair|candidate|remote.*head|push|recovery\" elixir/lib elixir/test | head -n 300'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-6...origin/bos/issue-6\n/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-6",
+  "retention": {
+    "category": "permanent"
+  }
+}

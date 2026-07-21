@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-248dc339-7353-4749-bf6d-5f6374cb484a",
+  "runId": "run_6_1784672525776",
+  "attemptId": "attempt_run_6_1784672525776_1",
+  "eventId": "event_1784672566220_12",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:22:46.148Z",
+  "command": "/bin/bash -lc 'find elixir/lib elixir/test -type f | sort | xargs grep -nE \"EvidenceReport|record_evidence|review|repair|candidate|branch|push|recovery|AgentRun|Attempt\" 2>/dev/null | head -n 800'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/mix/tasks/pr_body.check.ex:46:    case Enum.find_value(@template_paths, &read_template_candidate/1) do\nelixir/lib/mix/tasks/pr_body.check.ex:56:  defp read_template_candidate(path) do\nelixir/lib/mix/tasks/workspace.before_remove.ex:4:  @shortdoc \"Close open GitHub PRs for the current branch before workspace removal\"\nelixir/lib/mix/tasks/workspace.before_remove.ex:7:  Closes open pull requests for the current Git branch.\nelixir/lib/mix/tasks/workspace.before_remove.ex:14:      mix workspace.before_remove --branch feature/my-branch\nelixir/lib/mix/tasks/workspace.before_remove.ex:24:        strict: [branch: :string, help: :boolean, repo: :string],\nelixir/lib/mix/tasks/workspace.before_remove.ex:37:        branch = opts[:branch] || current_branch()\nelixir/lib/mix/tasks/workspace.before_remove.ex:39:        maybe_close_open_pull_requests(repo, branch)\nelixir/lib/mix/tasks/workspace.before_remove.ex:45:  defp maybe_close_open_pull_requests(repo, branch) do\nelixir/lib/mix/tasks/workspace.before_remove.ex:48:      |> list_open_pull_request_numbers(branch)\nelixir/lib/mix/tasks/workspace.before_remove.ex:49:      |> Enum.each(&close_pull_request(repo, branch, &1))\nelixir/lib/mix/tasks/workspace.before_remove.ex:63:  defp list_open_pull_request_numbers(repo, branch) do\nelixir/lib/mix/tasks/workspace.before_remove.ex:70:           branch,\nelixir/lib/mix/tasks/workspace.before_remove.ex:88:  defp close_pull_request(repo, branch, pr_number) do\nelixir/lib/mix/tasks/workspace.before_remove.ex:96:           closing_comment(branch)\nelixir/lib/mix/tasks/workspace.before_remove.ex:99:        Mix.shell().info(\"Closed PR ##{pr_number} for branch #{branch}\")\nelixir/lib/mix/tasks/workspace.before_remove.ex:104:        Mix.shell().error(\"Failed to close PR ##{pr_number} for branch #{branch}: exit #{status}#{format_output(trimmed_output)}\")\nelixir/lib/mix/tasks/workspace.before_remove.ex:108:  defp closing_comment(branch) do\nelixir/lib/mix/tasks/workspace.before_remove.ex:109:    ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-6",
+  "retention": {
+    "category": "permanent"
+  }
+}
