@@ -1,0 +1,13 @@
+{
+  "reviewId": "review_symphony_14_security_final",
+  "runId": "run_14_manual_20260721T0457Z",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "927666a5434c52298fd02d0152dd54e9e106db3f",
+  "status": "passed",
+  "findings": [],
+  "summary": "No blockers remain: cooldowns are capped, stale permits cannot reopen the circuit, corrupt state fails closed, primary write failure uses a durable fallback and authentication failures cannot create a request storm."
+}
