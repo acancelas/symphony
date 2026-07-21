@@ -1,0 +1,82 @@
+{
+  "evidenceId": "evidence_symphony_14_74c799d",
+  "runId": "run_14_manual_20260721T0457Z",
+  "commitSha": "74c799de2d3f5fa6c0f8d456759978f528013538",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "A streamed agent message cannot create one permanent AuditEvent per token or text delta",
+      "status": "passed",
+      "evidence": "High-frequency delta methods are aggregated before durable recording."
+    },
+    {
+      "criterion": "One long turn produces bounded telemetry events",
+      "status": "passed",
+      "evidence": "Recovered telemetry is compacted and live telemetry is emitted in bounded aggregate windows."
+    },
+    {
+      "criterion": "Final agent messages and all command/tool lifecycle events remain reconstructible",
+      "status": "passed",
+      "evidence": "Only delta telemetry is aggregated; lifecycle, final, error and command events retain durable event contracts."
+    },
+    {
+      "criterion": "Restart flushes aggregates without duplication or loss",
+      "status": "passed",
+      "evidence": "Recovered pending telemetry compacts and rebases onto the confirmed remote chain; live restart drained durable events with receipts."
+    },
+    {
+      "criterion": "Audit chain remains RFC 8785-valid",
+      "status": "passed",
+      "evidence": "Compacted and rebased events are rehashed through CanonicalJson and accepted by game-api."
+    },
+    {
+      "criterion": "A 429 pauses every game-api consumer",
+      "status": "passed",
+      "evidence": "Process-wide circuit is shared by tracker polling, heartbeat, lifecycle and outbox calls; Retry-After/reset is honored with bounded jitter."
+    },
+    {
+      "criterion": "Full Symphony gate passes",
+      "status": "passed",
+      "evidence": "make all passed on exact publishable branch head with 278 tests, 0 failures, 2 skipped, 100% coverage, Credo clean and Dialyzer 0 errors."
+    }
+  ],
+  "checks": [
+    {
+      "id": "make-all",
+      "command": "cd elixir && mise exec -- make all",
+      "status": "passed",
+      "summary": "278 tests, 0 failures, 2 skipped; 100% coverage; format/spec/build passed; Credo clean; Dialyzer 0 errors."
+    },
+    {
+      "id": "live-outbox-recovery",
+      "status": "passed",
+      "summary": "After restart, run_91_1784604071684 resumed at the same branch and commit; pending events fell from 213 to 5 with 33 confirmed receipts before new live events arrived."
+    },
+    {
+      "id": "production-rate-limit-observation",
+      "status": "passed",
+      "summary": "Vercel production logs showed zero 429 responses during the post-fix recovery window; normal 200 responses resumed and optimistic 409 audit conflicts reconciled."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "74c799de2d3f5fa6c0f8d456759978f528013538"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-14"
+    },
+    {
+      "type": "runtimeBinarySha256",
+      "value": "ec1a638a5414d99ee4cc5a545637ada1cdb6bda99b269b0ad861dd9b5bb08485"
+    }
+  ],
+  "residualRisk": [
+    {
+      "severity": "low",
+      "summary": "The circuit is process-local by design because the current pilot has one X1 runner; a future multi-runner deployment will require a distributed coordination policy."
+    }
+  ],
+  "summary": "Bounded audit telemetry, paced durable recovery, and a shared rate-limit circuit are verified on the publishable Symphony branch and in the live X1 runtime."
+}
