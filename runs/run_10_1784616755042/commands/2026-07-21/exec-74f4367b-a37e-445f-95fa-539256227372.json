@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-74f4367b-a37e-445f-95fa-539256227372",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628897033_512",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:14:57.033Z",
+  "command": "/bin/bash -lc 'git diff --unified=80 HEAD''^ HEAD -- elixir/lib/symphony_elixir/post_approval_coordinator.ex elixir/test/symphony_elixir/post_approval_coordinator_test.exs && sed -n '\"'1,220p' .bos/project.yaml && rg -n \\\"post.?approval|mark_pull_request_ready|request_merge|GameApiTrackerAdapter|bos-mcp\\\" README.md SPEC.md elixir/README.md WORKFLOW.md elixir/lib elixir/test -g '*.ex' -g '*.exs' -g '*.md'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "diff --git a/elixir/lib/symphony_elixir/post_approval_coordinator.ex b/elixir/lib/symphony_elixir/post_approval_coordinator.ex\nindex cfe1e3e..fdd272c 100644\n--- a/elixir/lib/symphony_elixir/post_approval_coordinator.ex\n+++ b/elixir/lib/symphony_elixir/post_approval_coordinator.ex\n@@ -1,117 +1,266 @@\n defmodule SymphonyElixir.PostApprovalCoordinator do\n   @moduledoc \"\"\"\n   Continues an approved exact-HEAD delivery through merge, deployment evidence,\n   runner-confirmed runtime probing, release, and terminal state.\n \n   The verification agent may exercise browsers and repository test tooling, but\n   it cannot authenticate the probe. Symphony reads the bounded handoff file and\n   records it with the runner-only credential before the final release turn.\n   \"\"\"\n \n   alias SymphonyElixir.Codex.AppServer\n   alias SymphonyElixir.GameApi.Client\n   alias SymphonyElixir.Tracker.Issue\n \n   @probe_path \".bos-local/deployment-probe.json\"\n+  @readiness_path \".bos-local/pull-request-readiness.json\"\n \n   @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}\n   def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do\n     app_server = Keyword.get(opts, :app_server_module, AppServer)\n     client = Keyword.get(opts, :game_api_client_module, Client)\n \n     with :ok <- require_local_probe_handoff(worker_host),\n+         {:ok, readiness} <- prepare_readiness_intent(client, workspace, issue),\n+         :ok <- ensure_pull_request_ready(app_server, workspace, issue, recipient, worker_host, readiness),\n          :ok <- prepare_probe_handoff(workspace),\n          :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),\n          {:ok, request} <- load_probe_request(workspace, issue),\n          {:ok, receipt} <- client.record_runtime_probe(request),\n          :ok <- require_confirmed_receipt(receipt),\n          :ok <- run_release_turn(app_server, workspace, issue, recipient, worker_host) do\n       verify_termin",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "long"
+  }
+}
