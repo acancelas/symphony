@@ -1,0 +1,58 @@
+{
+  "evidenceId": "evidence_symphony_10_security_repair_c3554e69",
+  "runId": "run_10_1784616755042",
+  "commitSha": "c3554e69d100bbf2a0fe5ec4badfbd8459138dc4",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "A verified approved draft PR is promoted exactly once before merge",
+      "status": "passed",
+      "evidence": "Before the merge-capable role starts, Symphony replays the immutable readiness operation through game-api, requires its durable completed receipt, and re-fetches the normalized PR."
+    },
+    {
+      "criterion": "Restart after remote acceptance but before receipt recovers without duplicate mutation",
+      "status": "passed",
+      "evidence": "The recovery test preserves the deterministic operation ID and the runner-side authoritative replay relies on BOS idempotency, with no second provider mutation."
+    },
+    {
+      "criterion": "A stale HEAD blocks without promoting or merging",
+      "status": "passed",
+      "evidence": "Both the readiness operation and the fresh PR read are bound to the expected exact HEAD; invalid current state prevents deployment-verifier startup."
+    },
+    {
+      "criterion": "The complete PR lifecycle reaches merge through bos-mcp only",
+      "status": "passed",
+      "evidence": "Symphony uses GameApi.Client exclusively for authoritative BOS readiness confirmation and normalized PR reads; it has no GitHub credentials or direct provider calls."
+    },
+    {
+      "criterion": "Complete Symphony tests and recovery gates pass",
+      "status": "passed",
+      "evidence": "The exact committed HEAD passed make all with 278 tests, 2 skipped, 100% coverage, Credo, specs, formatting, and Dialyzer."
+    },
+    {
+      "criterion": "Agent-writable handoff cannot bypass readiness confirmation",
+      "status": "passed",
+      "evidence": "A new adversarial test supplies a fabricated matching confirmed JSON handoff; authoritative BOS rejection stops the flow and the deployment-verifier never starts."
+    }
+  ],
+  "checks": [
+    {
+      "name": "cd elixir && mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs",
+      "status": "passed",
+      "summary": "5 targeted tests passed, including fabricated-confirmation rejection and response-loss recovery."
+    },
+    {
+      "name": "cd elixir && make all",
+      "status": "passed",
+      "summary": "278 tests passed with 2 skipped; format, public specs, Credo, 100% coverage, and Dialyzer all passed on exact commit c3554e69d100bbf2a0fe5ec4badfbd8459138dc4."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "c3554e69d100bbf2a0fe5ec4badfbd8459138dc4"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Workspace readiness JSON is now only a cache/intent. A durable BOS receipt and a fresh open, non-draft, exact-HEAD PR read are mandatory before the merge-capable role."
+}
