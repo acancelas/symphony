@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-970f7408-9387-4e8c-a0a0-2ee04f58fa99",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671781564_92",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:09:41.433Z",
+  "command": "/bin/bash -lc \"grep -RIn \\\"record_evidence\\\\|EvidenceReport\\\\|evidenceId\\\" .bos elixir test 2>/dev/null | head -100\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/delivery_coordinator.ex:241:    EvidenceReport and Attempt outcome, then request only the next transition\nelixir/README.md:32:merge, and EvidenceReport. The operation is run-scoped and idempotent: a lost response returns the\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}

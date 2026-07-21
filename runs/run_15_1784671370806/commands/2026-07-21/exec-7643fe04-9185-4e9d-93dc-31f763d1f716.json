@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-7643fe04-9185-4e9d-93dc-31f763d1f716",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671744041_74",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:09:04.041Z",
+  "command": "/bin/bash -lc \"sed -n '1,300p' $WORKSPACE/.bos/worktrees/symphony-15/.codex/skills/push/SKILL.md\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "---\nname: push\ndescription:\n  Push current branch changes to origin and create or update the corresponding\n  pull request; use when asked to push, publish updates, or create pull request.\n---\n\n# Push\n\n## Prerequisites\n\n- `gh` CLI is installed and available in `PATH`.\n- `gh auth status` succeeds for GitHub operations in this repo.\n\n## Goals\n\n- Push current branch changes to `origin` safely.\n- Create a PR if none exists for the branch, otherwise update the existing PR.\n- Keep branch history clean when remote has moved.\n\n## Related Skills\n\n- `pull`: use this when push is rejected or sync is not clean (non-fast-forward,\n  merge conflict risk, or stale branch).\n\n## Steps\n\n1. Identify current branch and confirm remote state.\n2. Run local validation (`make -C elixir all`) before pushing.\n3. Push branch to `origin` with upstream tracking if needed, using whatever\n   remote URL is already configured.\n4. If push is not clean/rejected:\n   - If the failure is a non-fast-forward or sync problem, run the `pull`\n     skill to merge `origin/main`, resolve conflicts, and rerun validation.\n   - Push again; use `--force-with-lease` only when history was rewritten.\n   - If the failure is due to auth, permissions, or workflow restrictions on\n     the configured remote, stop and surface the exact error instead of\n     rewriting remotes or switching protocols as a workaround.\n\n5. Ensure a PR exists for the branch:\n   - If no PR exists, create one.\n   - If a PR exists and is open, update it.\n   - If branch is tied to a closed/merged PR, create a new branch + PR.\n   - Write a proper PR title that clearly describes the change outcome\n   - For branch updates, explicitly reconsider whether current PR title still\n     matches the latest scope; update it if it no longer does.\n6. Write/update PR body explicitly using `.github/pull_request_template.md`:\n   - Fill every section with concrete content for this change.\n   - Replace all placeholder comments (`<!-- ... -->`).\n   - Keep bullets/checkboxe",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}

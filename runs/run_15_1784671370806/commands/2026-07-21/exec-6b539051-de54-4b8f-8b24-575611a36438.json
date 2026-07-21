@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-6b539051-de54-4b8f-8b24-575611a36438",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671749486_78",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:09:09.448Z",
+  "command": "/bin/bash -lc \"sed -n '1,240p' .github/pull_request_template.md && git remote -v && git branch --show-current\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "#### Context\n\n<!-- Why is this change needed? Length <= 240 chars -->\n\n#### TL;DR\n\n*<!-- A short description of what we are changing. Use simple language. Assume reader is not familiar with this code. Length <= 120 chars -->*\n\n#### Summary\n\n- <!-- Details of the changes in bullet points -->\n- <!-- Keep them high level -->\n- <!-- Each item <= 120 chars -->\n\n#### Alternatives\n\n- <!-- What alternatives have been considered? Why not? -->\n\n#### Test Plan\n\n- [ ] `make -C elixir all`\n- [ ] <!-- Additional targeted checks (list below) -->\norigin\tgit@github.com:acancelas/symphony.git (fetch)\norigin\tgit@github.com:acancelas/symphony.git (push)\nbos/issue-15\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}

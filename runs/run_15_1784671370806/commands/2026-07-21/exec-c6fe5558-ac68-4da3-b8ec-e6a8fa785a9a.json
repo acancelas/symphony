@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c6fe5558-ac68-4da3-b8ec-e6a8fa785a9a",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671784354_95",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:09:44.223Z",
+  "command": "/bin/bash -lc \"sed -n '180,290p' elixir/lib/symphony_elixir/delivery_coordinator.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "      end\n    end\n  end\n\n  defp fetch_review_artifacts(context, attempt \\\\ 1) do\n    native_ref = context.issue.native_ref || %{}\n\n    case context.client.fetch_run_artifacts(\n           native_ref[\"repositoryId\"],\n           native_ref[\"runId\"],\n           \"reviews\"\n         ) do\n      {:error, {:game_api_rate_limited, retry_after_ms}}\n      when attempt < context.max_lookup_attempts and is_integer(retry_after_ms) and retry_after_ms >= 0 ->\n        delay_ms = max(retry_after_ms, 50)\n\n        Logger.warning(\n          \"Review lookup paused by the shared provider circuit; preserving the completed Codex stage \" <>\n            \"attempt=#{attempt} delay_ms=#{delay_ms}\"\n        )\n\n        context.sleep_fn.(delay_ms)\n        fetch_review_artifacts(context, attempt + 1)\n\n      result ->\n        result\n    end\n  end\n\n  defp run_repair(context, reviews, cycle) do\n    findings = summarize_findings(reviews)\n\n    prompt = \"\"\"\n    You are the BOS repair agent for #{context.issue.identifier}, repair cycle #{cycle}.\n    Work only in the existing workspace and exact AgentRun. Review the durable\n    findings below, inspect the current diff, implement every valid correction,\n    run the complete repository validation, commit the repaired exact HEAD, and\n    record updated evidence through bos-mcp. Do not approve your own work and do\n    not request merge or human approval; fresh independent reviewers run next.\n\n    Findings:\n    #{findings}\n    \"\"\"\n\n    run_role(\n      context.app_server,\n      context.workspace,\n      context.issue,\n      context.worker_host,\n      \"repair-agent\",\n      prompt,\n      context.recipient\n    )\n  end\n\n  defp run_finalizer(workspace, issue, recipient, worker_host, app_server) do\n    prompt = \"\"\"\n    You are the BOS delivery coordinator for #{issue.identifier}. All five\n    independent specialist Reviews have passed for the current repair cycle.\n    Re-read the exact HEAD, acceptance contract, checks, reviews and evidence\n    through bos-mcp. Ensure the P",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}

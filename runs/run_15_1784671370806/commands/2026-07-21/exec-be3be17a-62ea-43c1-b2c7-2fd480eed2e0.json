@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-be3be17a-62ea-43c1-b2c7-2fd480eed2e0",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671766865_87",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:09:27.635Z",
+  "command": "/bin/bash -lc 'mise exec -- mix pr_body.check --file /tmp/symphony-15-pr-body.md'",
+  "durationMs": 630,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "PR body format OK\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
