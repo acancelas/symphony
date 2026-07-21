@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e215a95c-2baf-4c00-bc30-b451ccae88b9",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629399523_800",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:23:20.427Z",
+  "command": "/bin/bash -lc 'git diff --find-renames HEAD''^..HEAD -- elixir/lib/symphony_elixir/game_api/client.ex elixir/lib/symphony_elixir/post_approval_coordinator.ex elixir/test/symphony_elixir/post_approval_coordinator_test.exs'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "diff --git a/elixir/lib/symphony_elixir/game_api/client.ex b/elixir/lib/symphony_elixir/game_api/client.ex\nindex 906ff94..0bd4549 100644\n--- a/elixir/lib/symphony_elixir/game_api/client.ex\n+++ b/elixir/lib/symphony_elixir/game_api/client.ex\n@@ -120,6 +120,30 @@ defmodule SymphonyElixir.GameApi.Client do\n     end\n   end\n \n+  @spec mark_pull_request_ready(map()) :: {:ok, map()} | {:error, term()}\n+  def mark_pull_request_ready(readiness) when is_map(readiness) do\n+    with {:ok, repository} <- find_repository(readiness[\"repositoryId\"]) do\n+      request(:post, \"/v1/internal/bos/github/pull-requests/ready\",\n+        json: %{\n+          \"repository\" => repository_body(repository),\n+          \"issueNumber\" => readiness[\"issueNumber\"],\n+          \"operationId\" => readiness[\"operationId\"],\n+          \"runId\" => readiness[\"runId\"],\n+          \"pullRequestNumber\" => readiness[\"pullRequestNumber\"],\n+          \"expectedHeadSha\" => readiness[\"expectedHeadSha\"]\n+        }\n+      )\n+    end\n+  end\n+\n+  @spec fetch_pull_request(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\n+  def fetch_pull_request(repository_id, pull_request_number)\n+      when is_binary(repository_id) and is_integer(pull_request_number) and pull_request_number > 0 do\n+    with {:ok, repository} <- find_repository(repository_id) do\n+      request(:get, \"/v1/internal/bos/github/pull-requests/#{pull_request_number}\", params: repository_query(repository))\n+    end\n+  end\n+\n   @spec fetch_run_artifacts(String.t(), String.t(), String.t()) :: {:ok, [map()]} | {:error, term()}\n   def fetch_run_artifacts(repository_id, run_id, directory)\n       when is_binary(repository_id) and is_binary(run_id) and is_binary(directory) do\ndiff --git a/elixir/lib/symphony_elixir/post_approval_coordinator.ex b/elixir/lib/symphony_elixir/post_approval_coordinator.ex\nindex fdd272c..154f1a6 100644\n--- a/elixir/lib/symphony_elixir/post_approval_coordinator.ex\n+++ b/elixir/lib/symphony_elixir/post_approval_coordinator.ex\n@@ -22",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
