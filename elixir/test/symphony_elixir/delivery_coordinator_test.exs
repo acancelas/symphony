@@ -13,10 +13,35 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
 
     def run_turn(session, prompt, _issue, _opts) do
       send(Application.fetch_env!(:symphony_elixir, :delivery_test_pid), {:turn, session.actor, prompt})
+
+      if String.ends_with?(session.actor, "-reviewer") do
+        role = String.trim_trailing(session.actor, "-reviewer")
+        [_, cycle] = Regex.run(~r/, cycle (\d+)\./, prompt)
+        statuses = Application.get_env(:symphony_elixir, :delivery_review_statuses, %{})
+        status = Map.get(statuses, role, "passed")
+        reviews = Application.get_env(:symphony_elixir, :delivery_test_reviews, [])
+
+        Application.put_env(
+          :symphony_elixir,
+          :delivery_test_reviews,
+          [review_artifact(role, status, String.to_integer(cycle)) | reviews]
+        )
+      end
+
       {:ok, %{session_id: session.actor}}
     end
 
     def stop_session(_session), do: :ok
+
+    defp review_artifact(role, status, cycle) do
+      %{
+        "reviewId" => "review_run_001_#{cycle}_#{role}",
+        "reviewType" => role,
+        "status" => status,
+        "summary" => "#{role} result",
+        "findings" => []
+      }
+    end
   end
 
   defmodule FakeClient do
@@ -28,8 +53,9 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
   defmodule RetryAppServer do
     def start_session(workspace, opts), do: FakeAppServer.start_session(workspace, opts)
 
-    def run_turn(session, prompt, issue, opts) do
-      result = FakeAppServer.run_turn(session, prompt, issue, opts)
+    def run_turn(session, prompt, _issue, _opts) do
+      send(Application.fetch_env!(:symphony_elixir, :delivery_test_pid), {:turn, session.actor, prompt})
+      result = {:ok, %{session_id: session.actor}}
       attempt = Application.get_env(:symphony_elixir, :delivery_review_record_attempt, 0) + 1
       Application.put_env(:symphony_elixir, :delivery_review_record_attempt, attempt)
 
@@ -51,6 +77,19 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     def stop_session(session), do: FakeAppServer.stop_session(session)
   end
 
+  defmodule RateLimitedReviewClient do
+    def fetch_run_artifacts(_repository_id, _run_id, "reviews") do
+      attempt = Application.get_env(:symphony_elixir, :delivery_review_lookup_attempt, 0) + 1
+      Application.put_env(:symphony_elixir, :delivery_review_lookup_attempt, attempt)
+
+      if attempt == 1 do
+        {:error, {:game_api_rate_limited, 743_083}}
+      else
+        {:ok, Application.fetch_env!(:symphony_elixir, :delivery_test_reviews)}
+      end
+    end
+  end
+
   setup do
     Application.put_env(:symphony_elixir, :delivery_test_pid, self())
 
@@ -58,6 +97,8 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
       Application.delete_env(:symphony_elixir, :delivery_test_pid)
       Application.delete_env(:symphony_elixir, :delivery_test_reviews)
       Application.delete_env(:symphony_elixir, :delivery_review_record_attempt)
+      Application.delete_env(:symphony_elixir, :delivery_review_lookup_attempt)
+      Application.delete_env(:symphony_elixir, :delivery_review_statuses)
     end)
 
     :ok
@@ -65,7 +106,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
 
   test "runs independent specialist sessions and a finalizer only after durable passes" do
     roles = ~w(functional architecture security quality visual)
-    Application.put_env(:symphony_elixir, :delivery_test_reviews, Enum.map(roles, &review(&1, "passed")))
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
 
     assert :ok =
              DeliveryCoordinator.run(
@@ -86,7 +127,8 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
   end
 
   test "fails closed after bounded review repair cycles" do
-    Application.put_env(:symphony_elixir, :delivery_test_reviews, [review("security", "changes_requested")])
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
+    Application.put_env(:symphony_elixir, :delivery_review_statuses, %{"security" => "changes_requested"})
 
     assert {:error, {:review_repair_limit_reached, summary}} =
              DeliveryCoordinator.run(
@@ -123,6 +165,57 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
              )
 
     assert collect_actors(3, []) == ["functional-reviewer", "functional-reviewer", "delivery-coordinator"]
+  end
+
+  test "waits for the provider circuit without rerunning a completed reviewer" do
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
+    test_pid = self()
+
+    assert :ok =
+             DeliveryCoordinator.run(
+               "/tmp/workspace",
+               issue(),
+               nil,
+               [
+                 app_server_module: FakeAppServer,
+                 game_api_client_module: RateLimitedReviewClient,
+                 review_roles: ["functional"],
+                 review_lookup_sleep: fn delay_ms -> send(test_pid, {:review_lookup_sleep, delay_ms}) end
+               ],
+               nil
+             )
+
+    assert_received {:review_lookup_sleep, 743_083}
+    assert collect_actors(2, []) == ["functional-reviewer", "delivery-coordinator"]
+  end
+
+  test "detects and reuses a durable review stage on scheduler retry" do
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [review("functional", "passed")])
+
+    assert {:ok, true} =
+             DeliveryCoordinator.review_stage_started?(issue(), game_api_client_module: FakeClient)
+
+    assert :ok =
+             DeliveryCoordinator.run(
+               "/tmp/workspace",
+               issue(),
+               nil,
+               [
+                 app_server_module: FakeAppServer,
+                 game_api_client_module: FakeClient,
+                 review_roles: ["functional"]
+               ],
+               nil
+             )
+
+    assert collect_actors(1, []) == ["delivery-coordinator"]
+  end
+
+  test "reports a fresh implementation stage when no Reviews exist" do
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
+
+    assert {:ok, false} =
+             DeliveryCoordinator.review_stage_started?(issue(), game_api_client_module: FakeClient)
   end
 
   defp collect_actors(0, actors), do: Enum.reverse(actors)
