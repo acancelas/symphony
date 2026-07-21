@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-bf103afa-2201-4d0b-b2fc-1ebd9099f689",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629451147_834",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:24:11.105Z",
+  "command": "/bin/bash -lc 'git log -4 --oneline --decorate --stat'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "c3554e6 (HEAD -> bos/issue-10) fix(delivery): verify PR readiness through game-api\n elixir/lib/symphony_elixir/game_api/client.ex      | 24 +++++++++\n .../symphony_elixir/post_approval_coordinator.ex   | 35 ++++++++++---\n .../post_approval_coordinator_test.exs             | 57 ++++++++++++++++++++++\n 3 files changed, 110 insertions(+), 6 deletions(-)\n1908764 feat(delivery): promote draft PR before merge\n .../symphony_elixir/post_approval_coordinator.ex   | 151 ++++++++++++++++++++-\n .../post_approval_coordinator_test.exs             | 135 +++++++++++++++++-\n 2 files changed, 284 insertions(+), 2 deletions(-)\n7b22f4b (origin/main, origin/HEAD, main) Bound retained Codex event summaries (#5)\n elixir/lib/symphony_elixir/orchestrator.ex            |  4 +++-\n .../test/symphony_elixir/orchestrator_status_test.exs | 19 ++++++++++++++++++-\n 2 files changed, 21 insertions(+), 2 deletions(-)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n .bos/project.yaml                                  |  25 ++\n .codex/config.toml                                 |   4 +\n AGENTS.md                                          |  22 ++\n WORKFLOW.md                                        |   7 +\n elixir/lib/mix/tasks/pr_body.check.ex              |   9 +-\n elixir/lib/symphony_elixir/audit/outbox.ex         | 303 +++++++++++++++++++--\n elixir/lib/symphony_elixir/game_api/client.ex      |  18 +-\n elixir/test/mix/tasks/pr_body_check_test.exs       |  32 +++\n elixir/test/symphony_elixir/audit/outbox_test.exs  | 144 ++++++++++\n .../test/symphony_elixir/game_api_adapter_test.exs |  10 +\n 10 files changed, 552 insertions(+), 22 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}

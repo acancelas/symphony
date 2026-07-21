@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d5c0c264-8397-431f-b352-a52f47a2c039",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629451135_832",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:24:11.093Z",
+  "command": "/bin/bash -lc \"grep -RInE 'reviewId|reviewType|subjectId|changes_requested' . --exclude-dir=.git --exclude-dir=_build --exclude-dir=deps | head -n 240\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./elixir/test/symphony_elixir/delivery_coordinator_test.exs:62:    Application.put_env(:symphony_elixir, :delivery_test_reviews, [review(\"security\", \"changes_requested\")])\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:78:    assert summary =~ \"security: changes_requested\"\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:95:      \"reviewId\" => \"review_run_001_1_#{role}\",\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:96:      \"reviewType\" => role,\n./elixir/test/symphony_elixir/audit/outbox_test.exs:175:             \"subjectId\" => \"implementation-agent\"\n./elixir/test/symphony_elixir/audit/outbox_test.exs:180:             \"subjectId\" => \"x1\"\n./elixir/test/symphony_elixir/audit/outbox_test.exs:185:             \"subjectId\" => \"security-reviewer\"\n./elixir/test/symphony_elixir/goal_planning_coordinator_test.exs:23:         \"review\" => %{\"reviewId\" => \"review_001\", \"status\" => \"passed\"}\n./elixir/lib/symphony_elixir/audit/outbox.ex:684:      %{\"type\" => \"agent\", \"subjectId\" => implementation_agent_id()}\n./elixir/lib/symphony_elixir/audit/outbox.ex:686:      %{\"type\" => \"runner\", \"subjectId\" => runner_id()}\n./elixir/lib/symphony_elixir/audit/outbox.ex:695:      %{\"type\" => \"agent\", \"subjectId\" => actor}\n./elixir/lib/symphony_elixir/game_api/client.ex:320:               \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\n./elixir/lib/symphony_elixir/game_api/client.ex:378:      \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\n./elixir/lib/symphony_elixir/goal_planning_coordinator.ex:46:      status when status in [\"changes_requested\", \"inconclusive\"] and cycle < context.max_cycles ->\n./elixir/lib/symphony_elixir/goal_planning_coordinator.ex:49:      status when status in [\"changes_requested\", \"inconclusive\"] ->\n./elixir/lib/symphony_elixir/goal_planning_coordinator.ex:100:    #{native_ref[\"issueNumber\"]}, runId #{native_ref[\"runId\"]}, reviewId\n./elixir/lib/symphony_elixir/goal_planning_coordinator.ex:103:    changes_",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
