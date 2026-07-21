@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-caa2e38a-1f28-440c-bef3-7863682eef9a",
+  "runId": "run_9_1784676341776",
+  "attemptId": "attempt_run_9_1784676341776_1",
+  "eventId": "event_1784676376238_12",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:26:15.738Z",
+  "command": "/bin/bash -lc 'git status --short --branch && git log -8 --oneline --decorate && rg -n \"candidate_workspace_dirty|CandidateHead|candidate head|repair\" elixir/lib elixir/test | head -240 && rg --files elixir/lib elixir/test | sort'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-9\n6f70b75 (HEAD -> bos/issue-9, origin/main, origin/HEAD, main) Guarantee cleanup of orchestration test subprocesses (#38)\nc8b9232 Make workspace recovery atomic and single-owner (#37)\n05ada18 Confirm candidate HEAD durability before review (#36)\nacb5505 separate-capacity-queue-from-retries (#34)\nc12c70c enforce-bos-command-integration-boundary (#33)\n2c96429 fix(recovery): resume expired runner claims (#16)\n9451abb Promote verified draft pull requests before merge (#32)\nd5b4fbe isolate-invalid-run-projections (#31)\n/bin/bash: line 1: rg: command not found\n/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-9",
+  "retention": {
+    "category": "permanent"
+  }
+}

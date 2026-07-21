@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-a3b2516e-d2f4-475b-9b19-e6b8bd230618",
+  "runId": "run_9_1784676341776",
+  "attemptId": "attempt_run_9_1784676341776_1",
+  "eventId": "event_1784676390841_16",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:26:30.341Z",
+  "command": "/bin/bash -lc \"sed -n '1,340p' elixir/lib/symphony_elixir/delivery_coordinator.ex; sed -n '1,280p' elixir/lib/symphony_elixir/candidate_head.ex; sed -n '1,330p' elixir/test/symphony_elixir/delivery_coordinator_test.exs; sed -n '1,280p' elixir/test/symphony_elixir/candidate_head_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.DeliveryCoordinator do\n  @moduledoc \"\"\"\n  Runs independent specialist reviews, bounded repair cycles, and the final\n  policy hand-off after the implementation agent has finished a workspace turn.\n\n  Every role receives a fresh Codex session and a distinct BOS MCP actor. The\n  durable Review documents in GitHub, rather than model prose, decide whether\n  the delivery can advance.\n  \"\"\"\n\n  require Logger\n\n  alias SymphonyElixir.CandidateHead\n  alias SymphonyElixir.Codex.AppServer\n  alias SymphonyElixir.GameApi.Client\n  alias SymphonyElixir.Tracker.Issue\n\n  @review_roles ~w(functional architecture security quality visual)\n  @max_repair_cycles 3\n  @max_review_record_attempts 2\n  @max_review_lookup_attempts 3\n\n  @doc \"\"\"\n  Returns whether this AgentRun has already crossed the durable review-stage\n  boundary. Scheduler retries use this projection to avoid reopening the\n  implementation Codex session after at least one specialist Review exists.\n  \"\"\"\n  @spec review_stage_started?(Issue.t(), keyword()) :: {:ok, boolean()} | {:error, term()}\n  def review_stage_started?(%Issue{} = issue, opts \\\\ []) do\n    client = Keyword.get(opts, :game_api_client_module, Client)\n    native_ref = issue.native_ref || %{}\n\n    with repository_id when is_binary(repository_id) <- native_ref[\"repositoryId\"],\n         run_id when is_binary(run_id) <- native_ref[\"runId\"],\n         {:ok, artifacts} <- client.fetch_run_artifacts(repository_id, run_id, \"reviews\") do\n      {:ok, artifacts != []}\n    else\n      nil -> {:ok, false}\n      {:error, reason} -> {:error, reason}\n      _ -> {:ok, false}\n    end\n  end\n\n  @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}\n  def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do\n    app_server = Keyword.get(opts, :app_server_module, AppServer)\n    client = Keyword.get(opts, :game_api_client_module, Client)\n    roles = Keyword.get(opts, :review_roles, @review_roles)\n    max_cyc",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-9",
+  "retention": {
+    "category": "permanent"
+  }
+}

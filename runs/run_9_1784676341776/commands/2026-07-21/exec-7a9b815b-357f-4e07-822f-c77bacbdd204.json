@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-7a9b815b-357f-4e07-822f-c77bacbdd204",
+  "runId": "run_9_1784676341776",
+  "attemptId": "attempt_run_9_1784676341776_1",
+  "eventId": "event_1784676382866_14",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:26:22.366Z",
+  "command": "/bin/bash -lc 'grep -RInE \"candidate_workspace_dirty|CandidateHead|candidate head|repair\" elixir/lib elixir/test | head -260; find elixir/lib elixir/test -type f | sort | head -300'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/candidate_head.ex:1:defmodule SymphonyElixir.CandidateHead do\nelixir/lib/symphony_elixir/candidate_head.ex:100:  defp require_clean(status), do: {:error, {:candidate_workspace_dirty, status}}\nelixir/lib/symphony_elixir/audit/outbox.ex:62:    runs = root |> recover_pending() |> repair_recovered_chains(root)\nelixir/lib/symphony_elixir/audit/outbox.ex:502:  @spec repair_recovered_chains(map(), Path.t(), (Issue.t() -> map())) :: map()\nelixir/lib/symphony_elixir/audit/outbox.ex:503:  def repair_recovered_chains(runs, root, remote_resolver \\\\ &recover_remote_state/1)\nelixir/lib/symphony_elixir/audit/outbox.ex:505:    Enum.reduce(runs, %{}, fn {run_id, run_state}, repaired ->\nelixir/lib/symphony_elixir/audit/outbox.ex:506:      next = repair_recovered_run(root, run_id, run_state, remote_resolver)\nelixir/lib/symphony_elixir/audit/outbox.ex:507:      Map.put(repaired, run_id, next)\nelixir/lib/symphony_elixir/audit/outbox.ex:511:  defp repair_recovered_run(root, run_id, run_state, remote_resolver) do\nelixir/lib/symphony_elixir/agent_runner.ex:141:    # continuation is owned by the explicit review/repair coordinator below,\nelixir/lib/symphony_elixir/delivery_coordinator.ex:3:  Runs independent specialist reviews, bounded repair cycles, and the final\nelixir/lib/symphony_elixir/delivery_coordinator.ex:13:  alias SymphonyElixir.CandidateHead\nelixir/lib/symphony_elixir/delivery_coordinator.ex:19:  @max_repair_cycles 3\nelixir/lib/symphony_elixir/delivery_coordinator.ex:49:    max_cycles = Keyword.get(opts, :max_repair_cycles, @max_repair_cycles)\nelixir/lib/symphony_elixir/delivery_coordinator.ex:52:    candidate_head = Keyword.get(opts, :candidate_head_module, CandidateHead)\nelixir/lib/symphony_elixir/delivery_coordinator.ex:67:    with {:ok, _reviewed_candidate} <- review_and_repair(context, 1, max_cycles),\nelixir/lib/symphony_elixir/delivery_coordinator.ex:73:  defp review_and_repair(context, cycle, max_cycles) do\nelixir/lib/symphony_elixir/delivery_coo",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-9",
+  "retention": {
+    "category": "permanent"
+  }
+}
