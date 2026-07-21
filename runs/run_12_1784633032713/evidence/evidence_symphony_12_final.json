@@ -1,0 +1,57 @@
+{
+  "evidenceId": "evidence_symphony_12_final",
+  "runId": "run_12_1784633032713",
+  "commitSha": "fca9c255b56afdc9f4b36e293bf7eda1e10b4bc5",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "No-slot events consume no Attempt or retry budget",
+      "status": "passed",
+      "evidence": "Capacity entries remove retry state while retaining the current attempt identity."
+    },
+    {
+      "criterion": "Recovered work receives deterministic priority",
+      "status": "passed",
+      "evidence": "State, recovery membership, priority and creation-time ordering are tested across restart reconstruction."
+    },
+    {
+      "criterion": "agent:merging cannot starve behind agent:ready",
+      "status": "passed",
+      "evidence": "Delivery state ranking places merging, rework and running before ready work."
+    },
+    {
+      "criterion": "Queue state is observable",
+      "status": "passed",
+      "evidence": "API, terminal and LiveView expose count, position, reason and state."
+    },
+    {
+      "criterion": "Complete Symphony gates pass",
+      "status": "passed",
+      "evidence": "311 tests, 0 failures, 2 intentional skips, 100 percent coverage, Credo and Dialyzer clean."
+    }
+  ],
+  "checks": [
+    {
+      "name": "capacity-and-observability",
+      "status": "passed",
+      "tests": 47
+    },
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 311,
+      "coveragePercent": 100
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [],
+  "summary": "Execution capacity is now an ordered observable queue, never an artificial retry failure."
+}
