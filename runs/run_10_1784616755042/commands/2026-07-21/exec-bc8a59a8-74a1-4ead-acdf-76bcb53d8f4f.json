@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-bc8a59a8-74a1-4ead-acdf-76bcb53d8f4f",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629420459_816",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:23:40.459Z",
+  "command": "/bin/bash -lc \"grep -RInF 'pull-requests/' . --exclude-dir=.git --exclude='*.beam' | head -n 240\"",
+  "durationMs": 342,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./elixir/lib/symphony_elixir/game_api/client.ex:126:      request(:post, \"/v1/internal/bos/github/pull-requests/ready\",\n./elixir/lib/symphony_elixir/game_api/client.ex:143:      request(:get, \"/v1/internal/bos/github/pull-requests/#{pull_request_number}\", params: repository_query(repository))\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
