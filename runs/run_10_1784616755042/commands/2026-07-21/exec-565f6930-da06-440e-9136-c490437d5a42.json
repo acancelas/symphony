@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-565f6930-da06-440e-9136-c490437d5a42",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784616817260_8340",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:53:37.260Z",
+  "command": "/bin/bash -lc \"sed -n '1,420p' elixir/test/symphony_elixir/post_approval_coordinator_test.exs; grep -RniE 'request_merge|ready.for.review|ready_for_review|pull.*ready|draft' elixir/lib elixir/test | head -n 240; grep -nE '\"'^  def|''^  @spec'\"' elixir/lib/symphony_elixir/game_api/client.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.PostApprovalCoordinatorTest do\n  use ExUnit.Case, async: false\n\n  alias SymphonyElixir.PostApprovalCoordinator\n  alias SymphonyElixir.Tracker.Issue\n\n  defmodule FakeAppServer do\n    def start_session(workspace, opts) do\n      actor = opts |> Keyword.fetch!(:environment_overrides) |> Map.new() |> Map.fetch!(\"BOS_MCP_ACTOR\")\n      {:ok, %{actor: actor, workspace: workspace}}\n    end\n\n    def run_turn(%{actor: \"deployment-verifier\", workspace: workspace}, _prompt, _issue, _opts) do\n      path = Path.join(workspace, \".bos-local/deployment-probe.json\")\n      File.mkdir_p!(Path.dirname(path))\n\n      File.write!(\n        path,\n        Jason.encode!(%{\n          \"probeId\" => \"probe_001\",\n          \"deploymentId\" => \"deployment_001\",\n          \"repositoryId\" => \"bos-front\",\n          \"commitSha\" => \"a1b2c3d4\",\n          \"environment\" => \"production\",\n          \"status\" => \"passed\"\n        })\n      )\n\n      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:role, \"deployment-verifier\"})\n      {:ok, %{session_id: \"deployment-verifier\"}}\n    end\n\n    def run_turn(%{actor: actor}, _prompt, _issue, _opts) do\n      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:role, actor})\n      {:ok, %{session_id: actor}}\n    end\n\n    def stop_session(_session), do: :ok\n  end\n\n  defmodule FakeClient do\n    def record_runtime_probe(request) do\n      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:probe, request})\n      {:ok, %{\"status\" => \"completed\", \"receipt\" => %{\"receiptId\" => \"receipt_001\"}}}\n    end\n\n    def fetch_issue(\"bos-front\", 42), do: {:ok, %{\"labels\" => [\"bos:issue\", \"agent:done\"]}}\n\n    def fetch_run(\"bos-front\", \"run_001\") do\n      {:ok, %{\"status\" => \"completed\", \"currentAttemptId\" => \"attempt_002\"}}\n    end\n\n    def fetch_run_artifacts(\"bos-front\", \"run_001\", \"deployment-verifications\") do\n      {:ok,\n       [\n         %{\n           \"status\" => \"passed\",\n           \"deploymentId",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616815073,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616815072,
+      "item": {
+        "aggregatedOutput": "defmodule SymphonyElixir.PostApprovalCoordinatorTest do\n  use ExUnit.Case, async: false\n\n  alias SymphonyElixir.PostApprovalCoordinator\n  alias SymphonyElixir.Tracker.Issue\n\n  defmodule FakeAppServer do\n    def start_session(workspace, opts) do\n      actor = opts |> Keyword.fetch!(:environment_overrides) |> Map.new() |> Map.fetch!(\"BOS_MCP_ACTOR\")\n      {:ok, %{actor: actor, workspace: workspace}}\n    end\n\n    def run_turn(%{actor: \"deployment-verifier\", workspace: workspace}, _prompt, _issue, _opts) do\n      path = Path.join(workspace, \".bos-local/deployment-probe.json\")\n      File.mkdir_p!(Path.dirname(path))\n\n      File.write!(\n        path,\n        Jason.encode!(%{\n          \"probeId\" => \"probe_001\",\n          \"deploymentId\" => \"deployment_001\",\n          \"repositoryId\" => \"bos-front\",\n          \"commitSha\" => \"a1b2c3d4\",\n          \"environment\" => \"production\",\n          \"status\" => \"passed\"\n        })\n      )\n\n      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:role, \"deployment-verifier\"})\n      {:ok, %{session_id: \"deployment-verifier\"}}\n    end\n\n    def run_turn(%{actor: actor}, _prompt, _issue, _opts) do\n      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:role, actor})\n      {:ok, %{session_id: actor}}\n    end\n\n    def stop_session(_session), do: :ok\n  end\n\n  defmodule FakeClient do\n    def record_runtime_probe(request) do\n      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:probe, request})\n      {:ok, %{\"status\" => \"completed\", \"receipt\" => %{\"receiptId\" => \"receipt_001\"}}}\n    end\n\n    def fetch_issue(\"bos-front\", 42), do: {:ok, %{\"labels\" => [\"bos:issue\", \"agent:done\"]}}\n\n    def fetch_run(\"bos-front\", \"run_001\") do\n      {:ok, %{\"status\" => \"completed\", \"currentAttemptId\" => \"attempt_002\"}}\n    end\n\n    def fetch_run_artifacts(\"bos-front\", \"run_001\", \"deployment-verifications\") do\n      {:ok,\n       [\n         %{\n           \"status\" => \"passed\",\n           \"deploymentId\" => \"deployment_001\",\n           \"commitSha\" => \"a1b2c3d4\",\n           \"environment\" => \"production\"\n         }\n       ]}\n    end\n\n    def fetch_run_artifacts(\"bos-front\", \"run_001\", \"attempts\") do\n      {:ok,\n       [\n         %{\n           \"attemptId\" => \"attempt_002\",\n           \"status\" => \"passed\",\n           \"completedAt\" => \"2026-07-20T12:00:00Z\"\n         }\n       ]}\n    end\n\n    def fetch_run_artifacts(\"bos-front\", \"run_001\", \"learnings\") do\n      {:ok, [%{\"learningId\" => \"learning_001\"}]}\n    end\n  end\n\n  test \"runner confirms the bounded probe handoff between deploy and release roles\" do\n    workspace = Path.join(System.tmp_dir!(), \"bos-post-approval-#{System.unique_integer([:positive])}\")\n    File.mkdir_p!(workspace)\n    Application.put_env(:symphony_elixir, :post_approval_test_pid, self())\n\n    assert :ok =\n             PostApprovalCoordinator.run(\n               workspace,\n               issue(),\n               nil,\n               [app_server_module: FakeAppServer, game_api_client_module: FakeClient],\n               nil\n             )\n\n    assert_receive {:role, \"deployment-verifier\"}\n    assert_receive {:probe, request}\n    assert request[\"repository\"][\"owner\"] == \"acancelas\"\n    assert request[\"probe\"][\"commitSha\"] == \"a1b2c3d4\"\n    assert_receive {:role, \"release-manager\"}\n\n    Application.delete_env(:symphony_elixir, :post_approval_test_pid)\n    File.rm_rf!(workspace)\n  end\n\n  defp issue do\n    %Issue{\n      id: \"bos-front#42\",\n      identifier: \"bos-front-42\",\n      title: \"Release\",\n      state: \"agent:merging\",\n      branch_name: \"bos/issue-42\",\n      native_ref: %{\n        \"repositoryId\" => \"bos-front\",\n        \"repositoryOwner\" => \"acancelas\",\n        \"repositoryName\" => \"bos-front\",\n        \"issueNumber\" => 42,\n        \"runId\" => \"run_001\",\n        \"attemptId\" => \"attempt_002\"\n      }\n    }\n  end\nend\n12:  @spec fetch_ready_issues() :: {:ok, [map()]} | {:error, term()}\n13:  def fetch_ready_issues do\n35:  @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\n36:  def fetch_issue(repository_id, issue_number)\n43:  @spec claim_issue(String.t(), pos_integer(), String.t() | nil) :: {:ok, map()} | {:error, term()}\n44:  def claim_issue(repository_id, issue_number, existing_run_id)\n64:  @spec heartbeat_issue(String.t(), pos_integer(), String.t()) :: {:ok, map()} | {:error, term()}\n65:  def heartbeat_issue(repository_id, issue_number, run_id)\n84:  @spec append_audit_batch(map()) :: {:ok, map()} | {:error, term()}\n85:  def append_audit_batch(batch) when is_map(batch) do\n89:  @spec record_runtime_probe(map()) :: {:ok, map()} | {:error, term()}\n90:  def record_runtime_probe(probe) when is_map(probe) do\n94:  @spec fetch_goal_planning(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\n95:  def fetch_goal_planning(repository_id, issue_number)\n102:  @spec request_goal_breakdown_approval(Issue.t()) :: {:ok, map()} | {:error, term()}\n103:  def request_goal_breakdown_approval(%Issue{native_ref: native_ref}) do\n116:  @spec fetch_run(String.t(), String.t()) :: {:ok, map()} | {:error, term()}\n117:  def fetch_run(repository_id, run_id) when is_binary(repository_id) and is_binary(run_id) do\n123:  @spec fetch_run_artifacts(String.t(), String.t(), String.t()) :: {:ok, [map()]} | {:error, term()}\n124:  def fetch_run_artifacts(repository_id, run_id, directory)\n131:  @spec start_execution(Issue.t(), pos_integer()) :: {:ok, String.t()} | {:error, term()}\n132:  def start_execution(%Issue{native_ref: native_ref} = issue, attempt_number)\n150:  @spec validate_config(map()) :: :ok | {:error, term()}\n151:  def validate_config(tracker_settings) do\n163:  defp request(method, path, options) do\n196:  @spec http_error(non_neg_integer(), term()) :: tuple()\n197:  def http_error(status, body) do\n207:  defp response_error_code(%{\"detail\" => %{\"error\" => code}}) when is_binary(code), do: code\n208:  defp response_error_code(%{\"error\" => code}) when is_binary(code), do: code\n209:  defp response_error_code(_body), do: nil\n211:  defp response_list({:ok, payload}, key) when is_map(payload) do\n218:  defp response_list({:error, reason}, _key), do: {:error, reason}\n220:  defp ensure_run_record(repository, issue, run_id, issue_number, attempt_id) do\n236:  defp record_run(repository, issue, run_id, issue_number, attempt_id, existing_run) do\n264:  defp ensure_attempt_record(repository, issue, run, run_id, attempt_id, attempt_number) do\n281:  defp record_attempt(repository, issue, run, run_id, attempt_id, attempt_number) do\n306:  defp record_artifact(repository, issue_number, run_id, kind, artifact, event) do\n327:  defp list_artifacts(repository, run_id, directory) do\n332:  defp lifecycle_event(repository, issue, run_id, attempt_id, run, event_type, summary) do\n372:  defp runner_identity do\n380:  defp runner_id, do: System.get_env(\"BOS_RUNNER_ID\") || \"x1\"\n382:  defp sha256(value), do: \"sha256:\" <> (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower))\n384:  defp repository_query(repository) do\n392:  defp repository_body(repository) do\n400:  defp repositories, do: repositories(Config.settings!().tracker)\n402:  defp repositories(tracker_settings) do\n407:  defp find_repository(repository_id) do\n414:  defp invalid_repository?(repository) do\n421:  defp endpoint(tracker_settings) do\n425:  defp new_run_id(issue_number) do\n430:  defp maybe_add_header(headers, _name, value) when not is_binary(value) or value == \"\", do: headers\n431:  defp maybe_add_header(headers, name, value), do: [{name, value} | headers]\n433:  defp blank?(value), do: not is_binary(value) or String.trim(value) == \"\"\n",
+        "command": "/bin/bash -lc \"sed -n '1,420p' elixir/test/symphony_elixir/post_approval_coordinator_test.exs; grep -RniE 'request_merge|ready.for.review|ready_for_review|pull.*ready|draft' elixir/lib elixir/test | head -n 240; grep -nE '\"'^  def|''^  @spec'\"' elixir/lib/symphony_elixir/game_api/client.ex\"",
+        "commandActions": [
+          {
+            "command": "sed -n '1,420p' elixir/test/symphony_elixir/post_approval_coordinator_test.exs",
+            "name": "post_approval_coordinator_test.exs",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/test/symphony_elixir/post_approval_coordinator_test.exs",
+            "type": "read"
+          },
+          {
+            "command": "grep -RniE 'request_merge|ready.for.review|ready_for_review|pull.*ready|draft' elixir/lib elixir/test",
+            "path": "lib",
+            "query": "request_merge|ready.for.review|ready_for_review|pull.*ready|draft",
+            "type": "search"
+          },
+          {
+            "command": "grep -nE '^  def|''^  @spec' elixir/lib/symphony_elixir/game_api/client.ex",
+            "path": "client.ex",
+            "query": "^  def|^  @spec",
+            "type": "search"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-10",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-565f6930-da06-440e-9136-c490437d5a42",
+        "processId": "81074",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8372-d98f-7721-9230-1fb0f32f4ffc",
+      "turnId": "019f8372-dcc3-7292-9b11-f8dbcca20262"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}

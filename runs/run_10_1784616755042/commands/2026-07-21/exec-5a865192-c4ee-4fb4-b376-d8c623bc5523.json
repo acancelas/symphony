@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-5a865192-c4ee-4fb4-b376-d8c623bc5523",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784616805161_8333",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:53:25.161Z",
+  "command": "/bin/bash -lc \"sed -n '1,280p' elixir/lib/symphony_elixir/post_approval_coordinator.ex; sed -n '1,260p' elixir/lib/symphony_elixir/game_api/adapter.ex; sed -n '1,300p' elixir/lib/symphony_elixir/game_api/client.ex; sed -n '1,280p' elixir/lib/symphony_elixir/audit/outbox.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.PostApprovalCoordinator do\n  @moduledoc \"\"\"\n  Continues an approved exact-HEAD delivery through merge, deployment evidence,\n  runner-confirmed runtime probing, release, and terminal state.\n\n  The verification agent may exercise browsers and repository test tooling, but\n  it cannot authenticate the probe. Symphony reads the bounded handoff file and\n  records it with the runner-only credential before the final release turn.\n  \"\"\"\n\n  alias SymphonyElixir.Codex.AppServer\n  alias SymphonyElixir.GameApi.Client\n  alias SymphonyElixir.Tracker.Issue\n\n  @probe_path \".bos-local/deployment-probe.json\"\n\n  @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}\n  def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do\n    app_server = Keyword.get(opts, :app_server_module, AppServer)\n    client = Keyword.get(opts, :game_api_client_module, Client)\n\n    with :ok <- require_local_probe_handoff(worker_host),\n         :ok <- prepare_probe_handoff(workspace),\n         :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),\n         {:ok, request} <- load_probe_request(workspace, issue),\n         {:ok, receipt} <- client.record_runtime_probe(request),\n         :ok <- require_confirmed_receipt(receipt),\n         :ok <- run_release_turn(app_server, workspace, issue, recipient, worker_host) do\n      verify_terminal_state(client, issue, request[\"probe\"])\n    end\n  end\n\n  defp run_verification_turn(app_server, workspace, issue, recipient, worker_host) do\n    prompt = \"\"\"\n    You are the BOS post-approval deployment verifier for #{issue.identifier}.\n    The human Approval is durable. Re-read the exact PR HEAD, approval and\n    evidence through bos-mcp. Request the policy-checked merge; never force it.\n    Perform the repository's real deployment or rollback workflow for that exact\n    commit, create the GitHub Deployment through bos-mcp, and invoke the matching\n    Vercel or VPS provid",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616805146,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616805145,
+      "item": {
+        "aggregatedOutput": {
+          "contentHash": "sha256:f12190e362a12980aa20469f32f2fbea75c51f16a470b9302f6f7c737884ab4c",
+          "retention": "summary_only",
+          "summary": "defmodule SymphonyElixir.PostApprovalCoordinator do\n  @moduledoc \"\"\"\n  Continues an approved exact-HEAD delivery through merge, deployment evidence,\n  runner-confirmed runtime probing, release, and terminal state.\n\n  The verification agent may exercise browsers and repository test tooling, but\n  it cannot authenticate the probe. Symphony reads the bounded handoff file and\n  records it with the runner-only credential before the final release turn.\n  \"\"\"\n\n  alias SymphonyElixir.Codex.AppServer\n  alias SymphonyElixir.GameApi.Client\n  alias SymphonyElixir.Tracker.Issue\n\n  @probe_path \".bos-local/deployment-probe.json\"\n\n  @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}\n  def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do\n    app_server = Keyword.get(opts, :app_server_module, AppServer)\n    client = Keyword.get(opts, :game_api_client_module, Client)\n\n    with :ok <- require_local_probe_handoff(worker_host),\n         :ok <- prepare_probe_handoff(workspace),\n         :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),\n         {:ok, request} <- load_probe_request(workspace, issue),\n         {:ok, receipt} <- client.record_runtime_probe(request),\n         :ok <- require_confirmed_receipt(receipt),\n         :ok <- run_release_turn(app_server, workspace, issue, recipient, worker_host) do\n      verify_terminal_state(client, issue, request[\"probe\"])\n    end\n  end\n\n  defp run_verification_turn(app_server, workspace, issue, recipient, worker_host) do\n    prompt = \"\"\"\n    You are the BOS post-approval deployment verifier for #{issue.identifier}.\n    The human Approval is durable. Re-read the exact PR HEAD, approval and\n    evidence through bos-mcp. Request the policy-checked merge; never force it.\n    Perform the repository's real deployment or rollback workflow for that exact\n    commit, create the GitHub Deployment through bos-mcp, and invoke the matching\n    Vercel or VPS provider inspection. Against the real external URL, execute the\n    health/version check, smoke tests, critical functional tests, browser console\n    and network inspection, server/runtime diagnostics, dependency checks, and a\n    stability observation. A provider READY or successful script alone is not a\n    pass. Use the actual tools and preserve their command evidence.\n\n    After the checks, write only the structured DeploymentRuntimeProbe object to\n    #{@probe_path}. It must include probeId, deploymentId, repositoryId, exact\n    commitSha, environment, target, status, startedAt, completedAt,\n    externalAvailability, deployedVersion, runtimeHealth, smokeTests,\n    functionalTests, browserDiagnostics, serverDiagnostics,\n    criticalDependencies, stability, residualRisk, and evidenceReferences.\n    Do not call the runner-only probe endpoint, record final DeploymentVerification,\n    create a Release, or mark the Issue done. If verification fails, encode the\n    real failed status and evidence; never manufacture a passed result.\n    \"\"\"\n\n    run_role(app_server, workspace, issue, worker_host, \"deployment-verifier\", prompt, recipient)\n  end\n\n  defp run_release_turn(app_server, workspace, issue, recipient, worker_host) do\n    prompt = \"\"\"\n    You are the BOS release manager for #{issue.identifier}. Symphony has now\n    persisted the runner-authenticated DeploymentRuntimeProbe. Retrieve that\n    probe and the provider inspection through bos-mcp. Record the final\n    DeploymentVerification only when their exact commit, deployment, environment,\n    provider result and runtime fields agree. Only a passed verification may\n    complete the Deployment or Release. Create the GitHub Release when required,\n    record learnings, finalize the AgentRun and Attempt, and transition the Issue\n    from agent:merging to agent:done. On any mismatch or failed/inconclusive probe,\n    diagnose and perform only the controlled retry or rollback allowed by policy;\n    every rollback requires a new full verification. Never fabricate evidence or\n    bypass the human Approval and exact-HEAD checks.\n    \"\"\"\n\n    run_role(app_server, workspace, issue, worker_host, \"release-manager\", prompt, recipient)\n  end\n\n  defp load_probe_request(workspace, %Issue{native_ref: native_ref}) do\n    path = Path.join(workspace, @probe_path)\n\n    with {:ok, stat} <- File.lstat(path),\n         true <- stat.type == :regular || {:error, :probe_handoff_not_regular},\n         true <- stat.size <= 1_000_000 || {:error, :probe_handoff_too_large},\n         {:ok, content} <- File.read(path),\n         {:ok, probe} when is_map(probe) <- Jason.decode(content),\n         :ok <- validate_probe_identity(probe, native_ref) do\n      {:ok,\n       %{\n         \"operationId\" => \"runtime_probe_#{probe[\"probeId\"]}\",\n         \"repository\" => %{\n           \"repositoryId\" => native_ref[\"repositoryId\"],\n           \"owner\" => native_ref[\"repositoryOwner\"],\n           \"repo\" => native_ref[\"repositoryName\"]\n         },\n         \"issueNumber\" => native_ref[\"issueNumber\"],\n         \"runId\" => native_ref[\"runId\"],\n         \"probe\" => probe\n       }}\n    else\n      false -> {:error, :probe_handoff_invalid}\n      {:error, reason} -> {:error, {:probe_handoff_invalid, reason}}\n    end\n  end\n\n  defp validate_probe_identity(probe, native_ref) do\n    cond do\n      probe[\"repositoryId\"] != native_ref[\"repositoryId\"] -> {:error, :repository_mismatch}\n      not is_binary(probe[\"probeId\"]) or probe[\"probeId\"] == \"\" -> {:error, :probe_id_missing}\n      not is_binary(probe[\"deploymentId\"]) or probe[\"deploymentId\"] == \"\" -> {:error, :deployment_id_missing}\n      not is_binary(probe[\"commitSha\"]) -> {:error, :commit_missing}\n      probe[\"status\"] not in [\"passed\", \"failed\", \"inconclusive\", \"cancelled\"] -> {:error, :status_invalid}\n      true -> :ok\n    end\n  end\n\n  defp prepare_probe_handoff(workspace) do\n    case File.rm(Path.join(workspace, @probe_path)) do\n      :ok -> :ok\n      {:error, :enoent} -> :ok\n      {:error, reason} -> {:error, {:probe_handoff_cleanup_failed, reason}}\n    end\n  end\n\n  defp verify_terminal_state(client, %Issue{native_ref: native_ref}, probe) do\n    repository_id = native_ref[\"repositoryId\"]\n    issue_number = native_ref[\"issueNumber\"]\n    run_id = native_ref[\"runId\"]\n\n    with {:ok, issue} <- client.fetch_issue(repository_id, issue_number),\n         true <- \"agent:done\" in (issue[\"labels\"] || []) || {:error, :issue_not_done},\n         {:ok, run} <- client.fetch_run(repository_id, run_id),\n         true <- run[\"status\"] == \"completed\" || {:error, :run_not_completed},\n         {:ok, verifications} <- client.fetch_run_artifacts(repository_id, run_id, \"deployment-verifications\"),\n         :ok <- require_exact_passed_verification(verifications, probe),\n         {:ok, attempts} <- client.fetch_run_artifacts(repository_id, run_id, \"attempts\"),\n         :ok <- require_completed_attempt(attempts, run[\"currentAttemptId\"]),\n         {:ok, learnings} <- client.fetch_run_artifacts(repository_id, run_id, \"learnings\"),\n         true <- learnings != [] || {:error, :learning_missing} do\n      :ok\n    else\n      {:error, reason} -> {:error, {:terminal_delivery_not_confirmed, reason}}\n      false -> {:error, {:terminal_delivery_not_confirmed, :invalid_terminal_state}}\n    end\n  end\n\n  defp require_exact_passed_verification(verifications, probe) do\n    matched =\n      Enum.any?(verifications, fn verification ->\n        verification[\"status\"] == \"passed\" and\n          verification[\"deploymentId\"] == probe[\"deploymentId\"] and\n          verification[\"commitSha\"] == probe[\"commitSha\"] and\n          verification[\"environment\"] == probe[\"environment\"]\n      end)\n\n    if matched, do: :ok, else: {:error, :exact_deployment_verification_missing}\n  end\n\n  defp require_completed_attempt(attempts, current_attempt_id) do\n    completed =\n      Enum.any?(attempts, fn attempt ->\n        attempt[\"attemptId\"] == current_attempt_id and\n          attempt[\"status\"] in [\"passed\", \"failed\", \"cancelled\", \"",
+          "truncated": true
+        },
+        "command": "/bin/bash -lc \"sed -n '1,280p' elixir/lib/symphony_elixir/post_approval_coordinator.ex; sed -n '1,260p' elixir/lib/symphony_elixir/game_api/adapter.ex; sed -n '1,300p' elixir/lib/symphony_elixir/game_api/client.ex; sed -n '1,280p' elixir/lib/symphony_elixir/audit/outbox.ex\"",
+        "commandActions": [
+          {
+            "command": "sed -n '1,280p' elixir/lib/symphony_elixir/post_approval_coordinator.ex",
+            "name": "post_approval_coordinator.ex",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/lib/symphony_elixir/post_approval_coordinator.ex",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,260p' elixir/lib/symphony_elixir/game_api/adapter.ex",
+            "name": "adapter.ex",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/lib/symphony_elixir/game_api/adapter.ex",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,300p' elixir/lib/symphony_elixir/game_api/client.ex",
+            "name": "client.ex",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/lib/symphony_elixir/game_api/client.ex",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,280p' elixir/lib/symphony_elixir/audit/outbox.ex",
+            "name": "outbox.ex",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/lib/symphony_elixir/audit/outbox.ex",
+            "type": "read"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-10",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-5a865192-c4ee-4fb4-b376-d8c623bc5523",
+        "processId": "41433",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8372-d98f-7721-9230-1fb0f32f4ffc",
+      "turnId": "019f8372-dcc3-7292-9b11-f8dbcca20262"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
