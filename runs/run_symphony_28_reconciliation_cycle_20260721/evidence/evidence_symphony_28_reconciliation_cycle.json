@@ -1,0 +1,54 @@
+{
+  "evidenceId": "evidence_symphony_28_reconciliation_cycle",
+  "runId": "run_symphony_28_reconciliation_cycle_20260721",
+  "commitSha": "f44719b4614ba88160ae36bb282200bb18583b3a",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Retries within one reconciliation cycle share an operation identity",
+      "status": "passed",
+      "evidence": "The cycle ID is created once per reconciliation invocation and reused for all request-layer retries."
+    },
+    {
+      "criterion": "Later cycles re-evaluate runs that were previously non-terminal",
+      "status": "passed",
+      "evidence": "Each invocation receives fresh timestamp and cryptographic entropy while retaining the run identity."
+    },
+    {
+      "criterion": "Symphony remains isolated from GitHub",
+      "status": "passed",
+      "evidence": "The fix only changes normalized game-api operation identity; no direct provider access is introduced."
+    },
+    {
+      "criterion": "Full Symphony gate passes",
+      "status": "passed",
+      "evidence": "306 tests, 100% coverage, zero Credo issues and zero Dialyzer errors."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 306,
+      "coveragePercent": 100,
+      "credoIssues": 0,
+      "dialyzerErrors": 0
+    },
+    {
+      "name": "git-diff-check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "f44719b4614ba88160ae36bb282200bb18583b3a"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-28"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Terminal reconciliation now uses per-cycle idempotency scopes and is ready for exact live acceptance."
+}
