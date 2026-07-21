@@ -187,11 +187,14 @@ defmodule SymphonyElixir.CLI do
 
         receive do
           {:DOWN, ^ref, :process, ^pid, reason} ->
-            case reason do
-              :normal -> System.halt(0)
-              _ -> System.halt(1)
-            end
+            System.halt(shutdown_exit_status(reason))
         end
     end
   end
+
+  @doc false
+  @spec shutdown_exit_status(term()) :: 0 | 1
+  def shutdown_exit_status(reason) when reason in [:normal, :shutdown], do: 0
+  def shutdown_exit_status({:shutdown, _reason}), do: 0
+  def shutdown_exit_status(_reason), do: 1
 end

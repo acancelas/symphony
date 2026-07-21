@@ -73,6 +73,11 @@ session, so Symphony resets its comparison watermark—not its cumulative totals
 role starts a fresh session. Operational token budgets should use uncached input while retaining
 the full totals for capacity and audit reporting.
 
+Intentional OTP supervisor shutdown (`:normal`, `:shutdown`, or `{:shutdown, reason}`) exits the
+CLI successfully so a controlled `systemctl stop` remains operationally distinct from a crash.
+Unexpected supervisor reasons still return a failure status and remain eligible for service
+restart and diagnosis.
+
 If Codex reports that operator input, approval, or MCP elicitation is required, Symphony keeps the
 issue claimed and exposes it as blocked in the runtime state, JSON API, and dashboard. Blocked
 entries are in memory only; restarting the orchestrator clears that blocked map, so any still-active
