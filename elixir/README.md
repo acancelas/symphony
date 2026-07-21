@@ -53,6 +53,11 @@ On restart, consecutive unconfirmed legacy delta events in the local outbox are 
 same rule and their remaining chain is re-hashed atomically before any retry. Confirmed events and
 receipt-backed identities are never rewritten.
 
+Backlog recovery drains at most one 50-event batch every five seconds and rotates across runs.
+This keeps GitHub's canonical ledger complete while avoiding the secondary provider limits caused
+by recursive, unpaced appends. Critical lifecycle events may still request an immediate flush; a
+provider rejection leaves the batch in the append-only outbox for the paced retry loop.
+
 ## How to use it
 
 1. Make sure your codebase is set up to work well with agents: see

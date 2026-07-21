@@ -6,12 +6,19 @@ defmodule SymphonyElixir.Audit.OutboxTest do
 
   defmodule FakeClient do
     def fetch_run(_repository_id, _run_id), do: {:error, :not_found}
-    def append_audit_batch(_request), do: {:error, :offline}
+
+    def append_audit_batch(request) do
+      if pid = Application.get_env(:symphony_elixir, :outbox_test_pid),
+        do: send(pid, {:audit_batch_attempted, request})
+
+      {:error, :offline}
+    end
   end
 
   setup do
     previous_client = Application.get_env(:symphony_elixir, :game_api_client_module)
     Application.put_env(:symphony_elixir, :game_api_client_module, FakeClient)
+    Application.put_env(:symphony_elixir, :outbox_test_pid, self())
 
     on_exit(fn ->
       if previous_client do
@@ -19,7 +26,24 @@ defmodule SymphonyElixir.Audit.OutboxTest do
       else
         Application.delete_env(:symphony_elixir, :game_api_client_module)
       end
+
+      Application.delete_env(:symphony_elixir, :outbox_test_pid)
     end)
+  end
+
+  test "startup recovery attempts one run at a time instead of recursively draining every batch" do
+    root = Path.join(System.tmp_dir!(), "bos-outbox-paced-test-#{System.unique_integer([:positive])}")
+    write_pending_run(root, "run_a", 1)
+    write_pending_run(root, "run_b", 2)
+
+    {:ok, pid} = Outbox.start_link(root: root, name: nil)
+
+    assert_receive {:audit_batch_attempted, first_request}, 1_000
+    assert first_request["batchId"] =~ ~r/batch_run_[ab]_1_1/
+    refute_receive {:audit_batch_attempted, _second_request}, 500
+
+    GenServer.stop(pid)
+    File.rm_rf!(root)
   end
 
   test "aggregates high-frequency deltas while preserving a durable bounded summary" do
@@ -108,6 +132,23 @@ defmodule SymphonyElixir.Audit.OutboxTest do
       "eventType" => "agent.progress_recorded",
       "payload" => %{"method" => method, "params" => %{"delta" => delta}}
     }
+  end
+
+  defp write_pending_run(root, run_id, issue_number) do
+    events_path = Path.join([root, run_id, "events"])
+    File.mkdir_p!(events_path)
+
+    issue = %{
+      "repositoryId" => "symphony",
+      "repositoryOwner" => "acancelas",
+      "repositoryName" => "symphony",
+      "issueNumber" => issue_number,
+      "runId" => run_id,
+      "branchName" => "bos/issue-#{issue_number}"
+    }
+
+    event = pending_event(1, "item/completed", "final", nil) |> Map.put("runId", run_id)
+    File.write!(Path.join(events_path, "00000001.json"), Jason.encode!(%{"issue" => issue, "event" => event}))
   end
 
   test "recovers ordered unconfirmed events and their last hash after restart" do

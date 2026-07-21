@@ -14,7 +14,8 @@ defmodule SymphonyElixir.Audit.Outbox do
   alias SymphonyElixir.Tracker.Issue
 
   @flush_interval_ms 60_000
-  @batch_size 25
+  @drain_interval_ms 5_000
+  @batch_size 50
   @telemetry_aggregate_size 100
   @sensitive_key ~r/(authorization|cookie|credential|password|secret|token)/i
   @bearer ~r/Bearer\s+[A-Za-z0-9._~+\/-]+=*/i
@@ -44,7 +45,7 @@ defmodule SymphonyElixir.Audit.Outbox do
     runs = recover_pending(root)
     if map_size(runs) > 0, do: send(self(), :flush)
     Process.send_after(self(), :flush, @flush_interval_ms)
-    {:ok, %{root: root, runs: runs, telemetry: %{}}}
+    {:ok, %{root: root, runs: runs, telemetry: %{}, flush_cursor: 0}}
   end
 
   @impl true
@@ -165,9 +166,32 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   @impl true
   def handle_info(:flush, state) do
-    next = Enum.reduce(Map.keys(state.runs), state, &flush_run(&2, &1))
-    Process.send_after(self(), :flush, @flush_interval_ms)
+    next = flush_next_run(state)
+    interval = if pending_events?(next), do: @drain_interval_ms, else: @flush_interval_ms
+    Process.send_after(self(), :flush, interval)
     {:noreply, next}
+  end
+
+  defp flush_next_run(state) do
+    run_ids =
+      state.runs
+      |> Enum.filter(fn {_run_id, run_state} -> run_state.pending != [] end)
+      |> Enum.map(&elem(&1, 0))
+      |> Enum.sort()
+
+    case run_ids do
+      [] ->
+        state
+
+      _ ->
+        index = rem(state.flush_cursor, length(run_ids))
+        run_id = Enum.at(run_ids, index)
+        state |> Map.put(:flush_cursor, state.flush_cursor + 1) |> flush_run(run_id)
+    end
+  end
+
+  defp pending_events?(state) do
+    Enum.any?(state.runs, fn {_run_id, run_state} -> run_state.pending != [] end)
   end
 
   defp build_event(%Issue{native_ref: native_ref} = issue, update, state) do
@@ -273,8 +297,7 @@ defmodule SymphonyElixir.Audit.Outbox do
     Enum.each(pending, fn event -> File.rm(event_path(state.root, run_id, event)) end)
     confirmed_ids = MapSet.new(Enum.map(pending, & &1["eventId"]))
     remaining = Enum.reject(run_state.pending, &MapSet.member?(confirmed_ids, &1["eventId"]))
-    next = put_in(state, [:runs, run_id], %{run_state | pending: remaining})
-    if remaining == [], do: next, else: flush_run(next, run_id)
+    put_in(state, [:runs, run_id], %{run_state | pending: remaining})
   end
 
   defp persist_batch_result(
@@ -303,7 +326,6 @@ defmodule SymphonyElixir.Audit.Outbox do
 
         Logger.info("Rebased #{length(rebased)} unconfirmed BOS audit events after remote #{code} run_id=#{run_id}")
 
-        Process.send_after(self(), :flush, 1_000)
         put_in(state, [:runs, run_id], next_run)
 
       _ ->
