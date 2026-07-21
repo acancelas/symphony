@@ -369,6 +369,15 @@ defmodule SymphonyElixir.Audit.Outbox do
   def event_summary_for_test(method, payload), do: summary(method, payload)
 
   @doc false
+  @spec hash_event_for_test(map()) :: String.t()
+  def hash_event_for_test(event) do
+    event
+    |> CanonicalJson.encode()
+    |> IO.iodata_to_binary()
+    |> sha256()
+  end
+
+  @doc false
   @spec rebase_pending_events([map()], non_neg_integer(), String.t() | nil) :: [map()]
   def rebase_pending_events(events, confirmed_sequence, confirmed_hash)
       when is_list(events) and is_integer(confirmed_sequence) and confirmed_sequence >= 0 do
@@ -379,6 +388,7 @@ defmodule SymphonyElixir.Audit.Outbox do
 
       rebased =
         event
+        |> normalize_recovered_event()
         |> Map.put("sequence", next_sequence)
         |> Map.put("previousEventHash", previous_hash)
         |> Map.delete("eventHash")
@@ -499,7 +509,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   end
 
   defp repair_recovered_run(root, run_id, run_state, remote_resolver) do
-    if pending_chain_valid?(run_state.pending) do
+    if pending_chain_valid?(run_state.pending) and not pending_requires_normalization?(run_state.pending) do
       run_state
     else
       case remote_resolver.(run_state.issue) do
@@ -524,6 +534,21 @@ defmodule SymphonyElixir.Audit.Outbox do
       end
     end
   end
+
+  defp pending_requires_normalization?(events) do
+    Enum.any?(events, fn
+      %{"summary" => summary} when is_binary(summary) ->
+        String.length(summary) > @max_event_summary_characters
+
+      _event ->
+        false
+    end)
+  end
+
+  defp normalize_recovered_event(%{"summary" => summary} = event) when is_binary(summary),
+    do: Map.put(event, "summary", bounded_summary(summary))
+
+  defp normalize_recovered_event(event), do: event
 
   defp pending_chain_valid?([]), do: true
   defp pending_chain_valid?([event]), do: event_hash_valid?(event)
