@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b26a6f32-4407-410b-8fc2-987054b4cfe4",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628025825_26",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:00:25.658Z",
+  "command": "/bin/bash -lc \"git status --short --branch && rg --files -g '*HARNESS*' -g '*harness*' -g 'WORKFLOW.md' -g 'AGENTS.md' -g '.bos/**' && rg -n \\\"request_merge|mark_pull_request_ready|pull_request.*ready|ready.*review|draft\\\" elixir/lib elixir/test\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "## bos/issue-10\n/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "long"
+  }
+}
