@@ -1,0 +1,9 @@
+{
+  "runId": "run_symphony_30_invalid_projection_isolation_20260721",
+  "issueNumber": 30,
+  "pullRequestNumber": 31,
+  "url": "https://github.com/acancelas/symphony/pull/31",
+  "head": "cb6c799e48a89f83672b634bfaa35404711d6e9b",
+  "base": "fd1cf4965c07f3f08af796cc7982c06177bf1d51",
+  "draft": true
+}
