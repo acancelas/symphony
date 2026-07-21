@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-06092e5f-76e9-41b5-93a2-ff28e200b5c3",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629494455_853",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:24:54.455Z",
+  "command": "/bin/bash -lc 'git rev-parse HEAD && git status --short && git diff --stat HEAD''^..HEAD && git diff --find-renames HEAD''^..HEAD -- && sed -n '\"'1,220p' .bos/project.yaml && sed -n '1,180p' README.md && sed -n '1,220p' WORKFLOW.md\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "c3554e69d100bbf2a0fe5ec4badfbd8459138dc4\n elixir/lib/symphony_elixir/game_api/client.ex      | 24 +++++++++\n .../symphony_elixir/post_approval_coordinator.ex   | 35 ++++++++++---\n .../post_approval_coordinator_test.exs             | 57 ++++++++++++++++++++++\n 3 files changed, 110 insertions(+), 6 deletions(-)\ndiff --git a/elixir/lib/symphony_elixir/game_api/client.ex b/elixir/lib/symphony_elixir/game_api/client.ex\nindex 906ff94..0bd4549 100644\n--- a/elixir/lib/symphony_elixir/game_api/client.ex\n+++ b/elixir/lib/symphony_elixir/game_api/client.ex\n@@ -120,6 +120,30 @@ defmodule SymphonyElixir.GameApi.Client do\n     end\n   end\n \n+  @spec mark_pull_request_ready(map()) :: {:ok, map()} | {:error, term()}\n+  def mark_pull_request_ready(readiness) when is_map(readiness) do\n+    with {:ok, repository} <- find_repository(readiness[\"repositoryId\"]) do\n+      request(:post, \"/v1/internal/bos/github/pull-requests/ready\",\n+        json: %{\n+          \"repository\" => repository_body(repository),\n+          \"issueNumber\" => readiness[\"issueNumber\"],\n+          \"operationId\" => readiness[\"operationId\"],\n+          \"runId\" => readiness[\"runId\"],\n+          \"pullRequestNumber\" => readiness[\"pullRequestNumber\"],\n+          \"expectedHeadSha\" => readiness[\"expectedHeadSha\"]\n+        }\n+      )\n+    end\n+  end\n+\n+  @spec fetch_pull_request(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\n+  def fetch_pull_request(repository_id, pull_request_number)\n+      when is_binary(repository_id) and is_integer(pull_request_number) and pull_request_number > 0 do\n+    with {:ok, repository} <- find_repository(repository_id) do\n+      request(:get, \"/v1/internal/bos/github/pull-requests/#{pull_request_number}\", params: repository_query(repository))\n+    end\n+  end\n+\n   @spec fetch_run_artifacts(String.t(), String.t(), String.t()) :: {:ok, [map()]} | {:error, term()}\n   def fetch_run_artifacts(repository_id, run_id, directory)\n       when is_binary(repository_id) and is_binary(run_id) and ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
