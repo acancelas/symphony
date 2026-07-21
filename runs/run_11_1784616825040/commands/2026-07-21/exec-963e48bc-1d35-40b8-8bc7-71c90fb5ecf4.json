@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-963e48bc-1d35-40b8-8bc7-71c90fb5ecf4",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784616861113_8398",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:54:21.113Z",
+  "command": "/bin/bash -lc \"git status --short --branch && git log -5 --oneline && sed -n '1,260p' docs/symphony-smoke-test-one.md && sed -n '1,260p' docs/symphony-smoke-board-review.md && rg -n \\\"instrument|command.*audit|AuditEvent|command executor|CommandExecutor|shell|exec\\\" elixir/lib elixir/test | head -300\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-11\n7b22f4b Bound retained Codex event summaries (#5)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n59964ee Merge pull request #1 from acancelas/agent/bos-game-api-orchestration\n76f5dae feat(delivery): orchestrate goal planning and terminal verification\n03ad8ca fix: satisfy delivery orchestration quality gate\n# Symphony Smoke Test\n\nSymphony picked up Jira issue SD-4 and handled it by adding this isolated smoke-test doc.\n# Symphony Board Review Smoke Test\n\nThis brief note confirms this is a Symphony smoke test for the board review workflow.\n/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616861102,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616861101,
+      "item": {
+        "aggregatedOutput": "## bos/issue-11\n7b22f4b Bound retained Codex event summaries (#5)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n59964ee Merge pull request #1 from acancelas/agent/bos-game-api-orchestration\n76f5dae feat(delivery): orchestrate goal planning and terminal verification\n03ad8ca fix: satisfy delivery orchestration quality gate\n# Symphony Smoke Test\n\nSymphony picked up Jira issue SD-4 and handled it by adding this isolated smoke-test doc.\n# Symphony Board Review Smoke Test\n\nThis brief note confirms this is a Symphony smoke test for the board review workflow.\n/bin/bash: line 1: rg: command not found\n",
+        "command": "/bin/bash -lc \"git status --short --branch && git log -5 --oneline && sed -n '1,260p' docs/symphony-smoke-test-one.md && sed -n '1,260p' docs/symphony-smoke-board-review.md && rg -n \\\"instrument|command.*audit|AuditEvent|command executor|CommandExecutor|shell|exec\\\" elixir/lib elixir/test | head -300\"",
+        "commandActions": [
+          {
+            "command": "git status --short --branch && git log -5 --oneline && sed -n '1,260p' docs/symphony-smoke-test-one.md && sed -n '1,260p' docs/symphony-smoke-board-review.md && rg -n \"instrument|command.*audit|AuditEvent|command executor|CommandExecutor|shell|exec\" elixir/lib elixir/test | head -300",
+            "type": "unknown"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-963e48bc-1d35-40b8-8bc7-71c90fb5ecf4",
+        "processId": "26688",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}

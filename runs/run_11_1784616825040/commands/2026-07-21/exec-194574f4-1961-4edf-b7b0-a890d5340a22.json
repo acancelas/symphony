@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-194574f4-1961-4edf-b7b0-a890d5340a22",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784616871537_8429",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:54:31.537Z",
+  "command": "/bin/bash -lc \"find . -type f -not -path './.git/*' -print | sort | xargs grep -nE 'AuditEvent|audit_event|command_started|command_completed|CommandResult|instrumented|exec_command' | head -600\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./elixir/lib/symphony_elixir/game_api/client.ex:369:    error -> {:error, {:audit_event_build_failed, error}}\n./elixir/lib/symphony_elixir/status_dashboard.ex:1504:  defp humanize_codex_wrapper_event(\"exec_command_begin\", payload), do: humanize_exec_command_begin(payload)\n./elixir/lib/symphony_elixir/status_dashboard.ex:1505:  defp humanize_codex_wrapper_event(\"exec_command_end\", payload), do: humanize_exec_command_end(payload)\n./elixir/lib/symphony_elixir/status_dashboard.ex:1506:  defp humanize_codex_wrapper_event(\"exec_command_output_delta\", _payload), do: \"command output streaming\"\n./elixir/lib/symphony_elixir/status_dashboard.ex:1531:  defp humanize_exec_command_begin(payload) do\n./elixir/lib/symphony_elixir/status_dashboard.ex:1547:  defp humanize_exec_command_end(payload) do\n./elixir/test/symphony_elixir/orchestrator_status_test.exs:1694:        \"method\" => \"codex/event/exec_command_begin\",\n./elixir/test/symphony_elixir/status_dashboard_snapshot_test.exs:67:             last_codex_message: exec_command_message(\"mix test --cover\")\n./elixir/test/symphony_elixir/status_dashboard_snapshot_test.exs:251:  defp exec_command_message(command) do\n./elixir/test/symphony_elixir/status_dashboard_snapshot_test.exs:255:        \"method\" => \"codex/event/exec_command_begin\",\n",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616871527,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616871527,
+      "item": {
+        "aggregatedOutput": "./elixir/lib/symphony_elixir/game_api/client.ex:369:    error -> {:error, {:audit_event_build_failed, error}}\n./elixir/lib/symphony_elixir/status_dashboard.ex:1504:  defp humanize_codex_wrapper_event(\"exec_command_begin\", payload), do: humanize_exec_command_begin(payload)\n./elixir/lib/symphony_elixir/status_dashboard.ex:1505:  defp humanize_codex_wrapper_event(\"exec_command_end\", payload), do: humanize_exec_command_end(payload)\n./elixir/lib/symphony_elixir/status_dashboard.ex:1506:  defp humanize_codex_wrapper_event(\"exec_command_output_delta\", _payload), do: \"command output streaming\"\n./elixir/lib/symphony_elixir/status_dashboard.ex:1531:  defp humanize_exec_command_begin(payload) do\n./elixir/lib/symphony_elixir/status_dashboard.ex:1547:  defp humanize_exec_command_end(payload) do\n./elixir/test/symphony_elixir/orchestrator_status_test.exs:1694:        \"method\" => \"codex/event/exec_command_begin\",\n./elixir/test/symphony_elixir/status_dashboard_snapshot_test.exs:67:             last_codex_message: exec_command_message(\"mix test --cover\")\n./elixir/test/symphony_elixir/status_dashboard_snapshot_test.exs:251:  defp exec_command_message(command) do\n./elixir/test/symphony_elixir/status_dashboard_snapshot_test.exs:255:        \"method\" => \"codex/event/exec_command_begin\",\n",
+        "command": "/bin/bash -lc \"find . -type f -not -path './.git/*' -print | sort | xargs grep -nE 'AuditEvent|audit_event|command_started|command_completed|CommandResult|instrumented|exec_command' | head -600\"",
+        "commandActions": [
+          {
+            "command": "find . -type f -not -path './.git/*' -print",
+            "path": ".",
+            "query": "./.git/*",
+            "type": "search"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-194574f4-1961-4edf-b7b0-a890d5340a22",
+        "processId": "97079",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}

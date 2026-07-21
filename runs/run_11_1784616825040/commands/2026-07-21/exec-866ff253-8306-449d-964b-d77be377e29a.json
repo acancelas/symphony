@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-866ff253-8306-449d-964b-d77be377e29a",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784616851413_8381",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:54:11.300Z",
+  "command": "/bin/bash -lc \"sed -n '1,240p' AGENTS.md && sed -n '1,280p' WORKFLOW.md && sed -n '1,240p' .bos/project.yaml && sed -n '1,240p' README.md && sed -n '1,240p' SPEC.md && sed -n '1,240p' elixir/README.md && find . -maxdepth 3 -type f \\\\( -iname '*harness*' -o -path '*/docs/*' \\\\) -print | sort\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "# BOS Symphony Agent Instructions\n\nThis repository is the BOS-maintained Symphony fork used by the X1 delivery orchestrator.\n\n## Read First\n\n1. `README.md`\n2. `SPEC.md`\n3. `elixir/README.md`\n4. `WORKFLOW.md`\n5. `.bos/project.yaml`\n6. Nearby source and tests\n\n## Operating Rules\n\n- Preserve upstream Symphony concepts unless the BOS architecture requires a deliberate specialization.\n- Use `GameApiTrackerAdapter`; Symphony must not call GitHub REST/GraphQL or hold GitHub credentials.\n- Use `bos-mcp` as Codex's exclusive interface for BOS context and durable Delivery operations.\n- Keep runner credentials, tokens, and X1 paths in secure host or service configuration.\n- Preserve outbox durability, idempotent recovery, automatic command auditing, and exact actor identity.\n- Run the required checks in `.bos/project.yaml` after changes.\n- A deployment, release, or rollback is incomplete until its exact-commit `DeploymentVerification` passes.\n# BOS Delivery Workflow\n\nUse `bos-mcp` for all product context and durable Delivery operations. Do not call GitHub REST/GraphQL, `gh`, or BOS Delivery endpoints directly from Codex.\n\nBefore starting an Issue, recover existing state and resume any active AgentRun, Attempt, workspace, branch, or pull request. Work only on the issue branch, execute every required command from `.bos/project.yaml`, review the diff, and record evidence against the exact commit.\n\nDeployment, release, and rollback remain incomplete until `DeploymentVerification` is `passed`. Credentials, host-specific paths, and X1 runtime configuration belong in secure user or service configuration, never in this repository.\nschemaVersion: 1\nprojectId: bos\nrepositoryId: symphony\nworkflowId: bos-autonomous-delivery\nremote: https://github.com/acancelas/symphony\ndelivery:\n  issueProvider: github\n  issueRequired: true\n  branchStrategy: issue-based\nquality:\n  commands:\n    - id: test\n      runner: shell\n      script: cd elixir && mise exec -- mix test\n      required: true\n      timeo",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616851289,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616851288,
+      "item": {
+        "aggregatedOutput": {
+          "contentHash": "sha256:b1d29293d77fcdf3e797aa6038d601cde7f7b6b202ab23157954aa33146abddf",
+          "retention": "summary_only",
+          "summary": "# BOS Symphony Agent Instructions\n\nThis repository is the BOS-maintained Symphony fork used by the X1 delivery orchestrator.\n\n## Read First\n\n1. `README.md`\n2. `SPEC.md`\n3. `elixir/README.md`\n4. `WORKFLOW.md`\n5. `.bos/project.yaml`\n6. Nearby source and tests\n\n## Operating Rules\n\n- Preserve upstream Symphony concepts unless the BOS architecture requires a deliberate specialization.\n- Use `GameApiTrackerAdapter`; Symphony must not call GitHub REST/GraphQL or hold GitHub credentials.\n- Use `bos-mcp` as Codex's exclusive interface for BOS context and durable Delivery operations.\n- Keep runner credentials, tokens, and X1 paths in secure host or service configuration.\n- Preserve outbox durability, idempotent recovery, automatic command auditing, and exact actor identity.\n- Run the required checks in `.bos/project.yaml` after changes.\n- A deployment, release, or rollback is incomplete until its exact-commit `DeploymentVerification` passes.\n# BOS Delivery Workflow\n\nUse `bos-mcp` for all product context and durable Delivery operations. Do not call GitHub REST/GraphQL, `gh`, or BOS Delivery endpoints directly from Codex.\n\nBefore starting an Issue, recover existing state and resume any active AgentRun, Attempt, workspace, branch, or pull request. Work only on the issue branch, execute every required command from `.bos/project.yaml`, review the diff, and record evidence against the exact commit.\n\nDeployment, release, and rollback remain incomplete until `DeploymentVerification` is `passed`. Credentials, host-specific paths, and X1 runtime configuration belong in secure user or service configuration, never in this repository.\nschemaVersion: 1\nprojectId: bos\nrepositoryId: symphony\nworkflowId: bos-autonomous-delivery\nremote: https://github.com/acancelas/symphony\ndelivery:\n  issueProvider: github\n  issueRequired: true\n  branchStrategy: issue-based\nquality:\n  commands:\n    - id: test\n      runner: shell\n      script: cd elixir && mise exec -- mix test\n      required: true\n      timeoutSeconds: 900\nenvironments:\n  production:\n    branch: main\n    automaticDeployment: false\n    requiresApproval: true\n    requiresVerification: true\noffline:\n  allowed: [read, edit, local_checks]\n  blocked: [push, pull_request, deployment]\n# Symphony\n\nSymphony turns project work into isolated, autonomous implementation runs, allowing teams to manage\nwork instead of supervising coding agents.\n\n[![Symphony demo video preview](.github/media/symphony-demo-poster.jpg)](https://player.vimeo.com/video/1186371009?h=5626e4b899)\n\n_In this [demo video](https://player.vimeo.com/video/1186371009?h=5626e4b899), Symphony monitors a Linear board for work and spawns agents to handle the tasks. The agents complete the tasks and provide proof of work: CI status, PR review feedback, complexity analysis, and walkthrough videos. When accepted, the agents land the PR safely. Engineers do not need to supervise Codex; they can manage the work at a higher level._\n\n> [!WARNING]\n> Symphony is a low-key engineering preview for testing in trusted environments.\n\n## Running Symphony\n\n### Requirements\n\nSymphony works best in codebases that have adopted\n[harness engineering](https://openai.com/index/harness-engineering/). Symphony is the next step --\nmoving from managing coding agents to managing work that needs to get done.\n\n### Option 1. Make your own\n\nTell your favorite coding agent to build Symphony in a programming language of your choice:\n\n> Implement Symphony according to the following spec:\n> https://github.com/openai/symphony/blob/main/SPEC.md\n\n### Option 2. Use our experimental reference implementation\n\nCheck out [elixir/README.md](elixir/README.md) for instructions on how to set up your environment\nand run the Elixir-based Symphony implementation. You can also ask your favorite coding agent to\nhelp with the setup:\n\n> Set up Symphony for my repository based on\n> https://github.com/openai/symphony/blob/main/elixir/README.md\n\n---\n\n## License\n\nThis project is licensed under the [Apache License 2.0](LICENSE).\n# Symphony Service Specification\n\nStatus: Draft v1 (language-agnostic)\n\nPurpose: Define a service that orchestrates coding agents to get project work done.\n\n## Normative Language\n\nThe key words `MUST`, `MUST NOT`, `REQUIRED`, `SHOULD`, `SHOULD NOT`, `RECOMMENDED`, `MAY`, and\n`OPTIONAL` in this document are to be interpreted as described in RFC 2119.\n\n`Implementation-defined` means the behavior is part of the implementation contract, but this\nspecification does not prescribe one universal policy. Implementations MUST document the selected\nbehavior.\n\n## 1. Problem Statement\n\nSymphony is a long-running automation service that continuously reads work from a configured issue\ntracker, creates an isolated workspace for each issue, and runs a coding agent session for that\nissue inside the workspace.\n\nThe service solves four operational problems:\n\n- It turns issue execution into a repeatable daemon workflow instead of manual scripts.\n- It isolates agent execution in per-issue workspaces so agent commands run only inside per-issue\n  workspace directories.\n- It keeps the workflow policy in-repo (`WORKFLOW.md`) so teams version the agent prompt and runtime\n  settings with their code.\n- It provides enough observability to operate and debug multiple concurrent agent runs.\n\nImplementations are expected to document their trust and safety posture explicitly. This\nspecification does not require a single approval, sandbox, or operator-confirmation policy; some\nimplementations target trusted environments with a high-trust configuration, while others require\nstricter approvals or sandboxing.\n\nImportant boundary:\n\n- Symphony is a scheduler/runner and tracker reader.\n- Ticket writes (state transitions, comments, PR links) are typically performed by the coding agent\n  through provider-native tools executed by Symphony with the configured tracker credential.\n- When tracker credentials are supplied through host-side secret references, the coding-agent child\n  process does not need a duplicate tracker login or direct access to raw tracker credentials.\n- A successful run can end at a workflow-defined handoff state (for example `Human Review`), not\n  necessarily `Done`.\n\n## 2. Goals and Non-Goals\n\n### 2.1 Goals\n\n- Poll the issue tracker on a fixed cadence and dispatch work with bounded concurrency.\n- Maintain a single authoritative orchestrator state for dispatch, retries, and reconciliation.\n- Create deterministic per-issue workspaces and preserve them across runs.\n- Stop active runs when issue state changes make them ineligible.\n- Recover from transient failures with exponential backoff.\n- Load runtime behavior from a repository-owned `WORKFLOW.md` contract.\n- Expose operator-visible observability (at minimum structured logs).\n- Support tracker/filesystem-driven restart recovery without requiring a persistent database; exact\n  in-memory scheduler state is not restored.\n\n### 2.2 Non-Goals\n\n- Rich web UI or multi-tenant control plane.\n- Prescribing a specific dashboard or terminal UI implementation.\n- General-purpose workflow engine or distributed job scheduler.\n- Built-in business logic for how to edit tickets, PRs, or comments. (That logic lives in the\n  workflow prompt and agent tooling.)\n- Mandating strong sandbox controls beyond what the coding agent and host OS provide.\n- Mandating a single default approval, sandbox, or operator-confirmation posture for all\n  implementations.\n\n## 3. System Overview\n\n### 3.1 Main Components\n\n1. `Workflow Loader`\n   - Reads `WORKFLOW.md`.\n   - Parses YAML front matter and prompt body.\n   - Returns `{config, prompt_template}`.\n\n2. `Config Layer`\n   - Exposes typed getters for workflow config values.\n   - Applies defaults and environment variable indirection.\n   - Performs validation used by the orchestrator before dispatch.\n\n3. `Issue Tracker Adapter`\n   - Fetches candidate issues in active states.\n   - Fetches current states for specific issue IDs (reconciliation).\n   - Fetches terminal-state issues d",
+          "truncated": true
+        },
+        "command": "/bin/bash -lc \"sed -n '1,240p' AGENTS.md && sed -n '1,280p' WORKFLOW.md && sed -n '1,240p' .bos/project.yaml && sed -n '1,240p' README.md && sed -n '1,240p' SPEC.md && sed -n '1,240p' elixir/README.md && find . -maxdepth 3 -type f \\\\( -iname '*harness*' -o -path '*/docs/*' \\\\) -print | sort\"",
+        "commandActions": [
+          {
+            "command": "sed -n '1,240p' AGENTS.md",
+            "name": "AGENTS.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/AGENTS.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,280p' WORKFLOW.md",
+            "name": "WORKFLOW.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/WORKFLOW.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,240p' .bos/project.yaml",
+            "name": "project.yaml",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/.bos/project.yaml",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,240p' README.md",
+            "name": "README.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/README.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,240p' SPEC.md",
+            "name": "SPEC.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/SPEC.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,240p' elixir/README.md",
+            "name": "README.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/elixir/README.md",
+            "type": "read"
+          },
+          {
+            "command": "find . -maxdepth 3 -type f \"\\\\(\" -iname '*harness*' -o -path '*/docs/*' \"\\\\)\" -print",
+            "path": ".",
+            "query": "*harness*",
+            "type": "search"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-866ff253-8306-449d-964b-d77be377e29a",
+        "processId": "67229",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}
