@@ -182,7 +182,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   end
 
   defp persist_batch_result(
-         {:error, {:game_api_http_error, 409, code}},
+         {:error, {:game_api_http_error, status, code}},
          state,
          run_id,
          run_state,
@@ -190,7 +190,8 @@ defmodule SymphonyElixir.Audit.Outbox do
          _batch_id,
          _batch_path
        )
-       when code in ["audit_chain_conflict", "audit_sequence_gap"] do
+       when (status == 409 and code in ["audit_chain_conflict", "audit_sequence_gap"]) or
+              (status == 422 and code in ["audit_event_hash_invalid", "audit_canonicalization_failed"]) do
     case recover_remote_state(run_state.issue) do
       %{remote_confirmed?: true} = remote ->
         rebased = rebase_pending_events(run_state.pending, remote.sequence, remote.previous_hash)

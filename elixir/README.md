@@ -33,6 +33,16 @@ issue claimed and exposes it as blocked in the runtime state, JSON API, and dash
 entries are in memory only; restarting the orchestrator clears that blocked map, so any still-active
 tracker issue can become a dispatch candidate again after restart.
 
+### BOS durable audit outbox
+
+The BOS tracker profile records App Server lifecycle, command and tool events in an append-only
+local outbox before sending batches to `game-api`. Event hashes use RFC 8785 JSON canonicalization
+and SHA-256, including lowercase hexadecimal control escapes such as `\\u001b` from ANSI command
+output. If GitHub has advanced the run chain concurrently, or an older local hash is rejected, the
+outbox preserves event and operation identities, rebases only unconfirmed events onto the confirmed
+remote head, atomically replaces the pending event set and retries idempotently. Receipted events
+are never replayed.
+
 ## How to use it
 
 1. Make sure your codebase is set up to work well with agents: see

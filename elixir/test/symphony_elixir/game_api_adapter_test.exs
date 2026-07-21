@@ -87,6 +87,10 @@ defmodule SymphonyElixir.GameApiAdapterTest do
              "detail" => %{"error" => "audit_chain_conflict", "message" => "stale"}
            }) == {:game_api_http_error, 409, "audit_chain_conflict"}
 
+    assert Client.http_error(422, %{
+             "detail" => %{"error" => "audit_event_hash_invalid", "message" => "mismatch"}
+           }) == {:game_api_http_error, 422, "audit_event_hash_invalid"}
+
     assert Client.http_error(404, %{"error" => "delivery_run_not_found"}) ==
              {:game_api_http_error, 404}
   end

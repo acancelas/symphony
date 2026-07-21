@@ -196,7 +196,9 @@ defmodule SymphonyElixir.GameApi.Client do
   @spec http_error(non_neg_integer(), term()) :: tuple()
   def http_error(status, body) do
     case response_error_code(body) do
-      code when status == 409 and code in ["audit_chain_conflict", "audit_sequence_gap"] ->
+      code
+      when (status == 409 and code in ["audit_chain_conflict", "audit_sequence_gap"]) or
+             (status == 422 and code in ["audit_event_hash_invalid", "audit_canonicalization_failed"]) ->
         {:game_api_http_error, status, code}
 
       _ ->

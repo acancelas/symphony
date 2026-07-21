@@ -27,4 +27,14 @@ defmodule SymphonyElixir.Audit.CanonicalJsonTest do
   test "rejects floating point audit values" do
     assert_raise ArgumentError, fn -> CanonicalJson.encode(%{"value" => 1.5}) end
   end
+
+  test "uses RFC 8785 lowercase hexadecimal escapes for ANSI control bytes" do
+    value = %{"outputSummary" => "\e[0;32mpassed\e[0m"}
+    canonical = value |> CanonicalJson.encode() |> IO.iodata_to_binary()
+
+    assert canonical == ~S({"outputSummary":"\u001b[0;32mpassed\u001b[0m"})
+
+    assert Base.encode16(:crypto.hash(:sha256, canonical), case: :lower) ==
+             "09fe4ade10659bdf95036a8ccab87866e39ec58c8d00e628d3a6ecadf2e67d8e"
+  end
 end
