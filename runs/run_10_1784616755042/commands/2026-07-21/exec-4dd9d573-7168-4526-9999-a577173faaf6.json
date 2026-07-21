@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-4dd9d573-7168-4526-9999-a577173faaf6",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628840573_471",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:14:00.506Z",
+  "command": "/bin/bash -lc \"grep -RInE \\\"pull-request-readiness|deployment-verifier|BOS_MCP_ACTOR|mark_pull_request_ready|request_merge\\\" README.md SPEC.md elixir/README.md WORKFLOW.md elixir/lib elixir/test | head -n 260; sed -n '320,430p' elixir/lib/symphony_elixir/post_approval_coordinator.ex; grep -RIn \\\"def fetch_run\\\" elixir/lib/symphony_elixir\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/post_approval_coordinator.ex:16:  @readiness_path \".bos-local/pull-request-readiness.json\"\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:105:    Read it, then call bos_mark_pull_request_ready exactly for its operationId,\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:120:    with :ok <- run_role(app_server, workspace, issue, worker_host, \"pull-request-readiness-coordinator\", prompt, recipient),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:206:    run_role(app_server, workspace, issue, worker_host, \"deployment-verifier\", prompt, recipient)\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:328:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:145:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\nelixir/lib/symphony_elixir/delivery_coordinator.ex:176:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:9:      actor = opts |> Keyword.fetch!(:environment_overrides) |> Map.new() |> Map.fetch!(\"BOS_MCP_ACTOR\")\nelixir/test/symphony_elixir/goal_planning_coordinator_test.exs:9:      actor = opts |> Keyword.fetch!(:environment_overrides) |> Map.new() |> Map.fetch!(\"BOS_MCP_ACTOR\")\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:9:      actor = opts |> Keyword.fetch!(:environment_overrides) |> Map.new() |> Map.fetch!(\"BOS_MCP_ACTOR\")\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:13:    def run_turn(%{actor: \"deployment-verifier\", workspace: workspace}, _prompt, _issue, _opts) do\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:29:      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:role, \"deployment-verifier\"})\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:30:      {:ok, %{session_id: \"deployment-verifier\"}}\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:33:    de",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
