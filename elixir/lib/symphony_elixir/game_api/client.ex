@@ -38,10 +38,12 @@ defmodule SymphonyElixir.GameApi.Client do
 
   @spec reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}
   def reconcile_terminal_runs do
+    reconciliation_cycle_id = reconciliation_cycle_id()
+
     repositories()
     |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->
       with {:ok, runs} <- list_runs(repository),
-           {:ok, reconciled} <- reconcile_repository_runs(repository, runs) do
+           {:ok, reconciled} <- reconcile_repository_runs(repository, runs, reconciliation_cycle_id) do
         {:cont, {:ok, accumulated ++ reconciled}}
       else
         {:error, reason} -> {:halt, {:error, reason}}
@@ -274,11 +276,11 @@ defmodule SymphonyElixir.GameApi.Client do
     |> response_list("runs")
   end
 
-  defp reconcile_repository_runs(repository, runs) do
+  defp reconcile_repository_runs(repository, runs, reconciliation_cycle_id) do
     runs
     |> Enum.reject(&(&1["status"] in ["completed", "cancelled"]))
     |> Enum.reduce_while({:ok, []}, fn run, {:ok, accumulated} ->
-      case reconcile_run(repository, run) do
+      case reconcile_run(repository, run, reconciliation_cycle_id) do
         {:ok, payload} -> {:cont, {:ok, [payload | accumulated]}}
         {:error, reason} -> {:halt, {:error, reason}}
       end
@@ -289,20 +291,33 @@ defmodule SymphonyElixir.GameApi.Client do
     end
   end
 
-  defp reconcile_run(repository, %{"runId" => run_id, "issueNumber" => issue_number})
+  defp reconcile_run(repository, %{"runId" => run_id, "issueNumber" => issue_number}, reconciliation_cycle_id)
        when is_binary(run_id) and run_id != "" and is_integer(issue_number) and issue_number > 0 do
     request(:post, "/v1/internal/bos/delivery/runs/reconcile",
       json: %{
         "repository" => repository_body(repository),
         "issueNumber" => issue_number,
-        "operationId" => "reconcile_terminal_#{run_id}",
+        "operationId" => reconciliation_operation_id_for_test(run_id, reconciliation_cycle_id),
         "runId" => run_id
       }
     )
   end
 
-  defp reconcile_run(_repository, run),
+  defp reconcile_run(_repository, run, _reconciliation_cycle_id),
     do: {:error, {:invalid_game_api_run_projection, run["runId"]}}
+
+  @doc false
+  @spec reconciliation_operation_id_for_test(String.t(), String.t()) :: String.t()
+  def reconciliation_operation_id_for_test(run_id, reconciliation_cycle_id)
+      when is_binary(run_id) and is_binary(reconciliation_cycle_id) do
+    "reconcile_terminal_#{run_id}_#{reconciliation_cycle_id}"
+  end
+
+  defp reconciliation_cycle_id do
+    timestamp = System.system_time(:millisecond)
+    entropy = 8 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+    "#{timestamp}_#{entropy}"
+  end
 
   defp ensure_run_record(repository, issue, run_id, issue_number, attempt_id) do
     case fetch_run(repository["repository_id"], run_id) do

@@ -89,6 +89,18 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert {:ok, [%{"action" => "reconciled"}]} = Adapter.reconcile_terminal_runs()
   end
 
+  test "uses a stable operation identity within one reconciliation cycle and a fresh identity later" do
+    run_id = "run_42_001"
+
+    first = Client.reconciliation_operation_id_for_test(run_id, "cycle_one")
+    repeated = Client.reconciliation_operation_id_for_test(run_id, "cycle_one")
+    later = Client.reconciliation_operation_id_for_test(run_id, "cycle_two")
+
+    assert first == repeated
+    assert first != later
+    assert first == "reconcile_terminal_run_42_001_cycle_one"
+  end
+
   test "preserves audit chain conflict identity for outbox recovery" do
     assert Client.http_error(409, %{
              "detail" => %{"error" => "audit_chain_conflict", "message" => "stale"}
