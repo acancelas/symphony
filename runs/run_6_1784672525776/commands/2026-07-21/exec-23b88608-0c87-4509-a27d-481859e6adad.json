@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-23b88608-0c87-4509-a27d-481859e6adad",
+  "runId": "run_6_1784672525776",
+  "attemptId": "attempt_run_6_1784672525776_1",
+  "eventId": "event_1784672572737_18",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:22:52.737Z",
+  "command": "/bin/bash -lc \"git log --oneline --decorate -8 && sed -n '1,260p' elixir/lib/symphony_elixir/candidate_head.ex && sed -n '1,300p' elixir/lib/symphony_elixir/delivery_coordinator.ex && sed -n '1,300p' elixir/test/symphony_elixir/candidate_head_test.exs && sed -n '1,220p' elixir/test/symphony_elixir/delivery_coordinator_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "388664f (HEAD -> bos/issue-6, origin/bos/issue-6) test(delivery): cover candidate durability failures\n6f6406c fix(delivery): confirm candidate head before reviews\n7b22f4b Bound retained Codex event summaries (#5)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n59964ee Merge pull request #1 from acancelas/agent/bos-game-api-orchestration\n76f5dae (origin/agent/bos-game-api-orchestration) feat(delivery): orchestrate goal planning and terminal verification\n03ad8ca fix: satisfy delivery orchestration quality gate\n9165ead Orchestrate\ndefmodule SymphonyElixir.CandidateHead do\n  @moduledoc \"\"\"\n  Confirms that the exact clean candidate commit is durably reachable from the\n  issue branch before reviews or evidence are allowed to reference it.\n\n  The push is deliberately non-forcing. A divergent remote branch fails closed\n  so recovery cannot silently replace work accepted by another runner.\n  \"\"\"\n\n  alias SymphonyElixir.Tracker.Issue\n\n  @type confirmation :: %{\n          branch: String.t(),\n          head_sha: String.t(),\n          remote_sha: String.t()\n        }\n\n  @spec confirm(Path.t(), Issue.t(), String.t() | nil, keyword()) ::\n          {:ok, confirmation()} | {:error, term()}\n  def confirm(workspace, %Issue{} = issue, worker_host \\\\ nil, opts \\\\ [])\n      when is_binary(workspace) do\n    with :ok <- require_local_worker(worker_host),\n         command_runner <- Keyword.get(opts, :command_runner, &run_command/4),\n         {:ok, status} <- git(command_runner, workspace, worker_host, [\"status\", \"--porcelain\", \"--untracked-files=no\"]),\n         :ok <- require_clean(status),\n         {:ok, head_sha} <- git(command_runner, workspace, worker_host, [\"rev-parse\", \"HEAD\"]),\n         {:ok, branch} <- git(command_runner, workspace, worker_host, [\"symbolic-ref\", \"--short\", \"HEAD\"]),\n         :ok <- require_issue_branch(issue, branch),\n         {:ok, remote_sha} <- ensure_remote_head(command_runner, workspace, worker_host, branch, head_sha) do\n      {:ok, %{branch",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-6",
+  "retention": {
+    "category": "permanent"
+  }
+}
