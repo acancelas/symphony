@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3711dd63-6cc9-4c1e-8c19-ffe7f6c40028",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784616799621_8324",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:53:19.621Z",
+  "command": "/bin/bash -lc \"git status --short --branch && grep -nEi 'pull request|draft|merge|ready|outbox|recovery|GameApi|bos-mcp' SPEC.md | head -n 240 && find elixir/lib elixir/test -type f | sort | grep -Ei 'delivery|coordin|game_api|bos|outbox|recovery'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-10\n3:Status: Draft v1 (language-agnostic)\n57:- Support tracker/filesystem-driven restart recovery without requiring a persistent database; exact\n671:  original task prompt that is already present in thread history.\n725:### 7.4 Idempotency and Recovery Rules\n730:- Restart recovery is tracker-driven and filesystem-driven (without a durable orchestrator DB).\n731:- Startup terminal cleanup removes stale workspaces for issues already in terminal states.\n762:- It is not already in `running`.\n763:- It is not already in `claimed`.\n1632:## 14. Failure Model and Recovery Strategy\n1667:### 14.2 Recovery Behavior\n1688:### 14.3 Partial State Recovery (Restart)\n1691:Restart recovery means the service can resume useful operation by polling tracker state and reusing\n1714:- Restarting the service for process recovery or deployment (not as the normal path for applying\n2288:- Once a run has already produced side effects, a transparent rerun on another host SHOULD be\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/lib/symphony_elixir/delivery_coordinator.ex\nelixir/lib/symphony_elixir/game_api/adapter.ex\nelixir/lib/symphony_elixir/game_api/client.ex\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex\nelixir/lib/symphony_elixir/post_approval_coordinator.ex\nelixir/test/symphony_elixir/audit/outbox_test.exs\nelixir/test/symphony_elixir/delivery_coordinator_test.exs\nelixir/test/symphony_elixir/game_api_adapter_test.exs\nelixir/test/symphony_elixir/goal_planning_coordinator_test.exs\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs\n",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616799614,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616799614,
+      "item": {
+        "aggregatedOutput": "## bos/issue-10\n3:Status: Draft v1 (language-agnostic)\n57:- Support tracker/filesystem-driven restart recovery without requiring a persistent database; exact\n671:  original task prompt that is already present in thread history.\n725:### 7.4 Idempotency and Recovery Rules\n730:- Restart recovery is tracker-driven and filesystem-driven (without a durable orchestrator DB).\n731:- Startup terminal cleanup removes stale workspaces for issues already in terminal states.\n762:- It is not already in `running`.\n763:- It is not already in `claimed`.\n1632:## 14. Failure Model and Recovery Strategy\n1667:### 14.2 Recovery Behavior\n1688:### 14.3 Partial State Recovery (Restart)\n1691:Restart recovery means the service can resume useful operation by polling tracker state and reusing\n1714:- Restarting the service for process recovery or deployment (not as the normal path for applying\n2288:- Once a run has already produced side effects, a transparent rerun on another host SHOULD be\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/lib/symphony_elixir/delivery_coordinator.ex\nelixir/lib/symphony_elixir/game_api/adapter.ex\nelixir/lib/symphony_elixir/game_api/client.ex\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex\nelixir/lib/symphony_elixir/post_approval_coordinator.ex\nelixir/test/symphony_elixir/audit/outbox_test.exs\nelixir/test/symphony_elixir/delivery_coordinator_test.exs\nelixir/test/symphony_elixir/game_api_adapter_test.exs\nelixir/test/symphony_elixir/goal_planning_coordinator_test.exs\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs\n",
+        "command": "/bin/bash -lc \"git status --short --branch && grep -nEi 'pull request|draft|merge|ready|outbox|recovery|GameApi|bos-mcp' SPEC.md | head -n 240 && find elixir/lib elixir/test -type f | sort | grep -Ei 'delivery|coordin|game_api|bos|outbox|recovery'\"",
+        "commandActions": [
+          {
+            "command": "git status --short --branch && grep -nEi 'pull request|draft|merge|ready|outbox|recovery|GameApi|bos-mcp' SPEC.md | head -n 240 && find elixir/lib elixir/test -type f | sort | grep -Ei 'delivery|coordin|game_api|bos|outbox|recovery'",
+            "type": "unknown"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-10",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-3711dd63-6cc9-4c1e-8c19-ffe7f6c40028",
+        "processId": "83819",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8372-d98f-7721-9230-1fb0f32f4ffc",
+      "turnId": "019f8372-dcc3-7292-9b11-f8dbcca20262"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}

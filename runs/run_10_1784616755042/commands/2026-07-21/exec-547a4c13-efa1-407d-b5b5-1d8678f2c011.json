@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-547a4c13-efa1-407d-b5b5-1d8678f2c011",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784616794721_8318",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:53:14.721Z",
+  "command": "/bin/bash -lc \"sed -n '1,200p' AGENTS.md; sed -n '1,160p' README.md; sed -n '1,120p' WORKFLOW.md; sed -n '1,160p' .bos/project.yaml; sed -n '1,180p' elixir/AGENTS.md; sed -n '1,380p' elixir/README.md; sed -n '1,400p' elixir/WORKFLOW.md\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "# BOS Symphony Agent Instructions\n\nThis repository is the BOS-maintained Symphony fork used by the X1 delivery orchestrator.\n\n## Read First\n\n1. `README.md`\n2. `SPEC.md`\n3. `elixir/README.md`\n4. `WORKFLOW.md`\n5. `.bos/project.yaml`\n6. Nearby source and tests\n\n## Operating Rules\n\n- Preserve upstream Symphony concepts unless the BOS architecture requires a deliberate specialization.\n- Use `GameApiTrackerAdapter`; Symphony must not call GitHub REST/GraphQL or hold GitHub credentials.\n- Use `bos-mcp` as Codex's exclusive interface for BOS context and durable Delivery operations.\n- Keep runner credentials, tokens, and X1 paths in secure host or service configuration.\n- Preserve outbox durability, idempotent recovery, automatic command auditing, and exact actor identity.\n- Run the required checks in `.bos/project.yaml` after changes.\n- A deployment, release, or rollback is incomplete until its exact-commit `DeploymentVerification` passes.\n# Symphony\n\nSymphony turns project work into isolated, autonomous implementation runs, allowing teams to manage\nwork instead of supervising coding agents.\n\n[![Symphony demo video preview](.github/media/symphony-demo-poster.jpg)](https://player.vimeo.com/video/1186371009?h=5626e4b899)\n\n_In this [demo video](https://player.vimeo.com/video/1186371009?h=5626e4b899), Symphony monitors a Linear board for work and spawns agents to handle the tasks. The agents complete the tasks and provide proof of work: CI status, PR review feedback, complexity analysis, and walkthrough videos. When accepted, the agents land the PR safely. Engineers do not need to supervise Codex; they can manage the work at a higher level._\n\n> [!WARNING]\n> Symphony is a low-key engineering preview for testing in trusted environments.\n\n## Running Symphony\n\n### Requirements\n\nSymphony works best in codebases that have adopted\n[harness engineering](https://openai.com/index/harness-engineering/). Symphony is the next step --\nmoving from managing coding agents to managing work that ",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616794708,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616794707,
+      "item": {
+        "aggregatedOutput": {
+          "contentHash": "sha256:c1d361dda69cd1992ff17b90a213691b5f113f0fc31ed837086104ccc4b08a7a",
+          "retention": "summary_only",
+          "summary": "# BOS Symphony Agent Instructions\n\nThis repository is the BOS-maintained Symphony fork used by the X1 delivery orchestrator.\n\n## Read First\n\n1. `README.md`\n2. `SPEC.md`\n3. `elixir/README.md`\n4. `WORKFLOW.md`\n5. `.bos/project.yaml`\n6. Nearby source and tests\n\n## Operating Rules\n\n- Preserve upstream Symphony concepts unless the BOS architecture requires a deliberate specialization.\n- Use `GameApiTrackerAdapter`; Symphony must not call GitHub REST/GraphQL or hold GitHub credentials.\n- Use `bos-mcp` as Codex's exclusive interface for BOS context and durable Delivery operations.\n- Keep runner credentials, tokens, and X1 paths in secure host or service configuration.\n- Preserve outbox durability, idempotent recovery, automatic command auditing, and exact actor identity.\n- Run the required checks in `.bos/project.yaml` after changes.\n- A deployment, release, or rollback is incomplete until its exact-commit `DeploymentVerification` passes.\n# Symphony\n\nSymphony turns project work into isolated, autonomous implementation runs, allowing teams to manage\nwork instead of supervising coding agents.\n\n[![Symphony demo video preview](.github/media/symphony-demo-poster.jpg)](https://player.vimeo.com/video/1186371009?h=5626e4b899)\n\n_In this [demo video](https://player.vimeo.com/video/1186371009?h=5626e4b899), Symphony monitors a Linear board for work and spawns agents to handle the tasks. The agents complete the tasks and provide proof of work: CI status, PR review feedback, complexity analysis, and walkthrough videos. When accepted, the agents land the PR safely. Engineers do not need to supervise Codex; they can manage the work at a higher level._\n\n> [!WARNING]\n> Symphony is a low-key engineering preview for testing in trusted environments.\n\n## Running Symphony\n\n### Requirements\n\nSymphony works best in codebases that have adopted\n[harness engineering](https://openai.com/index/harness-engineering/). Symphony is the next step --\nmoving from managing coding agents to managing work that needs to get done.\n\n### Option 1. Make your own\n\nTell your favorite coding agent to build Symphony in a programming language of your choice:\n\n> Implement Symphony according to the following spec:\n> https://github.com/openai/symphony/blob/main/SPEC.md\n\n### Option 2. Use our experimental reference implementation\n\nCheck out [elixir/README.md](elixir/README.md) for instructions on how to set up your environment\nand run the Elixir-based Symphony implementation. You can also ask your favorite coding agent to\nhelp with the setup:\n\n> Set up Symphony for my repository based on\n> https://github.com/openai/symphony/blob/main/elixir/README.md\n\n---\n\n## License\n\nThis project is licensed under the [Apache License 2.0](LICENSE).\n# BOS Delivery Workflow\n\nUse `bos-mcp` for all product context and durable Delivery operations. Do not call GitHub REST/GraphQL, `gh`, or BOS Delivery endpoints directly from Codex.\n\nBefore starting an Issue, recover existing state and resume any active AgentRun, Attempt, workspace, branch, or pull request. Work only on the issue branch, execute every required command from `.bos/project.yaml`, review the diff, and record evidence against the exact commit.\n\nDeployment, release, and rollback remain incomplete until `DeploymentVerification` is `passed`. Credentials, host-specific paths, and X1 runtime configuration belong in secure user or service configuration, never in this repository.\nschemaVersion: 1\nprojectId: bos\nrepositoryId: symphony\nworkflowId: bos-autonomous-delivery\nremote: https://github.com/acancelas/symphony\ndelivery:\n  issueProvider: github\n  issueRequired: true\n  branchStrategy: issue-based\nquality:\n  commands:\n    - id: test\n      runner: shell\n      script: cd elixir && mise exec -- mix test\n      required: true\n      timeoutSeconds: 900\nenvironments:\n  production:\n    branch: main\n    automaticDeployment: false\n    requiresApproval: true\n    requiresVerification: true\noffline:\n  allowed: [read, edit, local_checks]\n  blocked: [push, pull_request, deployment]\n# Symphony Elixir\n\nThis directory contains the Elixir agent orchestration service that polls Linear, creates per-issue workspaces, and runs Codex in app-server mode.\n\n## Environment\n\n- Elixir: `1.19.x` (OTP 28) via `mise`.\n- Install deps: `mix setup`.\n- Main quality gate: `make all` (format check, lint, coverage, dialyzer).\n\n\n## Codebase-Specific Conventions\n\n- Runtime config is loaded from `WORKFLOW.md` front matter via `SymphonyElixir.Workflow` and `SymphonyElixir.Config`.\n- Keep the implementation aligned with [`../SPEC.md`](../SPEC.md) where practical.\n  - The implementation may be a superset of the spec.\n  - The implementation must not conflict with the spec.\n  - If implementation changes meaningfully alter the intended behavior, update the spec in the same\n    change where practical so the spec stays current.\n- Prefer adding config access through `SymphonyElixir.Config` instead of ad-hoc env reads.\n- Workspace safety is critical:\n  - Never run Codex turn cwd in source repo.\n  - Workspaces must stay under configured workspace root.\n- Orchestrator behavior is stateful and concurrency-sensitive; preserve retry, reconciliation, and cleanup semantics.\n- Simplicity is a project constraint: prefer the smallest coherent design with one clear owner and\n  invariant. Push back on extra abstractions, duplicated policy, and speculative flexibility.\n- For stateful changes, check startup, reload, restart, and failure recovery together before editing.\n- Follow `docs/logging.md` for logging conventions and required issue/session context fields.\n\n## Tests and Validation\n\nRun targeted tests while iterating, then run full gates before handoff.\n\n- Prefer narrow tests that exercise real OTP processes and observable behavior over mock-only or\n  broad end-to-end coverage; prove health with a synchronous call or stable effect, not only a PID.\n- For non-trivial changes, use an adversarial review early to challenge complexity and try to break\n  adjacent lifecycle paths; a reproducible failure blocks landing even if other reviews are clean.\n- If tests need repeated global restarts or bespoke cleanup, first fix the shared harness or\n  ownership boundary.\n\n```bash\nmake all\n```\n\n## Required Rules\n\n- Public functions (`def`) in `lib/` must have an adjacent `@spec`.\n- `defp` specs are optional.\n- `@impl` callback implementations are exempt from local `@spec` requirement.\n- Evaluate proposed directions instead of agreeing reflexively; surface simpler designs and material\n  trade-offs early.\n- Keep changes narrowly scoped; avoid unrelated refactors.\n- Follow existing module/style patterns in `lib/symphony_elixir/*`.\n\nValidation command:\n\n```bash\nmix specs.check\n```\n\n## PR Requirements\n\n- PR body must follow `../.github/pull_request_template.md` exactly.\n- Validate PR body locally when needed:\n\n```bash\nmix pr_body.check --file /path/to/pr_body.md\n```\n\n## Docs Update Policy\n\nIf behavior/config changes, update docs in the same PR:\n\n- `../README.md` for project concept and goals.\n- `README.md` for Elixir implementation and run instructions.\n- `WORKFLOW.md` for workflow/config contract changes.\n# Symphony Elixir\n\nThis directory contains the current Elixir/OTP implementation of Symphony, based on\n[`SPEC.md`](../SPEC.md) at the repository root.\n\n> [!WARNING]\n> Symphony Elixir is prototype software intended for evaluation only and is presented as-is.\n> We recommend implementing your own hardened version based on `SPEC.md`.\n\n## Screenshot\n\n![Symphony Elixir screenshot](../.github/media/elixir-screenshot.png)\n\n## How it works\n\n1. Polls the configured tracker for candidate work (the included production adapter is Linear)\n2. Creates a workspace per issue\n3. Launches Codex in [App Server mode](https://developers.openai.com/codex/app-server/) inside the\n   workspace\n4. Sends a workflow prompt to Codex\n5. Keeps Codex working on the issue until the work is done\n\nDuring app-server sessions, the selected tracker adapter may advertise provider-native tools.",
+          "truncated": true
+        },
+        "command": "/bin/bash -lc \"sed -n '1,200p' AGENTS.md; sed -n '1,160p' README.md; sed -n '1,120p' WORKFLOW.md; sed -n '1,160p' .bos/project.yaml; sed -n '1,180p' elixir/AGENTS.md; sed -n '1,380p' elixir/README.md; sed -n '1,400p' elixir/WORKFLOW.md\"",
+        "commandActions": [
+          {
+            "command": "sed -n '1,200p' AGENTS.md",
+            "name": "AGENTS.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/AGENTS.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,160p' README.md",
+            "name": "README.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/README.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,120p' WORKFLOW.md",
+            "name": "WORKFLOW.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/WORKFLOW.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,160p' .bos/project.yaml",
+            "name": "project.yaml",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/.bos/project.yaml",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,180p' elixir/AGENTS.md",
+            "name": "AGENTS.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/AGENTS.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,380p' elixir/README.md",
+            "name": "README.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/README.md",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,400p' elixir/WORKFLOW.md",
+            "name": "WORKFLOW.md",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/WORKFLOW.md",
+            "type": "read"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-10",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-547a4c13-efa1-407d-b5b5-1d8678f2c011",
+        "processId": "30369",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8372-d98f-7721-9230-1fb0f32f4ffc",
+      "turnId": "019f8372-dcc3-7292-9b11-f8dbcca20262"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
