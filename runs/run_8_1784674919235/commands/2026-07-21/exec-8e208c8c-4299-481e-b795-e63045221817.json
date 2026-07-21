@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8e208c8c-4299-481e-b795-e63045221817",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675446126_91",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:10:46.037Z",
+  "command": "/bin/bash -lc 'make -C elixir all'",
+  "durationMs": 48038,
+  "environmentPolicy": "restricted",
+  "exitCode": 2,
+  "outputSummary": "Resolving Hex dependencies...\r\nResolution completed in 0.092s\r\nUnchanged:\r\n  bandit 1.12.0\u001b[0m\u001b[0m\r\n  bunt 1.0.0\u001b[0m\u001b[0m\r\n  burrito 1.5.0\u001b[0m\u001b[0m\r\n  cc_precompiler 0.1.11\u001b[0m\u001b[0m\r\n  credo 1.7.19\u001b[0m\u001b[0m\r\n  date_time_parser 1.3.0\u001b[0m\u001b[0m\r\n  decimal 3.1.1\u001b[0m\u001b[0m\r\n  dialyxir 1.4.7\u001b[0m\u001b[0m\r\n  ecto 3.14.1\u001b[0m\u001b[0m\r\n  elixir_make 0.9.0\u001b[0m\u001b[0m\r\n  erlex 0.2.9\u001b[0m\u001b[0m\r\n  file_system 1.1.1\u001b[0m\u001b[0m\r\n  finch 0.23.0\u001b[0m\u001b[0m\r\n  fine 0.1.6\u001b[0m\u001b[0m\r\n  floki 0.38.4\u001b[0m\u001b[0m\r\n  hpax 1.0.4\u001b[0m\u001b[0m\r\n  jason 1.4.5\u001b[0m\u001b[0m\r\n  kday 1.1.0\u001b[0m\u001b[0m\r\n  lazy_html 0.1.11\u001b[0m\u001b[0m\r\n  mime 2.0.7\u001b[0m\u001b[0m\r\n  mint 1.9.3\u001b[0m\u001b[0m\r\n  nimble_options 1.1.1\u001b[0m\u001b[0m\r\n  nimble_pool 1.1.0\u001b[0m\u001b[0m\r\n  phoenix 1.8.9\u001b[0m\u001b[0m\r\n  phoenix_html 4.3.0\u001b[0m\u001b[0m\r\n  phoenix_live_view 1.2.7\u001b[0m\u001b[0m\r\n  phoenix_pubsub 2.2.0\u001b[0m\u001b[0m\r\n  phoenix_template 1.0.4\u001b[0m\u001b[0m\r\n  plug 1.20.3\u001b[0m\u001b[0m\r\n  plug_crypto 2.1.1\u001b[0m\u001b[0m\r\n  req 0.6.3\u001b[0m\u001b[0m\r\n  solid 1.3.2\u001b[0m\u001b[0m\r\n  telemetry 1.4.2\u001b[0m\u001b[0m\r\n  thousand_island 1.5.0\u001b[0m\u001b[0m\r\n  typed_struct 0.3.0\u001b[0m\u001b[0m\r\n  websock 0.5.3\u001b[0m\u001b[0m\r\n  websock_adapter 0.6.0\u001b[0m\u001b[0m\r\n  yamerl 0.10.0\u001b[0m\u001b[0m\r\n  yaml_elixir 2.12.2\u001b[0m\u001b[0m\r\nAll dependencies have been fetched\r\nmake[1]: Leaving directory '$WORKSPACE/.bos/worktrees/symphony-8/elixir'\r\nmake build\r\nmake[1]: Entering directory '$WORKSPACE/.bos/worktrees/symphony-8/elixir'\r\nmix build\r\n==> file_system\r\nCompiling 7 files (.ex)\r\nGenerated file_system app\r\n==> mime\r\nCompiling 1 file (.ex)\r\nGenerated mime app\r\n==> nimble_options\r\nCompiling 3 files (.ex)\r\nGenerated nimble_options app\r\n==> bunt\r\nCompiling 2 files (.ex)\r\nGenerated bunt app\r\n==> plug_crypto\r\nCompiling 5 files (.ex)\r\nGenerated plug_crypto app\r\n==> kday\r\nCompiling 1 file (.ex)\r\nGenerated kday app\r\n==> hpax\r\nCompiling 4 files (.ex)\r\nGenerated hpax app\r\n==> mint\r\nCompiling 1 file (.erl)\r\nCompiling 19 files (.ex)\r\nGenerated mint app\r\n==> symphony_elixir\r\n===> Analyzing applications...\r\n===> Compiling yamerl\r\n==> erlex\r\nCompiling 1 file (.xrl)\r\nCompiling 1 file (.yrl)\r\nCompiling 2 files (.erl)\r\nCompiling 2 files (.ex)\r\nGenerated erlex app\r\n==> date_time_parser\r\nCompiling 15 ",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "long"
+  }
+}

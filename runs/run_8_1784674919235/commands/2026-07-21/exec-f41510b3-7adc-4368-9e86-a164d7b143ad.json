@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f41510b3-7adc-4368-9e86-a164d7b143ad",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675470949_96",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:11:11.716Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format test/support/test_support.exs && mise exec -- mix lint'",
+  "durationMs": 2549,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "specs.check: all public functions have @spec or exemption\r\nChecking 78 source files (this might take a while) ...\r\n\r\n\u001b[2mPlease report incorrect results: https://github.com/rrrene/credo/issues\u001b[0m\r\n\r\n\u001b[2mAnalysis took 1.4 seconds (0.06s to load, 1.3s running 69 checks on 78 files)\u001b[0m\r\n\u001b[32m1764 mods/funs, \u001b[0mfound no issues.\u001b[0m\r\n\r\n\u001b[2mUse `mix credo explain` to explain issues, `mix credo --help` for options.\u001b[0m\r\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
