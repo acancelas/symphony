@@ -1,0 +1,35 @@
+{
+  "reviewId": "review_run_10_1784616755042_1_architecture",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "reviewType": "architecture",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "commitSha": "1908764463438ee5658223e8be87e5c1237cfa7d",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "info",
+      "area": "BOS interface boundary",
+      "finding": "The readiness transition is delegated to a dedicated bos-mcp actor; the coordinator adds no GitHub REST/GraphQL dependency or credentials and leaves merge policy enforcement in the existing deployment-verifier role."
+    },
+    {
+      "severity": "info",
+      "area": "Durability and recovery",
+      "finding": "The deterministic operationId binds runId and exact headCommit, the pending handoff survives response loss, and retry recovery reuses the same identity while the durable bos-mcp receipt confirms the operation."
+    },
+    {
+      "severity": "info",
+      "area": "Ordering and bounded failure",
+      "finding": "The coordinator requires an open, non-draft pull request at the expected HEAD before starting the only merge-capable role; stale HEAD, closed PR, and provider failure remain distinct errors that stop downstream merge and deployment."
+    },
+    {
+      "severity": "info",
+      "area": "Affirmative validation",
+      "finding": "Exact-commit evidence reports 277 tests passed with 2 skipped and make all passing formatting, specs, Credo, 100% coverage, and Dialyzer; targeted tests cover normal ordering, response-loss recovery without duplicate provider mutation, stale HEAD blocking, and distinct closed/provider rejection."
+    }
+  ],
+  "summary": "Passed: the exact-HEAD draft-readiness step is correctly inserted as an idempotent bos-mcp boundary before policy merge, with durable recovery semantics, bounded failure states, and exact-commit validation."
+}
