@@ -1,0 +1,18 @@
+{
+  "runId": "run_symphony_18_dirty_workspace_recovery_20260721",
+  "issueNumber": 18,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "runner",
+    "runnerId": "x1"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "0.0.1"
+  },
+  "startedAt": "2026-07-21T09:21:57Z",
+  "branch": "bos/issue-18",
+  "currentAttemptId": "attempt_run_symphony_18_dirty_workspace_recovery_20260721_1"
+}
