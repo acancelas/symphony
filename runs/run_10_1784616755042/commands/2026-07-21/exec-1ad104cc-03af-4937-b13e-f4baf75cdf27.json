@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-1ad104cc-03af-4937-b13e-f4baf75cdf27",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629347751_757",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:22:27.681Z",
+  "command": "/bin/bash -lc 'make all'",
+  "durationMs": 32312,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Resolving Hex dependencies...\nResolution completed in 0.084s\nUnchanged:\n  bandit 1.12.0\n  bunt 1.0.0\n  burrito 1.5.0\n  cc_precompiler 0.1.11\n  credo 1.7.19\n  date_time_parser 1.3.0\n  decimal 3.1.1\n  dialyxir 1.4.7\n  ecto 3.14.1\n  elixir_make 0.9.0\n  erlex 0.2.9\n  file_system 1.1.1\n  finch 0.23.0\n  fine 0.1.6\n  floki 0.38.4\n  hpax 1.0.4\n  jason 1.4.5\n  kday 1.1.0\n  lazy_html 0.1.11\n  mime 2.0.7\n  mint 1.9.3\n  nimble_options 1.1.1\n  nimble_pool 1.1.0\n  phoenix 1.8.9\n  phoenix_html 4.3.0\n  phoenix_live_view 1.2.7\n  phoenix_pubsub 2.2.0\n  phoenix_template 1.0.4\n  plug 1.20.3\n  plug_crypto 2.1.1\n  req 0.6.3\n  solid 1.3.2\n  telemetry 1.4.2\n  thousand_island 1.5.0\n  typed_struct 0.3.0\n  websock 0.5.3\n  websock_adapter 0.6.0\n  yamerl 0.10.0\n  yaml_elixir 2.12.2\nAll dependencies have been fetched\nmake[1]: Leaving directory '$WORKSPACE/.bos/worktrees/symphony-10/elixir'\nmake build\nmake[1]: Entering directory '$WORKSPACE/.bos/worktrees/symphony-10/elixir'\nmix build\nGenerated escript bin/symphony with MIX_ENV=dev\nmake[1]: Leaving directory '$WORKSPACE/.bos/worktrees/symphony-10/elixir'\nmake fmt-check\nmake[1]: Entering directory '$WORKSPACE/.bos/worktrees/symphony-10/elixir'\nmix format --check-formatted\nmake[1]: Leaving directory '$WORKSPACE/.bos/worktrees/symphony-10/elixir'\nmake lint\nmake[1]: Entering directory '$WORKSPACE/.bos/worktrees/symphony-10/elixir'\nmix lint\nspecs.check: all public functions have @spec or exemption\nChecking 71 source files (this might take a while) ...\n\nPlease report incorrect results: https://github.com/rrrene/credo/issues\n\nAnalysis took 1.3 seconds (0.06s to load, 1.3s running 69 checks on 71 files)\n1532 mods/funs, found no issues.\n\nUse `mix credo explain` to explain issues, `mix credo --help` for options.\nmake[1]: Leaving directory '$WORKSPACE/.bos/worktrees/symphony-10/elixir'\nmake coverage\nmake[1]: Entering directory '$WORKSPACE/.bos/worktrees/symphony-10/elixir'\nmix test --cover\nCover compiling modules ...\nRunning ExUnit with seed: 199711, max_ca",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
