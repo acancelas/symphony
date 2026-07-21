@@ -1,0 +1,12 @@
+{
+  "attemptId": "attempt_run_symphony_18_dirty_workspace_recovery_20260721_1",
+  "runId": "run_symphony_18_dirty_workspace_recovery_20260721",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-21T09:21:57Z",
+  "metrics": {}
+}
