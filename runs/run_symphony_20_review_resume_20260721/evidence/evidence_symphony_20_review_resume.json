@@ -1,0 +1,54 @@
+{
+  "evidenceId": "evidence_symphony_20_review_resume",
+  "runId": "run_symphony_20_review_resume_20260721",
+  "commitSha": "ab30f7e6472ef33b668d297d78b710578ebc701b",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Rate-limited Review lookup waits and retries only the lookup",
+      "status": "passed",
+      "evidence": "Bounded provider cooldown regression passes without a real sleep."
+    },
+    {
+      "criterion": "Completed reviewer session is not started again",
+      "status": "passed",
+      "evidence": "Coordinator preserves reviewer result, workspace, run and attempt."
+    },
+    {
+      "criterion": "Non-rate-limit errors fail closed",
+      "status": "passed",
+      "evidence": "Existing error-path coverage remains green."
+    },
+    {
+      "criterion": "Full Symphony gate passes",
+      "status": "passed",
+      "evidence": "300 tests, 100% coverage, zero Credo issues and zero Dialyzer errors."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 300,
+      "coveragePercent": 100,
+      "credoIssues": 0,
+      "dialyzerErrors": 0
+    },
+    {
+      "name": "git-diff-check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "ab30f7e6472ef33b668d297d78b710578ebc701b"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-20"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Review-stage cooldown recovery is bounded, durable and validated on the exact branch HEAD."
+}
