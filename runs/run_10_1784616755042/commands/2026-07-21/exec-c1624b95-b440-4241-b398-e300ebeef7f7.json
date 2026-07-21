@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c1624b95-b440-4241-b398-e300ebeef7f7",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629657119_960",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:27:37.119Z",
+  "command": "/bin/bash -lc 'rg -n \"pull-request-readiness|deployment-verifier|BOS_MCP_ACTOR|mark_pull_request_ready|fetch_pull_request\" elixir/lib elixir/test README.md SPEC.md WORKFLOW.md .bos/project.yaml'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "long"
+  }
+}

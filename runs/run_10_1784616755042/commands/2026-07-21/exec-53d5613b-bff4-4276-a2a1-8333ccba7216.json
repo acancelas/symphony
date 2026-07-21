@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-53d5613b-bff4-4276-a2a1-8333ccba7216",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629657144_963",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:27:37.144Z",
+  "command": "/bin/bash -lc 'grep -RInE \"pull-request-readiness|deployment-verifier|BOS_MCP_ACTOR|mark_pull_request_ready|fetch_pull_request\" elixir/lib elixir/test README.md SPEC.md WORKFLOW.md .bos/project.yaml'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/post_approval_coordinator.ex:16:  @readiness_path \".bos-local/pull-request-readiness.json\"\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:105:    Read it, then call bos_mark_pull_request_ready exactly for its operationId,\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:120:    with :ok <- run_role(app_server, workspace, issue, worker_host, \"pull-request-readiness-coordinator\", prompt, recipient),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:162:    with {:ok, receipt} <- client.mark_pull_request_ready(readiness),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:165:           client.fetch_pull_request(readiness[\"repositoryId\"], readiness[\"pullRequestNumber\"]) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:229:    run_role(app_server, workspace, issue, worker_host, \"deployment-verifier\", prompt, recipient)\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:351:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\nelixir/lib/symphony_elixir/game_api/client.ex:123:  @spec mark_pull_request_ready(map()) :: {:ok, map()} | {:error, term()}\nelixir/lib/symphony_elixir/game_api/client.ex:124:  def mark_pull_request_ready(readiness) when is_map(readiness) do\nelixir/lib/symphony_elixir/game_api/client.ex:139:  @spec fetch_pull_request(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\nelixir/lib/symphony_elixir/game_api/client.ex:140:  def fetch_pull_request(repository_id, pull_request_number)\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:145:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\nelixir/lib/symphony_elixir/delivery_coordinator.ex:176:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:9:      actor = opts |> Keyword.fetch!(:environment_overrides) |> Map.new() |> Map.fetch!(\"BOS_MCP_ACTOR\")\nelixir/test/symphony_elixir/goal_planning_coordinator_test.exs:9:      actor = opts |> Ke",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
