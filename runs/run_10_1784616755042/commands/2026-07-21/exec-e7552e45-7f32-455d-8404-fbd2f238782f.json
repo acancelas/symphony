@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e7552e45-7f32-455d-8404-fbd2f238782f",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628976173_562",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:16:16.097Z",
+  "command": "/bin/bash -lc \"git show -s --format='%H%n%P%n%aI%n%s' HEAD && sed -n '1,220p' .bos/project.yaml && grep -RIn --exclude-dir=_build --exclude-dir=deps -E 'BOS_MCP_ACTOR|pull-request-readiness-coordinator|deployment-verifier' elixir/lib elixir/config .bos 2>/dev/null | head -200\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "1908764463438ee5658223e8be87e5c1237cfa7d\n7b22f4b7c618f06f7ba3cc95bc8bd4ca6511721e\n2026-07-21T12:09:26+02:00\nfeat(delivery): promote draft PR before merge\nschemaVersion: 1\nprojectId: bos\nrepositoryId: symphony\nworkflowId: bos-autonomous-delivery\nremote: https://github.com/acancelas/symphony\ndelivery:\n  issueProvider: github\n  issueRequired: true\n  branchStrategy: issue-based\nquality:\n  commands:\n    - id: test\n      runner: shell\n      script: cd elixir && mise exec -- mix test\n      required: true\n      timeoutSeconds: 900\nenvironments:\n  production:\n    branch: main\n    automaticDeployment: false\n    requiresApproval: true\n    requiresVerification: true\noffline:\n  allowed: [read, edit, local_checks]\n  blocked: [push, pull_request, deployment]\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:120:    with :ok <- run_role(app_server, workspace, issue, worker_host, \"pull-request-readiness-coordinator\", prompt, recipient),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:206:    run_role(app_server, workspace, issue, worker_host, \"deployment-verifier\", prompt, recipient)\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:328:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:145:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\nelixir/lib/symphony_elixir/delivery_coordinator.ex:176:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
