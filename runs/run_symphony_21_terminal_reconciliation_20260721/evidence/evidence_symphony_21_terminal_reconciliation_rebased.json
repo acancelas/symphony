@@ -1,0 +1,59 @@
+{
+  "evidenceId": "evidence_symphony_21_terminal_reconciliation_rebased",
+  "runId": "run_symphony_21_terminal_reconciliation_20260721",
+  "commitSha": "a2aa897ba95a2e2caab18b31b33272e9873f736e",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Closed Issue with stale running run is reconciled exactly once",
+      "status": "passed",
+      "evidence": "Startup and periodic idempotency regressions pass."
+    },
+    {
+      "criterion": "Merged PR and exact merge commit remain linked",
+      "status": "passed",
+      "evidence": "Normalized reconciliation response is preserved in runtime state."
+    },
+    {
+      "criterion": "Open or active run is never finalized",
+      "status": "passed",
+      "evidence": "Canonical game-api guard result is respected."
+    },
+    {
+      "criterion": "Lost responses do not duplicate events",
+      "status": "passed",
+      "evidence": "Stable operation identity and retry tests pass."
+    },
+    {
+      "criterion": "Full Symphony gate passes",
+      "status": "passed",
+      "evidence": "301 tests, 100% coverage, zero Credo issues and zero Dialyzer errors."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 301,
+      "coveragePercent": 100,
+      "credoIssues": 0,
+      "dialyzerErrors": 0
+    },
+    {
+      "name": "git-diff-check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "a2aa897ba95a2e2caab18b31b33272e9873f736e"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-21"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Terminal AgentRun reconciliation is deployed-compatible, idempotent and validated on the rebased exact HEAD."
+}
