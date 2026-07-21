@@ -1,0 +1,14 @@
+{
+  "reviewId": "review_run_10_1784616755042_2_quality",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "reviewType": "quality",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "commitSha": "c3554e69d100bbf2a0fe5ec4badfbd8459138dc4",
+  "status": "passed",
+  "findings": [],
+  "summary": "Quality review passed: the clean exact HEAD implements deterministic exact-HEAD PR readiness through game-api, requires a durable completed receipt and fresh open/non-draft/current-HEAD confirmation before the merge-capable role, preserves bounded failure states and restart idempotency, and has current exact-commit evidence for targeted recovery tests and the full required validation suite."
+}
