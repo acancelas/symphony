@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3e6407c9-4457-4890-8cbf-6db1a48ac2cd",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629131858_652",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:18:52.982Z",
+  "command": "/bin/bash -lc \"grep -RIl \\\"markPullRequestReady\\\\|pull-requests/ready\\\\|pull_request_ready\\\" $WORKSPACE 2>/dev/null | head -80\"",
+  "durationMs": 12281,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T05-07-32-019f82a4-95eb-7ae0-921b-cafdff236f99.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T04-59-41-019f829d-68f0-7dc0-a472-0d93a11e5631.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T11-19-24-019f83f9-0cbe-7fc0-968d-67914bf24fcf.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T11-26-48-019f83ff-d038-7601-a89c-04d138689e65.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T05-05-56-019f82a3-20bc-74e0-86fd-7ecf10b4f895.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T04-57-29-019f829b-627f-74f0-9c64-e9abbf743059.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T12-15-36-019f842c-80b6-7123-9388-682440a8eb7c.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T05-12-30-019f82a9-2127-72d1-a283-abb5ca010dc0.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T01-52-51-019f81f2-58c8-7bf3-baaf-c4af65e32b1b.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T12-08-32-019f8426-0632-7542-b0bf-cfd389b6f300.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T12-13-27-019f842a-868c-7fe0-8ac6-d8c815b5fc1c.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T04-48-45-019f8293-65d8-7753-9cc9-a63c5fd5e74d.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T12-09-49-019f8427-3471-7c81-a636-8eb64024a920.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T05-14-16-019f82aa-c275-7432-8cc8-6d0e9206a9d1.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T05-15-26-019f82ab-d220-7b02-9a0a-3595cb85d15a.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T11-14-58-019f83f4-fdc1-7471-a92b-40ec156a3e33.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T12-12-37-019f8429-c3bc-7402-b639-5fcb3efa63e9.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/rollout-2026-07-21T04-48-14-019f8292-ed1a-7630-bd1d-10b5b054dfcb.jsonl\n$WORKSPACE/.codex/sessions/2026/07/21/",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
