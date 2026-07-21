@@ -1,0 +1,88 @@
+{
+  "evidenceId": "evidence_symphony_14_927666a_final",
+  "runId": "run_14_manual_20260721T0457Z",
+  "commitSha": "927666a5434c52298fd02d0152dd54e9e106db3f",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "High-frequency Codex progress is aggregated and retained memory is bounded",
+      "status": "passed",
+      "evidence": "Streaming deltas are compacted, summaries replace raw retained payloads, and lifecycle/final events remain reconstructible."
+    },
+    {
+      "criterion": "A provider cooldown pauses every game-api consumer without request storms",
+      "status": "passed",
+      "evidence": "One OTP owner coordinates polling, claims, heartbeats, lifecycle and outbox calls with stale-permit protection, a single half-open probe and probe timeout."
+    },
+    {
+      "criterion": "Rate-limit state survives process restart and primary write failure",
+      "status": "passed",
+      "evidence": "Primary and fallback ledgers are restored using the most conservative deadline; corrupt or unreadable state fails closed and write-failure recovery is tested."
+    },
+    {
+      "criterion": "Claim safety cannot cancel trackers without BOS leases",
+      "status": "passed",
+      "evidence": "The independent lease guard is enabled only for an explicit positive BOS TTL, while Linear and memory trackers remain unaffected."
+    },
+    {
+      "criterion": "A failed claim observes exponential backoff",
+      "status": "passed",
+      "evidence": "Issues with pending retry state are excluded from ordinary polling until their retry timer fires."
+    },
+    {
+      "criterion": "Authentication failures retain identity and do not become rate-limit errors",
+      "status": "passed",
+      "evidence": "401/403 without explicit rate-limit signals return game_api_authentication_failed and conservatively pause dispatch."
+    },
+    {
+      "criterion": "Full Symphony gate passes at the exact publishable commit",
+      "status": "passed",
+      "evidence": "make all passed with 296 tests, 0 failures, 2 skipped, 100% coverage, format/spec/build, Credo and Dialyzer."
+    },
+    {
+      "criterion": "Integrated X1 runtime passes with exact-run recovery changes",
+      "status": "passed",
+      "evidence": "The integration branch passed 297 tests, 0 failures, 100% coverage, Credo and Dialyzer, and produced the installed runtime binary."
+    }
+  ],
+  "checks": [
+    {
+      "id": "issue-14-make-all",
+      "command": "cd elixir && mise exec -- make all",
+      "status": "passed",
+      "summary": "296 tests, 0 failures, 2 skipped; 100% coverage; format/spec/build passed; Credo clean; Dialyzer 0 errors."
+    },
+    {
+      "id": "integration-make-all",
+      "command": "cd elixir && mise exec -- make all",
+      "status": "passed",
+      "summary": "297 tests, 0 failures, 2 skipped; 100% coverage; integrated exact-run recovery and bounded telemetry runtime."
+    },
+    {
+      "id": "specialized-reviews",
+      "status": "passed",
+      "summary": "Architecture, security and quality reviewers completed iterative repair cycles and reported no remaining blockers."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "927666a5434c52298fd02d0152dd54e9e106db3f"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-14"
+    },
+    {
+      "type": "runtimeBinarySha256",
+      "value": "ef29dcae83ea391d61a275916624fe82e2a256c8440fbb06bfc73f320ec6d42a"
+    }
+  ],
+  "residualRisk": [
+    {
+      "severity": "low",
+      "summary": "The current coordination circuit is process-wide for the single X1 runner; a future multi-runner topology will need distributed coordination."
+    }
+  ],
+  "summary": "Symphony now bounds Codex telemetry, coordinates all game-api callers through a durable fail-closed circuit, protects BOS leases independently and recovers exact work without duplicate dispatch."
+}
