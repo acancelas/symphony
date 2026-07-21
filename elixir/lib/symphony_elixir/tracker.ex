@@ -25,13 +25,15 @@ defmodule SymphonyElixir.Tracker do
   @callback claim_issue(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}
   @callback heartbeat_issue(Issue.t()) :: :ok | {:error, term()}
   @callback start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}
+  @callback reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}
 
   @optional_callbacks agent_tool_specs: 0,
                       execute_agent_tool: 3,
                       validate_config: 1,
                       claim_issue: 1,
                       heartbeat_issue: 1,
-                      start_execution: 2
+                      start_execution: 2,
+                      reconcile_terminal_runs: 0
 
   @spec fetch_issues_by_states([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
   def fetch_issues_by_states(states) do
@@ -41,6 +43,17 @@ defmodule SymphonyElixir.Tracker do
   @spec fetch_issues_by_ids([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
   def fetch_issues_by_ids(issue_ids) do
     adapter().fetch_issues_by_ids(issue_ids)
+  end
+
+  @spec reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}
+  def reconcile_terminal_runs do
+    adapter = adapter()
+
+    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :reconcile_terminal_runs, 0) do
+      adapter.reconcile_terminal_runs()
+    else
+      {:ok, []}
+    end
   end
 
   @spec claim_issue(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}

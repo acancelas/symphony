@@ -24,6 +24,7 @@ defmodule SymphonyElixir.Orchestrator do
     total_tokens: 0,
     seconds_running: 0
   }
+  @terminal_run_reconciliation_interval_ms :timer.minutes(15)
 
   defmodule State do
     @moduledoc """
@@ -73,6 +74,8 @@ defmodule SymphonyElixir.Orchestrator do
           codex_rate_limits: nil
         }
 
+        run_terminal_run_reconciliation()
+        schedule_terminal_run_reconciliation()
         run_terminal_workspace_cleanup()
         state = schedule_tick(state, 0)
 
@@ -127,6 +130,16 @@ defmodule SymphonyElixir.Orchestrator do
     state = %{state | poll_check_in_progress: false}
 
     notify_dashboard()
+    {:noreply, state}
+  end
+
+  def handle_info(:reconcile_terminal_runs, state) do
+    _task =
+      Task.Supervisor.start_child(state.task_supervisor, fn ->
+        run_terminal_run_reconciliation()
+      end)
+
+    schedule_terminal_run_reconciliation()
     {:noreply, state}
   end
 
@@ -1183,6 +1196,25 @@ defmodule SymphonyElixir.Orchestrator do
       {:error, reason} ->
         Logger.warning("Skipping startup terminal workspace cleanup; failed to fetch terminal issues: #{inspect(reason)}")
     end
+  end
+
+  defp run_terminal_run_reconciliation do
+    case Tracker.reconcile_terminal_runs() do
+      {:ok, results} ->
+        reconciled = Enum.count(results, &(&1["action"] == "reconciled"))
+        Logger.info("Terminal AgentRun reconciliation completed reconciled=#{reconciled} inspected=#{length(results)}")
+
+      {:error, reason} ->
+        Logger.warning("Skipping startup terminal AgentRun reconciliation; gateway request failed: #{inspect(reason)}")
+    end
+  end
+
+  defp schedule_terminal_run_reconciliation do
+    Process.send_after(
+      self(),
+      :reconcile_terminal_runs,
+      @terminal_run_reconciliation_interval_ms
+    )
   end
 
   defp notify_dashboard do

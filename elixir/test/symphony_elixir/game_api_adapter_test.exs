@@ -8,8 +8,8 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     @spec validate_config(map()) :: :ok
     def validate_config(_settings), do: :ok
 
-    @spec fetch_ready_issues() :: {:ok, [map()]}
-    def fetch_ready_issues do
+    @spec fetch_issues_by_states([String.t()]) :: {:ok, [map()]}
+    def fetch_issues_by_states(_states) do
       {:ok,
        [
          %{
@@ -26,7 +26,10 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     end
 
     @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()}
-    def fetch_issue("bos-front", 42), do: fetch_ready_issues() |> then(fn {:ok, [issue]} -> {:ok, issue} end)
+    def fetch_issue("bos-front", 42), do: fetch_issues_by_states(["agent:ready"]) |> then(fn {:ok, [issue]} -> {:ok, issue} end)
+
+    @spec reconcile_terminal_runs() :: {:ok, [map()]}
+    def reconcile_terminal_runs, do: {:ok, [%{"action" => "reconciled"}]}
 
     @spec claim_issue(String.t(), pos_integer(), String.t() | nil) :: {:ok, map()}
     def claim_issue("bos-front", 42, nil) do
@@ -80,6 +83,10 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert {:ok, claimed} = Adapter.claim_issue(issue)
     assert {:ok, started} = Adapter.start_execution(claimed, 1)
     assert started.native_ref["attemptId"] == "attempt_run_42_001_1"
+  end
+
+  test "delegates durable terminal run reconciliation to game-api" do
+    assert {:ok, [%{"action" => "reconciled"}]} = Adapter.reconcile_terminal_runs()
   end
 
   test "preserves audit chain conflict identity for outbox recovery" do

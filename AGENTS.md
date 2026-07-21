@@ -34,3 +34,5 @@ This repository is the BOS-maintained Symphony fork used by the X1 delivery orch
 - For BOS Git workspaces, enable `workspace.recover_non_git_directories`: an interrupted partial clone without `.git` is preserved under an adjacent orphan path and rebuilt, never reused as healthy and never deleted as clean.
 - Run the required checks in `.bos/project.yaml` after changes.
 - A deployment, release, or rollback is incomplete until its exact-commit `DeploymentVerification` passes.
+- On startup and every 15 minutes, reconcile every non-terminal AgentRun through the canonical `game-api` operation; startup reconciliation precedes terminal workspace cleanup. Issue closure alone never proves successful delivery; only the gateway may bind exact PR, HEAD, merge, and evidence into a terminal projection. Periodic work must use the shared provider circuit and run outside the orchestrator mailbox.
+- The `GameApiTrackerAdapter` must honor the requested state set. Active polling and terminal cleanup use the normalized `issues/by-states` contract; never substitute the eligible-work queue for terminal discovery.

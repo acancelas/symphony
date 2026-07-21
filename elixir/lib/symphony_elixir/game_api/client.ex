@@ -18,24 +18,32 @@ defmodule SymphonyElixir.GameApi.Client do
     audit_sequence_gap
   )
 
-  @spec fetch_ready_issues() :: {:ok, [map()]} | {:error, term()}
-  def fetch_ready_issues do
+  @spec fetch_issues_by_states([String.t()]) :: {:ok, [map()]} | {:error, term()}
+  def fetch_issues_by_states([]), do: {:ok, []}
+
+  def fetch_issues_by_states(state_names) when is_list(state_names) do
     repositories()
     |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->
-      params = repository_query(repository) ++ [{"runnerId", System.get_env("BOS_RUNNER_ID") || "x1"}]
+      params =
+        repository_query(repository) ++
+          Enum.map(state_names, &{"states", &1})
 
-      result =
-        with {:ok, issues} <-
-               request(:get, "/v1/internal/bos/delivery/issues/eligible", params: params)
-               |> response_list("issues"),
-             {:ok, goals} <-
-               request(:get, "/v1/internal/bos/delivery/goals/eligible", params: params)
-               |> response_list("goals") do
-          {:ok, issues ++ goals}
-        end
-
-      case result do
+      case request(:get, "/v1/internal/bos/delivery/issues/by-states", params: params)
+           |> response_list("issues") do
         {:ok, issues} -> {:cont, {:ok, accumulated ++ issues}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  @spec reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}
+  def reconcile_terminal_runs do
+    repositories()
+    |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->
+      with {:ok, runs} <- list_runs(repository),
+           {:ok, reconciled} <- reconcile_repository_runs(repository, runs) do
+        {:cont, {:ok, accumulated ++ reconciled}}
+      else
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
@@ -260,6 +268,41 @@ defmodule SymphonyElixir.GameApi.Client do
   end
 
   defp response_list({:error, reason}, _key), do: {:error, reason}
+
+  defp list_runs(repository) do
+    request(:get, "/v1/internal/bos/delivery/runs", params: repository_query(repository))
+    |> response_list("runs")
+  end
+
+  defp reconcile_repository_runs(repository, runs) do
+    runs
+    |> Enum.reject(&(&1["status"] in ["completed", "cancelled"]))
+    |> Enum.reduce_while({:ok, []}, fn run, {:ok, accumulated} ->
+      case reconcile_run(repository, run) do
+        {:ok, payload} -> {:cont, {:ok, [payload | accumulated]}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:ok, results} -> {:ok, Enum.reverse(results)}
+      error -> error
+    end
+  end
+
+  defp reconcile_run(repository, %{"runId" => run_id, "issueNumber" => issue_number})
+       when is_binary(run_id) and run_id != "" and is_integer(issue_number) and issue_number > 0 do
+    request(:post, "/v1/internal/bos/delivery/runs/reconcile",
+      json: %{
+        "repository" => repository_body(repository),
+        "issueNumber" => issue_number,
+        "operationId" => "reconcile_terminal_#{run_id}",
+        "runId" => run_id
+      }
+    )
+  end
+
+  defp reconcile_run(_repository, run),
+    do: {:error, {:invalid_game_api_run_projection, run["runId"]}}
 
   defp ensure_run_record(repository, issue, run_id, issue_number, attempt_id) do
     case fetch_run(repository["repository_id"], run_id) do
