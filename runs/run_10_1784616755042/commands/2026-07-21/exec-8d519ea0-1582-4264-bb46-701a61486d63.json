@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8d519ea0-1582-4264-bb46-701a61486d63",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629599783_920",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:26:39.783Z",
+  "command": "/bin/bash -lc \"grep -RIn -E 'reviewId|reviewType|subjectId' . --exclude-dir=.git --exclude='*.beam' | head -n 200\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "grep: ./elixir/_build/dev/phoenix-colocated/symphony_elixir/node_modules: No such file or directory\ngrep: ./elixir/_build/test/phoenix-colocated/symphony_elixir/node_modules: No such file or directory\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:95:      \"reviewId\" => \"review_run_001_1_#{role}\",\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:96:      \"reviewType\" => role,\n./elixir/test/symphony_elixir/audit/outbox_test.exs:175:             \"subjectId\" => \"implementation-agent\"\n./elixir/test/symphony_elixir/audit/outbox_test.exs:180:             \"subjectId\" => \"x1\"\n./elixir/test/symphony_elixir/audit/outbox_test.exs:185:             \"subjectId\" => \"security-reviewer\"\n./elixir/test/symphony_elixir/goal_planning_coordinator_test.exs:23:         \"review\" => %{\"reviewId\" => \"review_001\", \"status\" => \"passed\"}\n./elixir/lib/symphony_elixir/audit/outbox.ex:684:      %{\"type\" => \"agent\", \"subjectId\" => implementation_agent_id()}\n./elixir/lib/symphony_elixir/audit/outbox.ex:686:      %{\"type\" => \"runner\", \"subjectId\" => runner_id()}\n./elixir/lib/symphony_elixir/audit/outbox.ex:695:      %{\"type\" => \"agent\", \"subjectId\" => actor}\n./elixir/lib/symphony_elixir/game_api/client.ex:320:               \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\n./elixir/lib/symphony_elixir/game_api/client.ex:378:      \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\n./elixir/lib/symphony_elixir/goal_planning_coordinator.ex:100:    #{native_ref[\"issueNumber\"]}, runId #{native_ref[\"runId\"]}, reviewId\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:100:          Enum.find(artifacts, &(&1[\"reviewId\"] == expected_ids[role]))\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:201:    bos_record_review with reviewId `review_#{run_id}_#{cycle}_#{role}`, runId\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:202:    `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type\n./elixir/lib/symphony_elixir/delivery_coordinator.ex",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
