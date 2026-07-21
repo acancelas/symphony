@@ -335,3 +335,11 @@ you.
 ## License
 
 This project is licensed under the [Apache License 2.0](../LICENSE).
+### Shared `game-api` rate-limit circuit
+
+All durable tracker, heartbeat, lifecycle, and audit-outbox requests share a
+single process-wide circuit breaker. A `429` honors `Retry-After` (or the
+upstream reset timestamp), adds bounded jitter, and suspends every caller until
+the deadline. If the response has no usable deadline, Symphony waits at least
+two minutes. Pending audit events remain in the append-only local outbox and
+are retried after the circuit reopens; they are never discarded.

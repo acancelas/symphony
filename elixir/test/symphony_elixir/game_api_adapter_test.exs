@@ -3,6 +3,58 @@ defmodule SymphonyElixir.GameApiAdapterTest do
 
   alias SymphonyElixir.GameApi.Adapter
   alias SymphonyElixir.GameApi.Client
+  alias SymphonyElixir.GameApi.RateLimit
+
+  setup do
+    RateLimit.reset()
+    on_exit(&RateLimit.reset/0)
+    :ok
+  end
+
+  test "shares one rate-limit circuit across all game-api callers" do
+    assert :ok = RateLimit.check()
+    assert RateLimit.block_for(60_000) > 0
+    assert {:error, {:game_api_rate_limited, remaining_ms}} = RateLimit.check()
+    assert remaining_ms > 0
+
+    assert RateLimit.block_for(120_000) >= remaining_ms
+    assert {:error, {:game_api_rate_limited, extended_ms}} = RateLimit.check()
+    assert extended_ms > remaining_ms
+  end
+
+  test "honors retry-after and uses a conservative fallback" do
+    retry_ms = RateLimit.block(%Req.Response{status: 429, headers: %{"retry-after" => ["3"]}})
+    assert retry_ms >= 3_000
+    assert retry_ms <= 8_000
+
+    RateLimit.reset()
+    fallback_ms = RateLimit.block(%Req.Response{status: 429, headers: %{}})
+    assert fallback_ms >= 120_000
+    assert fallback_ms <= 125_000
+  end
+
+  test "honors reset timestamps and tolerates scalar or invalid headers" do
+    reset_epoch = System.system_time(:second) + 10
+
+    reset_ms =
+      RateLimit.block(%Req.Response{
+        status: 429,
+        headers: %{"x-ratelimit-reset" => [Integer.to_string(reset_epoch)]}
+      })
+
+    assert reset_ms >= 9_000
+    assert reset_ms <= 15_000
+
+    RateLimit.reset()
+    scalar_ms = RateLimit.block(%Req.Response{status: 429, headers: %{"retry-after" => "3"}})
+    assert scalar_ms >= 3_000
+    assert scalar_ms <= 8_000
+
+    RateLimit.reset()
+    fallback_ms = RateLimit.block(%Req.Response{status: 429, headers: %{"retry-after" => "invalid"}})
+    assert fallback_ms >= 120_000
+    assert fallback_ms <= 125_000
+  end
 
   defmodule FakeClient do
     @spec validate_config(map()) :: :ok

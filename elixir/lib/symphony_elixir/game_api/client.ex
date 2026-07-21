@@ -7,6 +7,7 @@ defmodule SymphonyElixir.GameApi.Client do
 
   alias SymphonyElixir.Audit.CanonicalJson
   alias SymphonyElixir.Config
+  alias SymphonyElixir.GameApi.RateLimit
   alias SymphonyElixir.Tracker.Issue
 
   @spec fetch_ready_issues() :: {:ok, [map()]} | {:error, term()}
@@ -185,10 +186,20 @@ defmodule SymphonyElixir.GameApi.Client do
         retry: false
       )
 
-    case Req.request(Keyword.merge(options, method: method, url: url)) do
-      {:ok, %Req.Response{status: status, body: body}} when status in 200..299 -> {:ok, body}
-      {:ok, %Req.Response{status: status, body: body}} -> {:error, http_error(status, body)}
-      {:error, reason} -> {:error, {:game_api_request_failed, reason}}
+    with :ok <- RateLimit.check() do
+      case Req.request(Keyword.merge(options, method: method, url: url)) do
+        {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
+          {:ok, body}
+
+        {:ok, %Req.Response{status: 429} = response} ->
+          {:error, {:game_api_rate_limited, RateLimit.block(response)}}
+
+        {:ok, %Req.Response{status: status, body: body}} ->
+          {:error, http_error(status, body)}
+
+        {:error, reason} ->
+          {:error, {:game_api_request_failed, reason}}
+      end
     end
   end
 
