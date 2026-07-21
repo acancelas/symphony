@@ -1,0 +1,87 @@
+{
+  "evidenceId": "evidence_symphony_18_36f631b",
+  "runId": "run_symphony_18_dirty_workspace_recovery_20260721",
+  "commitSha": "36f631bab500ccce618a88fdae035c6ac681ab70",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Dirty workspaces survive cleanup",
+      "status": "passed",
+      "evidence": "Regression tests cover dirty and unreadable Git state."
+    },
+    {
+      "criterion": "Unpublished commits survive cleanup",
+      "status": "passed",
+      "evidence": "Regression test plus live restart preserved game-api-84 at two commits ahead of upstream."
+    },
+    {
+      "criterion": "Interrupted work is externally recoverable",
+      "status": "passed",
+      "evidence": "Redacted full-diff workspace.checkpointed events are critical and immediately flushed."
+    },
+    {
+      "criterion": "Audit retry storms are prevented",
+      "status": "passed",
+      "evidence": "Per-run exponential backoff with jitter is bounded from 2s to 300s."
+    },
+    {
+      "criterion": "Local audit cache remains bounded",
+      "status": "passed",
+      "evidence": "9,748 receipts compacted to 17 watermarks; legacy telemetry has aggregate retention."
+    },
+    {
+      "criterion": "Token cache efficiency is measurable",
+      "status": "passed",
+      "evidence": "State API distinguishes cached, uncached, output and reasoning tokens; live reuse measured ~92.8%."
+    },
+    {
+      "criterion": "Test teardown does not leak OS children",
+      "status": "passed",
+      "evidence": "Repeated restart test leaves no matching FIFO shell processes."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make all",
+      "status": "passed",
+      "summary": "281 tests, 0 failures, 2 skipped; 100% coverage; format, specs, Credo and Dialyzer passed."
+    },
+    {
+      "name": "GitHub Actions make-all",
+      "status": "passed",
+      "commitSha": "36f631bab500ccce618a88fdae035c6ac681ab70"
+    },
+    {
+      "name": "GitHub Actions validate-pr-description",
+      "status": "passed",
+      "commitSha": "36f631bab500ccce618a88fdae035c6ac681ab70"
+    },
+    {
+      "name": "live restart",
+      "status": "passed",
+      "summary": "Unpublished worktree retained and service healthy."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "number": 19,
+      "url": "https://github.com/acancelas/symphony/pull/19"
+    },
+    {
+      "type": "commit",
+      "sha": "36f631bab500ccce618a88fdae035c6ac681ab70"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Per-session bos-mcp Node memory remains duplicated",
+      "mitigation": "Tracked by bos-mcp#12 with identity-safe cache/proxy acceptance criteria."
+    },
+    {
+      "risk": "Final telemetry aggregation migration is not installed until active workers finish",
+      "mitigation": "Branch and PR are durable; restart is deliberately deferred to preserve live work."
+    }
+  ],
+  "summary": "Recovery hardening, bounded audit storage and cache-aware token telemetry pass local, CI and live restart verification on the exact PR HEAD."
+}
