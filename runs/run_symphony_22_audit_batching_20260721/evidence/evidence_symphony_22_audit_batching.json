@@ -1,0 +1,64 @@
+{
+  "evidenceId": "evidence_symphony_22_audit_batching",
+  "runId": "run_symphony_22_audit_batching_20260721",
+  "commitSha": "c7e914e4e4798e8cb934375f057c938557ffb0d7",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Workspace checkpoints are persisted locally immediately without forcing a remote commit per notification",
+      "status": "passed",
+      "evidence": "Checkpoint events use the durable append-only outbox and normal non-critical batching."
+    },
+    {
+      "criterion": "Non-critical audit events flush in batches of 50 or after 60 seconds while terminal events flush immediately",
+      "status": "passed",
+      "evidence": "Outbox batching and critical-boundary regression tests pass."
+    },
+    {
+      "criterion": "Provider rate pressure is reduced without losing reconstructible state",
+      "status": "passed",
+      "evidence": "Measured live workload models 168 checkpoint commits as approximately 4 batches, a 97.6% reduction."
+    },
+    {
+      "criterion": "Audit summaries respect the game-api 2000-character contract",
+      "status": "passed",
+      "evidence": "New Unicode-safe truncation retains full redacted metadata while bounding summaries exactly."
+    },
+    {
+      "criterion": "Legacy oversized pending summaries recover without data loss",
+      "status": "passed",
+      "evidence": "Recovered unconfirmed events are normalized and atomically rehashed from the confirmed remote projection."
+    },
+    {
+      "criterion": "Full Symphony gate passes",
+      "status": "passed",
+      "evidence": "304 tests, 100% coverage, zero Credo issues and zero Dialyzer errors."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 304,
+      "coveragePercent": 100,
+      "credoIssues": 0,
+      "dialyzerErrors": 0
+    },
+    {
+      "name": "git-diff-check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "c7e914e4e4798e8cb934375f057c938557ffb0d7"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-22"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Durable checkpoint batching, provider-pressure controls and backward-compatible outbox recovery are complete on the exact HEAD."
+}
