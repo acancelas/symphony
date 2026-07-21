@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9166a971-c4f2-4456-8d5d-c2670900cdab",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_2",
+  "eventId": "event_1784646061764_1843",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T15:01:01.722Z",
+  "command": "/bin/bash -lc 'git log --oneline --decorate -8; git diff --stat origin/main...HEAD; git diff -- elixir/lib/symphony_elixir/post_approval_coordinator.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/test/symphony_elixir/post_approval_coordinator_test.exs; git diff origin/main...HEAD --stat; git diff origin/main...HEAD -- elixir/lib/symphony_elixir/post_approval_coordinator.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/test/symphony_elixir/post_approval_coordinator_test.exs'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "c3554e6 (HEAD -> bos/issue-10) fix(delivery): verify PR readiness through game-api\n1908764 feat(delivery): promote draft PR before merge\n7b22f4b (origin/main, origin/HEAD, main) Bound retained Codex event summaries (#5)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n59964ee Merge pull request #1 from acancelas/agent/bos-game-api-orchestration\n76f5dae (origin/agent/bos-game-api-orchestration) feat(delivery): orchestrate goal planning and terminal verification\n03ad8ca fix: satisfy delivery orchestration quality gate\n9165ead Orchestrate\n elixir/lib/symphony_elixir/game_api/client.ex      |  24 +++\n .../symphony_elixir/post_approval_coordinator.ex   | 174 ++++++++++++++++++-\n .../post_approval_coordinator_test.exs             | 192 ++++++++++++++++++++-\n 3 files changed, 388 insertions(+), 2 deletions(-)\n elixir/lib/symphony_elixir/game_api/client.ex      |  24 +++\n .../symphony_elixir/post_approval_coordinator.ex   | 174 ++++++++++++++++++-\n .../post_approval_coordinator_test.exs             | 192 ++++++++++++++++++++-\n 3 files changed, 388 insertions(+), 2 deletions(-)\ndiff --git a/elixir/lib/symphony_elixir/game_api/client.ex b/elixir/lib/symphony_elixir/game_api/client.ex\nindex 906ff94..0bd4549 100644\n--- a/elixir/lib/symphony_elixir/game_api/client.ex\n+++ b/elixir/lib/symphony_elixir/game_api/client.ex\n@@ -120,6 +120,30 @@ defmodule SymphonyElixir.GameApi.Client do\n     end\n   end\n \n+  @spec mark_pull_request_ready(map()) :: {:ok, map()} | {:error, term()}\n+  def mark_pull_request_ready(readiness) when is_map(readiness) do\n+    with {:ok, repository} <- find_repository(readiness[\"repositoryId\"]) do\n+      request(:post, \"/v1/internal/bos/github/pull-requests/ready\",\n+        json: %{\n+          \"repository\" => repository_body(repository),\n+          \"issueNumber\" => readiness[\"issueNumber\"],\n+          \"operationId\" => readiness[\"operationId\"],\n+          \"runId\" => readiness[\"runId\"],\n+          \"pullRequestNumber\" => readiness[\"pullRequestNum",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}

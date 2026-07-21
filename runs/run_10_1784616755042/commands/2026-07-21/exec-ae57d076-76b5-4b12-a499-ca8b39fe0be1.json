@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-ae57d076-76b5-4b12-a499-ca8b39fe0be1",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_2",
+  "eventId": "event_1784646045161_1832",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T15:00:45.161Z",
+  "command": "/bin/bash -lc \"rg --files -g 'AGENTS.md' -g '*HARNESS*' -g '*harness*' -g '*.md' | sort | sed -n '1,160p' && git status --short --branch\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n## bos/issue-10\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}

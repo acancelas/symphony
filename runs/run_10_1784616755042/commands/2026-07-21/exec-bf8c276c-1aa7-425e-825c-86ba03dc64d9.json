@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-bf8c276c-1aa7-425e-825c-86ba03dc64d9",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_2",
+  "eventId": "event_1784646051623_1835",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T15:00:51.623Z",
+  "command": "/bin/bash -lc \"find . -name AGENTS.md -o -iname '*harness*' -o -name 'WORKFLOW.md' | sort; find elixir/lib elixir/test -type f | sort | grep -E 'bos|delivery|coordinator|outbox|game_api|gameapi' | head -240; grep -RIn --exclude-dir=_build --exclude-dir=deps -E 'request_merge|mark_pull_request_ready|pull.request.ready|bos_request_merge|approved|approval' elixir/lib elixir/test | head -300\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./AGENTS.md\n./WORKFLOW.md\n./elixir/AGENTS.md\n./elixir/WORKFLOW.md\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/lib/symphony_elixir/delivery_coordinator.ex\nelixir/lib/symphony_elixir/game_api/adapter.ex\nelixir/lib/symphony_elixir/game_api/client.ex\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex\nelixir/lib/symphony_elixir/post_approval_coordinator.ex\nelixir/test/symphony_elixir/audit/outbox_test.exs\nelixir/test/symphony_elixir/delivery_coordinator_test.exs\nelixir/test/symphony_elixir/game_api_adapter_test.exs\nelixir/test/symphony_elixir/goal_planning_coordinator_test.exs\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:3:  Continues an approved exact-HEAD delivery through merge, deployment evidence,\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:25:         :ok <- ensure_pull_request_ready(client, app_server, workspace, issue, recipient, worker_host, readiness),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:97:  defp ensure_pull_request_ready(client, _app_server, _workspace, _issue, _recipient, _worker_host, %{\"status\" => \"confirmed\"} = handoff) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:101:  defp ensure_pull_request_ready(client, app_server, workspace, issue, recipient, worker_host, readiness) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:105:    Read it, then call bos_mark_pull_request_ready exactly for its operationId,\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:162:    with {:ok, receipt} <- client.mark_pull_request_ready(readiness),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:206:    You are the BOS post-approval deployment verifier for #{issue.identifier}.\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:207:    The human Approval is durable. Re-read the exact PR HEAD, approval and\nelixir/lib/symphony_elixir/codex/app_server.ex:19:          approval_policy: String.t() | map(),\nelixir/lib/symphony_elix",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f4ba3867-d4ec-4555-ba08-ded8f86fb09e",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_2",
+  "eventId": "event_1784646068521_1847",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T15:01:08.479Z",
+  "command": "/bin/bash -lc \"grep -RIn --exclude-dir=_build --exclude-dir=deps 'bos_record_progress' . | head -40; cd elixir && mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs test/symphony_elixir/game_api_adapter_test.exs\"",
+  "durationMs": 1739,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Running ExUnit with seed: 745141, max_cases: 20\n\n.........\nFinished in 0.5 seconds (0.00s async, 0.5s sync)\n9 tests, 0 failures\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
