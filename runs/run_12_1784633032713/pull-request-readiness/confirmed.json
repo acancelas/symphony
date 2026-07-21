@@ -3,8 +3,8 @@
   "runId": "run_12_1784633032713",
   "issueNumber": 12,
   "pullRequestNumber": 34,
-  "headSha": "fca9c255b56afdc9f4b36e293bf7eda1e10b4bc5",
+  "headSha": "7c654dccccc9855479f16831289d288e0eb42010",
   "status": "ready",
-  "alreadyReady": false,
+  "alreadyReady": true,
   "recoveredAfterProviderError": false
 }
