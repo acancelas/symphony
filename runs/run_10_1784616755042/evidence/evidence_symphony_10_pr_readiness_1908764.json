@@ -1,0 +1,53 @@
+{
+  "evidenceId": "evidence_symphony_10_pr_readiness_1908764",
+  "runId": "run_10_1784616755042",
+  "commitSha": "1908764463438ee5658223e8be87e5c1237cfa7d",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "A verified approved draft PR is promoted exactly once before merge",
+      "status": "passed",
+      "evidence": "A dedicated readiness coordinator runs before the only merge-capable deployment-verifier role."
+    },
+    {
+      "criterion": "Restart after remote acceptance but before receipt recovers without duplicate mutation",
+      "status": "passed",
+      "evidence": "The response-loss recovery test reuses one deterministic operation ID and observes one provider mutation."
+    },
+    {
+      "criterion": "A stale HEAD blocks without promoting or merging",
+      "status": "passed",
+      "evidence": "The stale-HEAD test returns a bounded rejection and confirms the deployment-verifier never starts."
+    },
+    {
+      "criterion": "The complete PR lifecycle reaches merge through bos-mcp only",
+      "status": "passed",
+      "evidence": "The readiness role is restricted to bos_mark_pull_request_ready and merge remains policy-checked through bos-mcp."
+    },
+    {
+      "criterion": "Complete Symphony tests and recovery gates pass",
+      "status": "passed",
+      "evidence": "mix test and make all passed on the exact commit."
+    }
+  ],
+  "checks": [
+    {
+      "name": "cd elixir && mise exec -- mix test",
+      "status": "passed",
+      "summary": "277 tests passed; 2 skipped."
+    },
+    {
+      "name": "cd elixir && make all",
+      "status": "passed",
+      "summary": "Formatting, specs, Credo, 100% coverage, and Dialyzer passed."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "1908764463438ee5658223e8be87e5c1237cfa7d"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Post-approval delivery now idempotently promotes the exact AgentRun draft PR and confirms open, non-draft, exact-HEAD state before policy merge."
+}
