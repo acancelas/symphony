@@ -1,0 +1,22 @@
+{
+  "reviewId": "review_run_10_1784616755042_1_security",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "1908764463438ee5658223e8be87e5c1237cfa7d",
+  "status": "changes_requested",
+  "findings": [
+    {
+      "severity": "high",
+      "title": "Untrusted local handoff can bypass BOS-confirmed pull-request readiness",
+      "location": "elixir/lib/symphony_elixir/post_approval_coordinator.ex:97",
+      "description": "A handoff with status confirmed is accepted solely from workspace JSON. validate_confirmed_readiness/1 only checks that receipt is a map and that caller-controlled pullRequest fields match the stored identity. It does not validate a durable BOS receipt or re-fetch the PR through GameApi.Client. A preexisting matching confirmed file therefore skips the readiness coordinator and permits the merge-capable deployment-verifier role to start without affirmative proof that bos_mark_pull_request_ready ran or that the PR remains open, non-draft, and exact-HEAD.",
+      "recommendation": "Treat the handoff as intent/cache only. Before advancing, confirm the operation receipt and current PR state through GameApi.Client/bos-mcp using the immutable operationId, runId, PR number, and expected HEAD. Add tests that fail for fabricated confirmed JSON and demonstrate response-loss recovery from durable BOS state rather than an in-memory fake."
+    }
+  ],
+  "summary": "Changes requested: exact-commit tests pass, but the security boundary relies on agent-writable workspace JSON rather than authoritative BOS confirmation, allowing readiness enforcement to be bypassed before the merge-capable role starts."
+}
