@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-65bb6dc8-ec01-41dc-a2a0-7ca9914b9846",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629532008_875",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:25:32.008Z",
+  "command": "/bin/bash -lc \"sed -n '70,115p' elixir/test/symphony_elixir/delivery_coordinator_test.exs; sed -n '180,218p' elixir/lib/symphony_elixir/delivery_coordinator.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "                 app_server_module: FakeAppServer,\n                 game_api_client_module: FakeClient,\n                 review_roles: [\"security\"],\n                 max_repair_cycles: 1\n               ],\n               nil\n             )\n\n    assert summary =~ \"security: changes_requested\"\n    assert collect_actors(2, []) == [\"security-reviewer\", \"delivery-coordinator\"]\n  end\n\n  defp collect_actors(0, actors), do: Enum.reverse(actors)\n\n  defp collect_actors(remaining, actors) do\n    receive do\n      {:session_started, actor} -> collect_actors(remaining - 1, [actor | actors])\n      {:turn, _actor, _prompt} -> collect_actors(remaining, actors)\n    after\n      1_000 -> flunk(\"expected #{remaining} additional role sessions\")\n    end\n  end\n\n  defp review(role, status) do\n    %{\n      \"reviewId\" => \"review_run_001_1_#{role}\",\n      \"reviewType\" => role,\n      \"status\" => status,\n      \"summary\" => \"#{role} result\",\n      \"findings\" => []\n    }\n  end\n\n  defp issue do\n    %Issue{\n      id: \"bos-front#42\",\n      identifier: \"bos-front-42\",\n      title: \"Delivery\",\n      state: \"agent:running\",\n      branch_name: \"bos/issue-42\",\n      native_ref: %{\n        \"repositoryId\" => \"bos-front\",\n        \"issueNumber\" => 42,\n        \"runId\" => \"run_001\",\n        \"attemptId\" => \"attempt_001\"\n      }\n\n        case app_server.run_turn(session, prompt, issue, on_message: callback) do\n          {:ok, _turn} -> :ok\n          {:error, reason} -> {:error, reason}\n        end\n      after\n        app_server.stop_session(session)\n      end\n    end\n  end\n\n  defp review_prompt(issue, role, cycle) do\n    native_ref = issue.native_ref || %{}\n    run_id = native_ref[\"runId\"]\n    attempt_id = native_ref[\"attemptId\"]\n\n    \"\"\"\n    You are the independent BOS #{role} reviewer for #{issue.identifier}, cycle #{cycle}.\n    Inspect the issue acceptance contract, repository instructions, current diff,\n    exact git HEAD, tests and existing evidence. Do not modify files, commits,\n    issue state, PR state, ri",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
