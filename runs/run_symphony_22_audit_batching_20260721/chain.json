@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_symphony_22_audit_batching_20260721",
-  "lastSequence": 3,
-  "lastEventHash": "sha256:efb19b5e147e5988bcbe0ec5d5f9af66b137881e724b1e6409fa0bce0c857244",
-  "lastEventId": "event_2be4af7999c88dde25e263fe06",
-  "updatedAt": "2026-07-21T18:54:03.223020Z"
+  "lastSequence": 4,
+  "lastEventHash": "sha256:37abb69cb560e7b2c7b3253bfbe8eced9628ee6305eaf28582a5c698015724d4",
+  "lastEventId": "event_cec94bdebbd032ce7037f139cd",
+  "updatedAt": "2026-07-21T18:54:25.780221Z"
 }

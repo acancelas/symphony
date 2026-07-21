@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run_symphony_22_audit_batching_20260721",
+  "issueNumber": 22,
+  "pullRequestNumber": 26,
+  "expectedHeadSha": "c7e914e4e4798e8cb934375f057c938557ffb0d7",
+  "status": "requested"
+}
