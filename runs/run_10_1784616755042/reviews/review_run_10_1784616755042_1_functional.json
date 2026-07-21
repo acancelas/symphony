@@ -1,0 +1,27 @@
+{
+  "reviewId": "review_run_10_1784616755042_1_functional",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "reviewType": "functional",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "commitSha": "1908764463438ee5658223e8be87e5c1237cfa7d",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "info",
+      "code": "functional_acceptance_covered",
+      "summary": "PR readiness is durably initiated and confirmed before the merge-capable deployment-verifier role.",
+      "evidence": "The coordinator derives a deterministic operation ID from runId and exact HEAD, binds the existing PR number, validates open/non-draft/exact-HEAD confirmation, and stops before merge on stale HEAD, closed PR, or provider failure."
+    },
+    {
+      "severity": "info",
+      "code": "exact_head_validation_passed",
+      "summary": "Required validation evidence passed on the reviewed commit.",
+      "evidence": "Evidence evidence_symphony_10_pr_readiness_1908764 reports 277 tests passed with 2 skipped and make all passing formatting, specs, Credo, 100% coverage, and Dialyzer for commit 1908764463438ee5658223e8be87e5c1237cfa7d."
+    }
+  ],
+  "summary": "Passed: the exact-HEAD change promotes the existing verified draft PR through bos-mcp before merge, recovers idempotently after response loss, and bounds stale-HEAD, closed-PR, and provider failures; current full-suite evidence is affirmative."
+}
