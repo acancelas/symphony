@@ -87,6 +87,25 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
   end
 
   defmodule FakeClient do
+    def mark_pull_request_ready(readiness) do
+      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:authoritative_readiness, readiness})
+
+      case Application.get_env(:symphony_elixir, :authoritative_readiness_test_mode, :confirmed) do
+        :confirmed -> {:ok, %{"status" => "completed", "receipt" => %{"receiptId" => "durable_ready_001"}}}
+        {:reject, reason} -> {:error, reason}
+      end
+    end
+
+    def fetch_pull_request("bos-front", 17) do
+      {:ok,
+       %{
+         "number" => 17,
+         "head" => %{"sha" => "a1b2c3d4"},
+         "state" => "open",
+         "draft" => false
+       }}
+    end
+
     def record_runtime_probe(request) do
       send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:probe, request})
       {:ok, %{"status" => "completed", "receipt" => %{"receiptId" => "receipt_001"}}}
@@ -147,6 +166,7 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
              )
 
     assert_receive {:role, "pull-request-readiness-coordinator"}
+    assert_receive {:authoritative_readiness, %{"operationId" => "pr_ready_run_001_a1b2c3d4"}}
     assert_receive {:role, "deployment-verifier"}
     assert_receive {:probe, request}
     assert request["repository"]["owner"] == "acancelas"
@@ -174,12 +194,48 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
 
     assert :ok = PostApprovalCoordinator.run(workspace, issue(), nil, opts, nil)
     refute_receive {:provider_mutation, _}
+    assert_receive {:authoritative_readiness, %{"operationId" => ^operation_id}}
     assert Agent.get(remote_state, & &1) == :ready
 
     confirmed = workspace |> readiness_path() |> File.read!() |> Jason.decode!()
     assert confirmed["status"] == "confirmed"
     assert confirmed["operationId"] == operation_id
 
+    cleanup(workspace)
+  end
+
+  test "fabricated confirmed handoff cannot bypass authoritative BOS confirmation" do
+    workspace = temporary_workspace()
+    Application.put_env(:symphony_elixir, :post_approval_test_pid, self())
+    Application.put_env(:symphony_elixir, :authoritative_readiness_test_mode, {:reject, :operation_not_confirmed})
+
+    fabricated = %{
+      "schemaVersion" => 1,
+      "operationId" => "pr_ready_run_001_a1b2c3d4",
+      "repositoryId" => "bos-front",
+      "issueNumber" => 42,
+      "runId" => "run_001",
+      "pullRequestNumber" => 17,
+      "expectedHeadSha" => "a1b2c3d4",
+      "status" => "confirmed",
+      "pullRequest" => %{"number" => 17, "headSha" => "a1b2c3d4", "state" => "open", "draft" => false},
+      "receipt" => %{"receiptId" => "fabricated"}
+    }
+
+    File.mkdir_p!(Path.dirname(readiness_path(workspace)))
+    File.write!(readiness_path(workspace), Jason.encode!(fabricated))
+
+    assert {:error, :operation_not_confirmed} =
+             PostApprovalCoordinator.run(
+               workspace,
+               issue(),
+               nil,
+               [app_server_module: FakeAppServer, game_api_client_module: FakeClient],
+               nil
+             )
+
+    assert_receive {:authoritative_readiness, %{"operationId" => "pr_ready_run_001_a1b2c3d4"}}
+    refute_receive {:role, "deployment-verifier"}
     cleanup(workspace)
   end
 
@@ -232,6 +288,7 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
   defp cleanup(workspace) do
     Application.delete_env(:symphony_elixir, :post_approval_test_pid)
     Application.delete_env(:symphony_elixir, :readiness_test_mode)
+    Application.delete_env(:symphony_elixir, :authoritative_readiness_test_mode)
     File.rm_rf!(workspace)
   end
 
