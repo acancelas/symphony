@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-cba00e84-7957-4562-ad5a-2e8fe6ef70e1",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629011082_581",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:16:52.263Z",
+  "command": "/bin/bash -lc \"grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=_build -E 'ReviewSchema|reviewType.*quality|reviewId.*attemptId|record_review' $WORKSPACE/.bos 2>/dev/null | head -240\"",
+  "durationMs": 4555,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "ow --stat --oneline --decorate c892ee5b73a3e9305936007b328dbbcfa7be9563; git show --format=fuller --no-ext-diff c892ee5b73a3e9305936007b328dbbcfa7be9563 -- tests/test_repository_administration.py services/bos_delivery/repository_administration.py\\\"\",\"commandId\":\"exec-09c883fb-b46c-4701-9312-b85f722783f4\",\"environmentPolicy\":\"restricted\",\"redacted\":true,\"startedAt\":\"2026-07-21T01:48:56.330Z\",\"status\":\"inProgress\",\"workingDirectory\":\"$WORKSPACE/.bos/worktrees/game-api-80\"},\"previousEventHash\":\"sha256:f0ed4344f951bc02f774d2df67d93095e4adca62124916f212abedf9d657c344\",\"redaction\":{\"applied\":true,\"policyVersion\":\"1.0\"},\"references\":{\"branch\":\"bos/issue-80\"},\"repositoryId\":\"game-api\",\"retention\":{\"category\":\"permanent\"},\"runId\":\"run_80_1784563536169\",\"runner\":{\"id\":\"x1\",\"type\":\"local\"},\"schemaVersion\":\"1.0\",\"scopeId\":\"run_80_1784563536169\",\"scopeType\":\"run\",\"sequence\":3139,\"status\":\"completed\",\"summary\":\"Codex command started: /bin/bash -lc \\\"sed -n '1,260p' .ai/agents/reviewer.md; sed -n '1,280p' docs/project/TESTING_GUIDE.md; sed -n '1,220p' docs/project/PROJECT_CONTEXT.md; sed -n '1,260p' docs/project/ARCHITECTURE.md; rg -n \\\\\\\"issue.?80|repository settings|canonical rename\\\\\\\" docs/issues docs/progress docs/project/IMPLEMENTATION_LOG.md; git diff --name-status 657080cd..c892ee5b73a3e9305936007b328dbbcfa7be9563; git show --stat --oneline --decorate c892ee5b73a3e9305936007b328dbbcfa7be9563; git show --format=fuller --no-ext-diff c892ee5b73a3e9305936007b328dbbcfa7be9563 -- tests/test_repository_administration.py services/bos_delivery/repository_administration.py\\\"\"},{\"actor\":{\"subjectId\":\"visual-reviewer\",\"type\":\"agent\"},\"attemptId\":\"attempt_run_80_1784563536169_1\",\"correlationId\":\"run_80_1784563536169\",\"eventHash\":\"sha256:0f88ee6d5c93b874f0c437cf3416f47c980eb8b754ed23a0f0fed8f4a97f6a89\",\"eventId\":\"event_1784598536792_926\",\"eventType\":\"command.completed\",\"evidence\":[],\"issueNumber\":80,\"occurredAt\":\"2026-07-21T01:48:56.792Z\",\"operationId\":\"op_event_1784598536792_926\",\"payl",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
