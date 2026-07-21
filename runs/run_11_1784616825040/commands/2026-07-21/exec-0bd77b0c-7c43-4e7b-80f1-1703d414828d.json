@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-0bd77b0c-7c43-4e7b-80f1-1703d414828d",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784616896654_8453",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:54:55.407Z",
+  "command": "/bin/bash -lc \"git log --all --oneline --name-only -- '*command*' '*executor*' | head -400 && find . -maxdepth 4 -type f -not -path './.git/*' -print | sort\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "64f8e54 bos-audit: append batch_run_10_1784616755042_53_61\nruns/run_10_1784616755042/commands/2026-07-21/exec-565f6930-da06-440e-9136-c490437d5a42.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-5a865192-c4ee-4fb4-b376-d8c623bc5523.json\n7325297 bos-audit: append batch_run_10_1784616755042_3_52\nruns/run_10_1784616755042/commands/2026-07-21/exec-241eb52c-6b45-4c75-b004-ba44f521ad9a.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-3711dd63-6cc9-4c1e-8c19-ffe7f6c40028.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-547a4c13-efa1-407d-b5b5-1d8678f2c011.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-91d5fdbe-812f-40ee-948c-823e77b79ae9.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-d4e7c636-22ef-45bd-a3d2-2ca156a9acd5.json\n./.bos/project.yaml\n./.codex/config.toml\n./.codex/skills/commit/SKILL.md\n./.codex/skills/debug/SKILL.md\n./.codex/skills/land/SKILL.md\n./.codex/skills/land/land_watch.py\n./.codex/skills/linear/SKILL.md\n./.codex/skills/pull/SKILL.md\n./.codex/skills/push/SKILL.md\n./.codex/worktree_init.sh\n./.github/media/elixir-screenshot.png\n./.github/media/symphony-demo-poster.jpg\n./.github/media/symphony-demo.mp4\n./.github/pull_request_template.md\n./.github/workflows/burrito-release.yml\n./.github/workflows/make-all.yml\n./.github/workflows/pr-description-lint.yml\n./AGENTS.md\n./LICENSE\n./NOTICE\n./README.md\n./SPEC.md\n./WORKFLOW.md\n./docs/symphony-smoke-board-review.md\n./docs/symphony-smoke-test-one.md\n./elixir/.formatter.exs\n./elixir/.gitattributes\n./elixir/.gitignore\n./elixir/AGENTS.md\n./elixir/Makefile\n./elixir/README.md\n./elixir/WORKFLOW.md\n./elixir/config/config.exs\n./elixir/docs/logging.md\n./elixir/docs/token_accounting.md\n./elixir/lib/symphony_elixir.ex\n./elixir/lib/symphony_elixir/agent_runner.ex\n./elixir/lib/symphony_elixir/agent_runtime_supervisor.ex\n./elixir/lib/symphony_elixir/cli.ex\n./elixir/lib/symphony_elixir/config.ex\n./elixir/lib/symphony_elixir/delivery_coordinator.ex\n./elixir/lib/symphony_elixir/goal_planning_coord",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616891154,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616891154,
+      "item": {
+        "aggregatedOutput": "64f8e54 bos-audit: append batch_run_10_1784616755042_53_61\nruns/run_10_1784616755042/commands/2026-07-21/exec-565f6930-da06-440e-9136-c490437d5a42.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-5a865192-c4ee-4fb4-b376-d8c623bc5523.json\n7325297 bos-audit: append batch_run_10_1784616755042_3_52\nruns/run_10_1784616755042/commands/2026-07-21/exec-241eb52c-6b45-4c75-b004-ba44f521ad9a.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-3711dd63-6cc9-4c1e-8c19-ffe7f6c40028.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-547a4c13-efa1-407d-b5b5-1d8678f2c011.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-91d5fdbe-812f-40ee-948c-823e77b79ae9.json\nruns/run_10_1784616755042/commands/2026-07-21/exec-d4e7c636-22ef-45bd-a3d2-2ca156a9acd5.json\n./.bos/project.yaml\n./.codex/config.toml\n./.codex/skills/commit/SKILL.md\n./.codex/skills/debug/SKILL.md\n./.codex/skills/land/SKILL.md\n./.codex/skills/land/land_watch.py\n./.codex/skills/linear/SKILL.md\n./.codex/skills/pull/SKILL.md\n./.codex/skills/push/SKILL.md\n./.codex/worktree_init.sh\n./.github/media/elixir-screenshot.png\n./.github/media/symphony-demo-poster.jpg\n./.github/media/symphony-demo.mp4\n./.github/pull_request_template.md\n./.github/workflows/burrito-release.yml\n./.github/workflows/make-all.yml\n./.github/workflows/pr-description-lint.yml\n./AGENTS.md\n./LICENSE\n./NOTICE\n./README.md\n./SPEC.md\n./WORKFLOW.md\n./docs/symphony-smoke-board-review.md\n./docs/symphony-smoke-test-one.md\n./elixir/.formatter.exs\n./elixir/.gitattributes\n./elixir/.gitignore\n./elixir/AGENTS.md\n./elixir/Makefile\n./elixir/README.md\n./elixir/WORKFLOW.md\n./elixir/config/config.exs\n./elixir/docs/logging.md\n./elixir/docs/token_accounting.md\n./elixir/lib/symphony_elixir.ex\n./elixir/lib/symphony_elixir/agent_runner.ex\n./elixir/lib/symphony_elixir/agent_runtime_supervisor.ex\n./elixir/lib/symphony_elixir/cli.ex\n./elixir/lib/symphony_elixir/config.ex\n./elixir/lib/symphony_elixir/delivery_coordinator.ex\n./elixir/lib/symphony_elixir/goal_planning_coordinator.ex\n./elixir/lib/symphony_elixir/http_server.ex\n./elixir/lib/symphony_elixir/log_file.ex\n./elixir/lib/symphony_elixir/orchestrator.ex\n./elixir/lib/symphony_elixir/path_safety.ex\n./elixir/lib/symphony_elixir/post_approval_coordinator.ex\n./elixir/lib/symphony_elixir/prompt_builder.ex\n./elixir/lib/symphony_elixir/specs_check.ex\n./elixir/lib/symphony_elixir/ssh.ex\n./elixir/lib/symphony_elixir/status_dashboard.ex\n./elixir/lib/symphony_elixir/tracker.ex\n./elixir/lib/symphony_elixir/workflow.ex\n./elixir/lib/symphony_elixir/workflow_store.ex\n./elixir/lib/symphony_elixir/workspace.ex\n./elixir/lib/symphony_elixir_web/endpoint.ex\n./elixir/lib/symphony_elixir_web/error_html.ex\n./elixir/lib/symphony_elixir_web/error_json.ex\n./elixir/lib/symphony_elixir_web/observability_pubsub.ex\n./elixir/lib/symphony_elixir_web/presenter.ex\n./elixir/lib/symphony_elixir_web/router.ex\n./elixir/lib/symphony_elixir_web/static_assets.ex\n./elixir/mise.toml\n./elixir/mix.exs\n./elixir/mix.lock\n./elixir/priv/static/dashboard.css\n./elixir/priv/static/favicon.png\n./elixir/test/fixtures/startup_workflow.md\n./elixir/test/support/snapshot_support.exs\n./elixir/test/support/test_support.exs\n./elixir/test/symphony_elixir/app_server_test.exs\n./elixir/test/symphony_elixir/cli_test.exs\n./elixir/test/symphony_elixir/core_test.exs\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs\n./elixir/test/symphony_elixir/dynamic_tool_test.exs\n./elixir/test/symphony_elixir/extensions_test.exs\n./elixir/test/symphony_elixir/game_api_adapter_test.exs\n./elixir/test/symphony_elixir/goal_planning_coordinator_test.exs\n./elixir/test/symphony_elixir/live_e2e_test.exs\n./elixir/test/symphony_elixir/log_file_test.exs\n./elixir/test/symphony_elixir/observability_pubsub_test.exs\n./elixir/test/symphony_elixir/orchestrator_status_test.exs\n./elixir/test/symphony_elixir/post_approval_coordinator_test.exs\n./elixir/test/symphony_elixir/specs_check_test.exs\n./elixir/test/symphony_elixir/ssh_test.exs\n./elixir/test/symphony_elixir/status_dashboard_snapshot_test.exs\n./elixir/test/symphony_elixir/workspace_and_config_test.exs\n./elixir/test/test_helper.exs\n",
+        "command": "/bin/bash -lc \"git log --all --oneline --name-only -- '*command*' '*executor*' | head -400 && find . -maxdepth 4 -type f -not -path './.git/*' -print | sort\"",
+        "commandActions": [
+          {
+            "command": "git log --all --oneline --name-only -- '*command*' '*executor*' | head -400 && find . -maxdepth 4 -type f -not -path './.git/*' -print | sort",
+            "type": "unknown"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-0bd77b0c-7c43-4e7b-80f1-1703d414828d",
+        "processId": "29177",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}

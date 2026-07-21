@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-fa6c9207-f689-4d21-9fbb-28a8857ca74f",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784616921030_8485",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:55:21.030Z",
+  "command": "/bin/bash -lc \"sed -n '560,680p' elixir/lib/symphony_elixir/codex/app_server.ex && sed -n '430,620p' elixir/lib/symphony_elixir/audit/outbox.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "          on_message,\n          :approval_required,\n          %{payload: payload, raw: payload_string},\n          metadata\n        )\n\n        {:error, {:approval_required, payload}}\n\n      :unhandled ->\n        if needs_input?(method, payload) do\n          emit_message(\n            on_message,\n            :turn_input_required,\n            %{payload: payload, raw: payload_string},\n            metadata\n          )\n\n          {:error, {:turn_input_required, payload}}\n        else\n          emit_message(\n            on_message,\n            :notification,\n            %{\n              payload: payload,\n              raw: payload_string\n            },\n            metadata\n          )\n\n          Logger.debug(\"Codex notification: #{inspect(method)}\")\n          receive_loop(port, on_message, timeout_ms, \"\", tool_executor, auto_approve_requests)\n        end\n    end\n  end\n\n  defp maybe_handle_approval_request(\n         port,\n         \"item/commandExecution/requestApproval\",\n         %{\"id\" => id} = payload,\n         payload_string,\n         on_message,\n         metadata,\n         _tool_executor,\n         auto_approve_requests\n       ) do\n    approve_or_require(\n      port,\n      id,\n      \"acceptForSession\",\n      payload,\n      payload_string,\n      on_message,\n      metadata,\n      auto_approve_requests\n    )\n  end\n\n  defp maybe_handle_approval_request(\n         port,\n         \"item/tool/call\",\n         %{\"id\" => id, \"params\" => params} = payload,\n         payload_string,\n         on_message,\n         metadata,\n         tool_executor,\n         _auto_approve_requests\n       ) do\n    tool_name = tool_call_name(params)\n    arguments = tool_call_arguments(params)\n\n    result =\n      tool_name\n      |> tool_executor.(arguments)\n      |> normalize_dynamic_tool_result()\n\n    send_message(port, %{\n      \"id\" => id,\n      \"result\" => result\n    })\n\n    event =\n      case result do\n        %{\"success\" => true} -> :tool_call_completed\n        _ when is_nil(tool_name) -> :unsupported_too",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616921022,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616921021,
+      "item": {
+        "aggregatedOutput": {
+          "contentHash": "sha256:ebf11870cf76e2a28260cc4a40ef880d09f09571cc54a4f652cf0b0ccab31098",
+          "retention": "summary_only",
+          "summary": "          on_message,\n          :approval_required,\n          %{payload: payload, raw: payload_string},\n          metadata\n        )\n\n        {:error, {:approval_required, payload}}\n\n      :unhandled ->\n        if needs_input?(method, payload) do\n          emit_message(\n            on_message,\n            :turn_input_required,\n            %{payload: payload, raw: payload_string},\n            metadata\n          )\n\n          {:error, {:turn_input_required, payload}}\n        else\n          emit_message(\n            on_message,\n            :notification,\n            %{\n              payload: payload,\n              raw: payload_string\n            },\n            metadata\n          )\n\n          Logger.debug(\"Codex notification: #{inspect(method)}\")\n          receive_loop(port, on_message, timeout_ms, \"\", tool_executor, auto_approve_requests)\n        end\n    end\n  end\n\n  defp maybe_handle_approval_request(\n         port,\n         \"item/commandExecution/requestApproval\",\n         %{\"id\" => id} = payload,\n         payload_string,\n         on_message,\n         metadata,\n         _tool_executor,\n         auto_approve_requests\n       ) do\n    approve_or_require(\n      port,\n      id,\n      \"acceptForSession\",\n      payload,\n      payload_string,\n      on_message,\n      metadata,\n      auto_approve_requests\n    )\n  end\n\n  defp maybe_handle_approval_request(\n         port,\n         \"item/tool/call\",\n         %{\"id\" => id, \"params\" => params} = payload,\n         payload_string,\n         on_message,\n         metadata,\n         tool_executor,\n         _auto_approve_requests\n       ) do\n    tool_name = tool_call_name(params)\n    arguments = tool_call_arguments(params)\n\n    result =\n      tool_name\n      |> tool_executor.(arguments)\n      |> normalize_dynamic_tool_result()\n\n    send_message(port, %{\n      \"id\" => id,\n      \"result\" => result\n    })\n\n    event =\n      case result do\n        %{\"success\" => true} -> :tool_call_completed\n        _ when is_nil(tool_name) -> :unsupported_tool_call\n        _ -> :tool_call_failed\n      end\n\n    emit_message(on_message, event, %{payload: payload, raw: payload_string}, metadata)\n\n    :approved\n  end\n\n  defp maybe_handle_approval_request(\n         port,\n         \"execCommandApproval\",\n         %{\"id\" => id} = payload,\n         payload_string,\n         on_message,\n         metadata,\n         _tool_executor,\n         auto_approve_requests\n       ) do\n    approve_or_require(\n      port,\n      id,\n      \"approved_for_session\",\n      payload,\n      payload_string,\n      on_message,\n      metadata,\n      auto_approve_requests\n    )\n  end\n\n  defp maybe_handle_approval_request(\n         port,\n         \"applyPatchApproval\",\n         %{\"id\" => id} = payload,\n         payload_string,\n         on_message,\n         metadata,\n        |> Enum.sort()\n\n      backups =\n        entries\n        |> Enum.filter(&String.starts_with?(&1, \".events.backup.\"))\n        |> Enum.map(&Path.join(run_dir, &1))\n        |> Enum.sort()\n\n      cond do\n        File.dir?(events_dir) ->\n          Enum.each(rebases ++ backups, &File.rm_rf!/1)\n\n        rebases != [] ->\n          selected = List.last(rebases)\n          File.rename!(selected, events_dir)\n          Enum.each(List.delete(rebases, selected) ++ backups, &File.rm_rf!/1)\n\n        backups != [] ->\n          selected = List.last(backups)\n          File.rename!(selected, events_dir)\n          Enum.each(List.delete(backups, selected), &File.rm_rf!/1)\n\n        true ->\n          :ok\n      end\n    end)\n  end\n\n  defp confirmed_event_ids(root) do\n    Path.wildcard(Path.join([root, \"*\", \"receipts\", \"*.json\"]))\n    |> Enum.reduce(MapSet.new(), fn path, confirmed ->\n      with {:ok, contents} <- File.read(path),\n           {:ok, receipt} <- Jason.decode(contents),\n           event_ids when is_list(event_ids) <- receipt[\"eventIds\"] do\n        Enum.reduce(event_ids, confirmed, &MapSet.put(&2, &1))\n      else\n        _ -> confirmed\n      end\n    end)\n  end\n\n  defp recover_remote_state(%Issue{native_ref: native_ref} = issue) do\n    repository_id = native_ref[\"repositoryId\"]\n    run_id = native_ref[\"runId\"]\n\n    client = Application.get_env(:symphony_elixir, :game_api_client_module, Client)\n\n    case client.fetch_run(repository_id, run_id) do\n      {:ok, %{\"auditChain\" => chain} = manifest} when is_map(chain) ->\n        %{\n          sequence: chain[\"lastSequence\"] || 0,\n          previous_hash: chain[\"lastEventHash\"],\n          pending: [],\n          issue: issue,\n          current_attempt_id: manifest[\"currentAttemptId\"],\n          remote_confirmed?: true\n        }\n\n      _ ->\n        %{\n          sequence: 0,\n          previous_hash: nil,\n          pending: [],\n          issue: issue,\n          current_attempt_id: nil,\n          remote_confirmed?: false\n        }\n    end\n  end\n\n  defp issue_from_identity(identity) do\n    %Issue{\n      id: \"#{identity[\"repositoryId\"]}:#{identity[\"issueNumber\"]}\",\n      identifier: \"#{identity[\"repositoryId\"]}-#{identity[\"issueNumber\"]}\",\n      native_ref: identity,\n      branch_name: identity[\"branchName\"]\n    }\n  end\n\n  defp attempt_id(%Issue{native_ref: native_ref}, current) do\n    native_ref[\"attemptId\"] || Map.get(current, :current_attempt_id) || \"attempt_#{native_ref[\"runId\"]}_1\"\n  end\n\n  defp atomic_write(path, contents) do\n    temporary = path <> \".tmp\"\n    File.write!(temporary, contents, [:binary, :sync])\n    File.rename!(temporary, path)\n  end\n\n  @doc false\n  @spec auditable_update?(map()) :: boolean()\n  def auditable_update?(update) when is_map(update) do\n    method = get_in(update, [:payload, \"method\"]) || update |> Map.get(:event) |> event_method()\n\n    cond do\n      method in [\"turn/started\", \"turn/completed\", \"turn/failed\", \"turn/cancelled\"] ->\n        true\n\n      method in [\"item/started\", \"item/completed\"] ->\n        update\n        |> Map.get(:payload, %{})\n        |> codex_item()\n        |> auditable_item?()\n\n      true ->\n        false\n    end\n  end\n\n  defp auditable_item?(item) when is_map(item) do\n    item_kind(String.downcase(to_string(Map.get(item, ~s(type))))) in [:command, :tool]\n  end\n\n  defp auditable_item?(_item), do: false\n\n  defp event_method(event) when is_atom(event), do: event |> Atom.to_string() |> String.replace(\"_\", \"/\")\n  defp event_method(_event), do: \"\"\n\n  defp critical?(%{event: event}) when event in [:turn_completed, :turn_failed, :turn_cancelled], do: true\n  defp critical?(_update), do: false\n\n  defp event_type(\"item/completed\", payload), do: item_event_type(payload, \"completed\")\n  defp event_type(\"item/started\", payload), do: item_event_type(payload, \"started\")\n  defp event_type(\"turn/started\", _payload), do: \"agent.turn_started\"\n  defp event_type(\"turn/completed\", _payload), do: \"agent.turn_completed\"\n  defp event_type(\"turn/failed\", _payload), do: \"agent.turn_failed\"\n  defp event_type(\"turn/cancelled\", _payload), do: \"agent.turn_cancelled\"\n  defp event_type(_method, _payload), do: \"agent.progress_recorded\"\n\n  defp item_event_type(payload, suffix) do\n    type = get_in(payload, [\"params\", \"item\", \"type\"]) || get_in(payload, [\"item\", \"type\"]) || \"\"\n    normalized = String.downcase(to_string(type))\n\n    cond do\n      String.contains?(normalized, \"command\") ->\n        \"command.#{suffix}\"\n\n      String.contains?(normalized, \"mcp\") or String.contains?(normalized, \"tool\") ->\n        if suffix == \"started\", do: \"tool.requested\", else: \"tool.confirmed\"\n\n      true ->\n        \"agent.item_#{suffix}\"\n    end\n  end\n\n  defp event_status(%{event: :turn_failed}), do: \"failed\"\n  defp event_status(%{event: :turn_cancelled}), do: \"cancelled\"\n  defp event_status(_update), do: \"completed\"\n\n  defp summary(method, %{\"command\" => command} = payload)\n       when method in [\"item/started\", \"item/completed\"] and is_binary(command) do\n    result = if is_integer(payload[\"exitCode\"]), do: \" (exit #{payload[\"exitCode\"]})\", else: \"\"\n    \"Codex command #{if method == \"item/started\", do: \"started\", else: \"completed\"}: #{command}#{result}\"\n  end\n\n  defp summary(method, %{\"tool\" => too",
+          "truncated": true
+        },
+        "command": "/bin/bash -lc \"sed -n '560,680p' elixir/lib/symphony_elixir/codex/app_server.ex && sed -n '430,620p' elixir/lib/symphony_elixir/audit/outbox.ex\"",
+        "commandActions": [
+          {
+            "command": "sed -n '560,680p' elixir/lib/symphony_elixir/codex/app_server.ex",
+            "name": "app_server.ex",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/elixir/lib/symphony_elixir/codex/app_server.ex",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '430,620p' elixir/lib/symphony_elixir/audit/outbox.ex",
+            "name": "outbox.ex",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/elixir/lib/symphony_elixir/audit/outbox.ex",
+            "type": "read"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-fa6c9207-f689-4d21-9fbb-28a8857ca74f",
+        "processId": "40601",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-5670c401-270d-4da7-8364-5826ca2408c9",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784616916395_8479",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:55:16.395Z",
+  "command": "/bin/bash -lc \"sed -n '1,360p' elixir/lib/symphony_elixir/audit/outbox.ex && grep -Rni 'Outbox' elixir/lib elixir/test | head -200 && grep -n 'item/commandExecution/requestApproval\\\\|execCommandApproval' elixir/lib/symphony_elixir/codex/app_server.ex elixir/test/symphony_elixir/app_server_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.Audit.Outbox do\n  @moduledoc \"\"\"\n  Durable local outbox for automatic Codex App Server audit events.\n\n  Files remain append-only and retryable until `game-api` confirms that their\n  corresponding audit batch is present on GitHub's `bos/audit` branch.\n  \"\"\"\n\n  use GenServer\n  require Logger\n\n  alias SymphonyElixir.Audit.CanonicalJson\n  alias SymphonyElixir.GameApi.Client\n  alias SymphonyElixir.Tracker.Issue\n\n  @flush_interval_ms 60_000\n  @batch_size 25\n  @sensitive_key ~r/(authorization|cookie|credential|password|secret|token)/i\n  @bearer ~r/Bearer\\s+[A-Za-z0-9._~+\\/-]+=*/i\n  @max_inline_string_bytes 8_000\n  @sensitive_assignment ~r/(?i)\\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|AUTHORIZATION|API[_-]?KEY)[A-Z0-9_]*)(\\s*=\\s*)(?:\"[^\"]*\"|'[^']*'|[^\\s]+)/\n  @sensitive_json_pair ~r/(?i)([\"']?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)[\"']?\\s*:\\s*)(?:\"[^\"]*\"|'[^']*'|[^\\s,}\\]]+)/\n  @sensitive_flag ~r/(?i)(--?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)(?:=|\\s+))(?:\"[^\"]*\"|'[^']*'|[^\\s]+)/\n  @durable_event_types MapSet.new([\n                         \"agent.turn_started\",\n                         \"agent.turn_completed\",\n                         \"agent.turn_failed\",\n                         \"agent.turn_cancelled\",\n                         \"command.started\",\n                         \"command.completed\",\n                         \"tool.requested\",\n                         \"tool.confirmed\"\n                       ])\n\n  @spec start_link(keyword()) :: GenServer.on_start()\n  def start_link(opts \\\\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)\n\n  @spec record(Issue.t(), map()) :: :ok\n  def record(%Issue{} = issue, update) when is_map(update) do\n    GenServer.cast(__MODULE__, {:record, issue, update})\n  end\n\n  @spec flush_all() :: :ok\n  def flush_all, do: GenServer.call(__MODULE__, :flush_all, 30_000)\n\n  @impl true\n  def init(opts) do\n    root = Keyword.get(opts, :root, outbox_ro",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616916383,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616916383,
+      "item": {
+        "aggregatedOutput": {
+          "contentHash": "sha256:e3005edb6fb0e2213583a20c2a079dfd22525a96c85acf12552b7a66d6d79ecc",
+          "retention": "summary_only",
+          "summary": "defmodule SymphonyElixir.Audit.Outbox do\n  @moduledoc \"\"\"\n  Durable local outbox for automatic Codex App Server audit events.\n\n  Files remain append-only and retryable until `game-api` confirms that their\n  corresponding audit batch is present on GitHub's `bos/audit` branch.\n  \"\"\"\n\n  use GenServer\n  require Logger\n\n  alias SymphonyElixir.Audit.CanonicalJson\n  alias SymphonyElixir.GameApi.Client\n  alias SymphonyElixir.Tracker.Issue\n\n  @flush_interval_ms 60_000\n  @batch_size 25\n  @sensitive_key ~r/(authorization|cookie|credential|password|secret|token)/i\n  @Bearer [REDACTED]\\s+[A-Za-z0-9._~+\\/-]+=*/i\n  @max_inline_string_bytes 8_000\n  @sensitive_assignment ~r/(?i)\\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|AUTHORIZATION|API[_-]?KEY)[A-Z0-9_]*)(\\s*=\\s*)(?:\"[^\"]*\"|'[^']*'|[^\\s]+)/\n  @sensitive_json_pair ~r/(?i)([\"']?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)[\"']?\\s*:\\s*)(?:\"[^\"]*\"|'[^']*'|[^\\s,}\\]]+)/\n  @sensitive_flag ~r/(?i)(--?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)(?:=|\\s+))(?:\"[^\"]*\"|'[^']*'|[^\\s]+)/\n  @durable_event_types MapSet.new([\n                         \"agent.turn_started\",\n                         \"agent.turn_completed\",\n                         \"agent.turn_failed\",\n                         \"agent.turn_cancelled\",\n                         \"command.started\",\n                         \"command.completed\",\n                         \"tool.requested\",\n                         \"tool.confirmed\"\n                       ])\n\n  @spec start_link(keyword()) :: GenServer.on_start()\n  def start_link(opts \\\\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)\n\n  @spec record(Issue.t(), map()) :: :ok\n  def record(%Issue{} = issue, update) when is_map(update) do\n    GenServer.cast(__MODULE__, {:record, issue, update})\n  end\n\n  @spec flush_all() :: :ok\n  def flush_all, do: GenServer.call(__MODULE__, :flush_all, 30_000)\n\n  @impl true\n  def init(opts) do\n    root = Keyword.get(opts, :root, outbox_root())\n    File.mkdir_p!(root)\n    recover_incomplete_rebases(root)\n    compact_legacy_telemetry(root)\n    runs = recover_pending(root)\n    if map_size(runs) > 0, do: send(self(), :flush)\n    Process.send_after(self(), :flush, @flush_interval_ms)\n    {:ok, %{root: root, runs: runs}}\n  end\n\n  @impl true\n  def handle_cast({:record, issue, update}, state) do\n    if auditable_update?(update), do: record_auditable(issue, update, state), else: {:noreply, state}\n  end\n\n  defp record_auditable(issue, update, state) do\n    case build_event(issue, update, state) do\n      {:ok, event, run_state} ->\n        run_id = event[\"runId\"]\n\n        next =\n          state\n          |> put_in([:runs, run_id], run_state)\n          |> persist_pending(issue, event)\n          |> maybe_flush_run(run_id, update, run_state)\n\n        {:noreply, next}\n\n      {:error, reason} ->\n        Logger.warning(\"Skipping invalid BOS audit event: #{inspect(reason)}\")\n        {:noreply, state}\n    end\n  end\n\n  defp maybe_flush_run(state, run_id, update, run_state) do\n    if critical?(update) or length(run_state.pending) >= @batch_size,\n      do: flush_run(state, run_id),\n      else: state\n  end\n\n  @impl true\n  def handle_call(:flush_all, _from, state) do\n    next = Enum.reduce(Map.keys(state.runs), state, &flush_run(&2, &1))\n    {:reply, :ok, next}\n  end\n\n  @impl true\n  def handle_info(:flush, state) do\n    next = Enum.reduce(Map.keys(state.runs), state, &flush_run(&2, &1))\n    Process.send_after(self(), :flush, @flush_interval_ms)\n    {:noreply, next}\n  end\n\n  defp build_event(%Issue{native_ref: native_ref} = issue, update, state) do\n    run_id = native_ref[\"runId\"]\n    repository_id = native_ref[\"repositoryId\"]\n\n    if blank?(run_id) or blank?(repository_id) do\n      {:error, :missing_run_identity}\n    else\n      current = Map.get_lazy(state.runs, run_id, fn -> recover_remote_state(issue) end)\n      sequence = current.sequence + 1\n      now = DateTime.utc_now() |> DateTime.truncate(:millisecond)\n      unique = System.unique_integer([:positive, :monotonic])\n      event_id = \"event_#{System.system_time(:millisecond)}_#{unique}\"\n      method = get_in(update, [:payload, \"method\"]) || Atom.to_string(update.event)\n      occurred_at = timestamp(now)\n      normalized_payload = normalize_codex_payload(method, update.payload || %{}, occurred_at)\n\n      event = %{\n        \"schemaVersion\" => \"1.0\",\n        \"eventId\" => event_id,\n        \"occurredAt\" => occurred_at,\n        \"scopeType\" => \"run\",\n        \"scopeId\" => run_id,\n        \"sequence\" => sequence,\n        \"previousEventHash\" => current.previous_hash,\n        \"correlationId\" => run_id,\n        \"operationId\" => \"op_#{event_id}\",\n        \"repositoryId\" => repository_id,\n        \"issueNumber\" => native_ref[\"issueNumber\"],\n        \"runId\" => run_id,\n        \"attemptId\" => attempt_id(issue, current),\n        \"actor\" => actor_for_update(update, method),\n        \"runner\" => %{\"id\" => runner_id(), \"type\" => \"local\"},\n        \"eventType\" => event_type(method, update.payload || %{}),\n        \"status\" => event_status(update),\n        \"summary\" => summary(method, normalized_payload),\n        \"references\" => %{\"branch\" => issue.branch_name},\n        \"evidence\" => [],\n        \"redaction\" => %{\"applied\" => true, \"policyVersion\" => \"1.0\"},\n        \"retention\" => retention_for(method, normalized_payload),\n        \"payload\" => normalized_payload\n      }\n\n      hash = event |> Map.delete(\"eventHash\") |> CanonicalJson.encode() |> IO.iodata_to_binary() |> sha256()\n      event = Map.put(event, \"eventHash\", hash)\n\n      run_state = %{\n        current\n        | sequence: sequence,\n          previous_hash: hash,\n          pending: current.pending ++ [event],\n          issue: issue\n      }\n\n      {:ok, event, run_state}\n    end\n  rescue\n    error -> {:error, error}\n  end\n\n  defp persist_pending(state, issue, event) do\n    run_id = event[\"runId\"]\n    path = Path.join([state.root, run_id, \"events\", String.pad_leading(to_string(event[\"sequence\"]), 8, \"0\") <> \".json\"])\n    File.mkdir_p!(Path.dirname(path))\n    atomic_write(path, Jason.encode!(%{\"issue\" => issue_identity(issue), \"event\" => event}))\n    state\n  end\n\n  defp flush_run(state, run_id) do\n    case state.runs[run_id] do\n      %{pending: []} ->\n        state\n\n      %{pending: pending, issue: issue} = run_state ->\n        flush_pending_batch(state, run_id, run_state, issue, Enum.take(pending, @batch_size))\n    end\n  end\n\n  defp flush_pending_batch(state, run_id, run_state, issue, pending) do\n    batch_id = \"batch_#{run_id}_#{hd(pending)[\"sequence\"]}_#{List.last(pending)[\"sequence\"]}\"\n\n    request = %{\n      \"operationId\" => \"append_#{batch_id}\",\n      \"batchId\" => batch_id,\n      \"repository\" => repository_identity(issue),\n      \"events\" => pending\n    }\n\n    batch_path = Path.join([state.root, run_id, \"batches\", batch_id <> \".json\"])\n    File.mkdir_p!(Path.dirname(batch_path))\n    atomic_write(batch_path, Jason.encode!(request))\n\n    client = Application.get_env(:symphony_elixir, :game_api_client_module, Client)\n    persist_batch_result(client.append_audit_batch(request), state, run_id, run_state, pending, batch_id, batch_path)\n  end\n\n  defp persist_batch_result({:ok, receipt}, state, run_id, run_state, pending, batch_id, batch_path) do\n    receipt_path = Path.join([state.root, run_id, \"receipts\", batch_id <> \".json\"])\n    File.mkdir_p!(Path.dirname(receipt_path))\n    atomic_write(receipt_path, Jason.encode!(receipt))\n    File.rm(batch_path)\n    Enum.each(pending, fn event -> File.rm(event_path(state.root, run_id, event)) end)\n    confirmed_ids = MapSet.new(Enum.map(pending, & &1[\"eventId\"]))\n    remaining = Enum.reject(run_state.pending, &MapSet.member?(confirmed_ids, &1[\"eventId\"]))\n    next = put_in(state, [:runs, run_id], %{run_state | pending: remaining})\n    if remaining == [], do: next, else: flush_run(next, run_id)\n  end\n\n  defp persist_batch_result(\n         {:error, {:game_api_http_error, 409, code}},\n         state,\n         run_id,\n         run_",
+          "truncated": true
+        },
+        "command": "/bin/bash -lc \"sed -n '1,360p' elixir/lib/symphony_elixir/audit/outbox.ex && grep -Rni 'Outbox' elixir/lib elixir/test | head -200 && grep -n 'item/commandExecution/requestApproval\\\\|execCommandApproval' elixir/lib/symphony_elixir/codex/app_server.ex elixir/test/symphony_elixir/app_server_test.exs\"",
+        "commandActions": [
+          {
+            "command": "sed -n '1,360p' elixir/lib/symphony_elixir/audit/outbox.ex",
+            "name": "outbox.ex",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/elixir/lib/symphony_elixir/audit/outbox.ex",
+            "type": "read"
+          },
+          {
+            "command": "grep -Rni Outbox elixir/lib elixir/test",
+            "path": "lib",
+            "query": "Outbox",
+            "type": "search"
+          },
+          {
+            "command": "grep -n \"item/commandExecution/requestApproval\\\\|execCommandApproval\" elixir/lib/symphony_elixir/codex/app_server.ex elixir/test/symphony_elixir/app_server_test.exs",
+            "path": "app_server.ex",
+            "query": "item/commandExecution/requestApproval\\|execCommandApproval",
+            "type": "search"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-5670c401-270d-4da7-8364-5826ca2408c9",
+        "processId": "35784",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}

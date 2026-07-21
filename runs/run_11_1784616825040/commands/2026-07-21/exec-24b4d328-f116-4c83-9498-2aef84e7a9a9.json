@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-24b4d328-f116-4c83-9498-2aef84e7a9a9",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784616896622_8447",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:54:55.375Z",
+  "command": "/bin/bash -lc \"git log --oneline --decorate -8 origin/bos/issue-6 && git diff --stat HEAD..origin/bos/issue-6 && git ls-tree -r --name-only origin/bos/issue-6 | grep -Ei 'command|executor|audit'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "388664f (origin/bos/issue-6) test(delivery): cover candidate durability failures\n6f6406c fix(delivery): confirm candidate head before reviews\n7b22f4b (HEAD -> bos/issue-11, origin/main, origin/HEAD, main) Bound retained Codex event summaries (#5)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n59964ee Merge pull request #1 from acancelas/agent/bos-game-api-orchestration\n76f5dae (origin/agent/bos-game-api-orchestration) feat(delivery): orchestrate goal planning and terminal verification\n03ad8ca fix: satisfy delivery orchestration quality gate\n9165ead Orchestrate\n elixir/lib/symphony_elixir/candidate_head.ex       | 120 +++++++++++\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  42 ++--\n .../test/symphony_elixir/candidate_head_test.exs   | 233 +++++++++++++++++++++\n .../symphony_elixir/delivery_coordinator_test.exs  |  20 ++\n 4 files changed, 401 insertions(+), 14 deletions(-)\nelixir/lib/symphony_elixir/audit/canonical_json.ex\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/test/symphony_elixir/audit/canonical_json_test.exs\nelixir/test/symphony_elixir/audit/outbox_test.exs\n",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616886963,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616886963,
+      "item": {
+        "aggregatedOutput": "388664f (origin/bos/issue-6) test(delivery): cover candidate durability failures\n6f6406c fix(delivery): confirm candidate head before reviews\n7b22f4b (HEAD -> bos/issue-11, origin/main, origin/HEAD, main) Bound retained Codex event summaries (#5)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n59964ee Merge pull request #1 from acancelas/agent/bos-game-api-orchestration\n76f5dae (origin/agent/bos-game-api-orchestration) feat(delivery): orchestrate goal planning and terminal verification\n03ad8ca fix: satisfy delivery orchestration quality gate\n9165ead Orchestrate\n elixir/lib/symphony_elixir/candidate_head.ex       | 120 +++++++++++\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  42 ++--\n .../test/symphony_elixir/candidate_head_test.exs   | 233 +++++++++++++++++++++\n .../symphony_elixir/delivery_coordinator_test.exs  |  20 ++\n 4 files changed, 401 insertions(+), 14 deletions(-)\nelixir/lib/symphony_elixir/audit/canonical_json.ex\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/test/symphony_elixir/audit/canonical_json_test.exs\nelixir/test/symphony_elixir/audit/outbox_test.exs\n",
+        "command": "/bin/bash -lc \"git log --oneline --decorate -8 origin/bos/issue-6 && git diff --stat HEAD..origin/bos/issue-6 && git ls-tree -r --name-only origin/bos/issue-6 | grep -Ei 'command|executor|audit'\"",
+        "commandActions": [
+          {
+            "command": "git log --oneline --decorate -8 origin/bos/issue-6 && git diff --stat HEAD..origin/bos/issue-6 && git ls-tree -r --name-only origin/bos/issue-6 | grep -Ei 'command|executor|audit'",
+            "type": "unknown"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-24b4d328-f116-4c83-9498-2aef84e7a9a9",
+        "processId": "89678",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}
