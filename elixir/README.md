@@ -83,6 +83,12 @@ recovered running work sort ahead of newly ready work; creation time provides de
 ordering that can be reconstructed from the canonical tracker after a restart. The terminal and
 web dashboards expose queue position and reason separately from genuine retry failures.
 
+Before auto-approving a Codex command request, Symphony enforces the BOS integration boundary.
+Direct `gh` invocations—including absolute paths, `env`/`command` prefixes and nested shell
+wrappers—and direct `api.github.com` or GitHub GraphQL traffic are declined before process launch.
+The denial is emitted as a redacted `command_policy_blocked` event with a `bos-mcp` replacement.
+Local Git transport such as `fetch` and guarded non-force `push` remains allowed.
+
 Intentional OTP supervisor shutdown (`:normal`, `:shutdown`, or `{:shutdown, reason}`) exits the
 CLI successfully so a controlled `systemctl stop` remains operationally distinct from a crash.
 Unexpected supervisor reasons still return a failure status and remain eligible for service

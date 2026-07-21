@@ -30,15 +30,82 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
       {:ok, %{session_id: "deployment-verifier"}}
     end
 
+    def run_turn(%{actor: "pull-request-readiness-coordinator", workspace: workspace}, _prompt, _issue, _opts) do
+      path = Path.join(workspace, ".bos-local/pull-request-readiness.json")
+      intent = path |> File.read!() |> Jason.decode!()
+      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:role, "pull-request-readiness-coordinator"})
+
+      case Application.get_env(:symphony_elixir, :readiness_test_mode, :confirm) do
+        :confirm ->
+          confirm_readiness(path, intent)
+          {:ok, %{session_id: "pull-request-readiness-coordinator"}}
+
+        {:response_loss, state} ->
+          Agent.get_and_update(state, fn
+            :draft ->
+              send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:provider_mutation, intent["operationId"]})
+              {{:error, :response_lost}, :ready}
+
+            :ready ->
+              confirm_readiness(path, intent)
+              {{:ok, %{session_id: "pull-request-readiness-coordinator"}}, :ready}
+          end)
+
+        {:reject, kind} ->
+          rejected =
+            intent
+            |> Map.put("status", "rejected")
+            |> Map.put("failureKind", kind)
+            |> Map.put("failure", %{"code" => kind})
+
+          File.write!(path, Jason.encode!(rejected))
+          {:ok, %{session_id: "pull-request-readiness-coordinator"}}
+      end
+    end
+
     def run_turn(%{actor: actor}, _prompt, _issue, _opts) do
       send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:role, actor})
       {:ok, %{session_id: actor}}
     end
 
     def stop_session(_session), do: :ok
+
+    defp confirm_readiness(path, intent) do
+      confirmed =
+        intent
+        |> Map.put("status", "confirmed")
+        |> Map.put("pullRequest", %{
+          "number" => intent["pullRequestNumber"],
+          "headSha" => intent["expectedHeadSha"],
+          "state" => "open",
+          "draft" => false
+        })
+        |> Map.put("receipt", %{"receiptId" => "ready_receipt_001"})
+
+      File.write!(path, Jason.encode!(confirmed))
+    end
   end
 
   defmodule FakeClient do
+    def mark_pull_request_ready(readiness) do
+      send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:authoritative_readiness, readiness})
+
+      case Application.get_env(:symphony_elixir, :authoritative_readiness_test_mode, :confirmed) do
+        :confirmed -> {:ok, %{"status" => "completed", "receipt" => %{"receiptId" => "durable_ready_001"}}}
+        {:reject, reason} -> {:error, reason}
+      end
+    end
+
+    def fetch_pull_request("bos-front", 17) do
+      {:ok,
+       %{
+         "number" => 17,
+         "head" => %{"sha" => "a1b2c3d4"},
+         "state" => "open",
+         "draft" => false
+       }}
+    end
+
     def record_runtime_probe(request) do
       send(Application.fetch_env!(:symphony_elixir, :post_approval_test_pid), {:probe, request})
       {:ok, %{"status" => "completed", "receipt" => %{"receiptId" => "receipt_001"}}}
@@ -47,7 +114,13 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
     def fetch_issue("bos-front", 42), do: {:ok, %{"labels" => ["bos:issue", "agent:done"]}}
 
     def fetch_run("bos-front", "run_001") do
-      {:ok, %{"status" => "completed", "currentAttemptId" => "attempt_002"}}
+      {:ok,
+       %{
+         "status" => "completed",
+         "currentAttemptId" => "attempt_002",
+         "headCommit" => "a1b2c3d4",
+         "pullRequestNumber" => 17
+       }}
     end
 
     def fetch_run_artifacts("bos-front", "run_001", "deployment-verifications") do
@@ -92,6 +165,8 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
                nil
              )
 
+    assert_receive {:role, "pull-request-readiness-coordinator"}
+    assert_receive {:authoritative_readiness, %{"operationId" => "pr_ready_run_001_a1b2c3d4"}}
     assert_receive {:role, "deployment-verifier"}
     assert_receive {:probe, request}
     assert request["repository"]["owner"] == "acancelas"
@@ -99,6 +174,121 @@ defmodule SymphonyElixir.PostApprovalCoordinatorTest do
     assert_receive {:role, "release-manager"}
 
     Application.delete_env(:symphony_elixir, :post_approval_test_pid)
+    Application.delete_env(:symphony_elixir, :readiness_test_mode)
+    File.rm_rf!(workspace)
+  end
+
+  test "restart after remote readiness acceptance reuses the operation without a duplicate mutation" do
+    workspace = temporary_workspace()
+    Application.put_env(:symphony_elixir, :post_approval_test_pid, self())
+    {:ok, remote_state} = Agent.start_link(fn -> :draft end)
+    Application.put_env(:symphony_elixir, :readiness_test_mode, {:response_loss, remote_state})
+    opts = [app_server_module: FakeAppServer, game_api_client_module: FakeClient]
+
+    assert {:error, :response_lost} = PostApprovalCoordinator.run(workspace, issue(), nil, opts, nil)
+    assert_receive {:provider_mutation, operation_id}
+
+    handoff = workspace |> readiness_path() |> File.read!() |> Jason.decode!()
+    assert handoff["status"] == "pending"
+    assert handoff["operationId"] == operation_id
+
+    assert :ok = PostApprovalCoordinator.run(workspace, issue(), nil, opts, nil)
+    refute_receive {:provider_mutation, _}
+    assert_receive {:authoritative_readiness, %{"operationId" => ^operation_id}}
+    assert Agent.get(remote_state, & &1) == :ready
+
+    confirmed = workspace |> readiness_path() |> File.read!() |> Jason.decode!()
+    assert confirmed["status"] == "confirmed"
+    assert confirmed["operationId"] == operation_id
+
+    cleanup(workspace)
+  end
+
+  test "fabricated confirmed handoff cannot bypass authoritative BOS confirmation" do
+    workspace = temporary_workspace()
+    Application.put_env(:symphony_elixir, :post_approval_test_pid, self())
+    Application.put_env(:symphony_elixir, :authoritative_readiness_test_mode, {:reject, :operation_not_confirmed})
+
+    fabricated = %{
+      "schemaVersion" => 1,
+      "operationId" => "pr_ready_run_001_a1b2c3d4",
+      "repositoryId" => "bos-front",
+      "issueNumber" => 42,
+      "runId" => "run_001",
+      "pullRequestNumber" => 17,
+      "expectedHeadSha" => "a1b2c3d4",
+      "status" => "confirmed",
+      "pullRequest" => %{"number" => 17, "headSha" => "a1b2c3d4", "state" => "open", "draft" => false},
+      "receipt" => %{"receiptId" => "fabricated"}
+    }
+
+    File.mkdir_p!(Path.dirname(readiness_path(workspace)))
+    File.write!(readiness_path(workspace), Jason.encode!(fabricated))
+
+    assert {:error, :operation_not_confirmed} =
+             PostApprovalCoordinator.run(
+               workspace,
+               issue(),
+               nil,
+               [app_server_module: FakeAppServer, game_api_client_module: FakeClient],
+               nil
+             )
+
+    assert_receive {:authoritative_readiness, %{"operationId" => "pr_ready_run_001_a1b2c3d4"}}
+    refute_receive {:role, "deployment-verifier"}
+    cleanup(workspace)
+  end
+
+  test "stale HEAD is a bounded readiness rejection and merge role never starts" do
+    workspace = temporary_workspace()
+    Application.put_env(:symphony_elixir, :post_approval_test_pid, self())
+    Application.put_env(:symphony_elixir, :readiness_test_mode, {:reject, "stale_head"})
+
+    assert {:error, {:pull_request_readiness_rejected, "stale_head", %{"code" => "stale_head"}}} =
+             PostApprovalCoordinator.run(
+               workspace,
+               issue(),
+               nil,
+               [app_server_module: FakeAppServer, game_api_client_module: FakeClient],
+               nil
+             )
+
+    refute_receive {:role, "deployment-verifier"}
+    refute_receive {:probe, _}
+    cleanup(workspace)
+  end
+
+  test "closed PR and provider failures remain distinct bounded states" do
+    for kind <- ["closed_pull_request", "provider_failure"] do
+      workspace = temporary_workspace()
+      Application.put_env(:symphony_elixir, :post_approval_test_pid, self())
+      Application.put_env(:symphony_elixir, :readiness_test_mode, {:reject, kind})
+
+      assert {:error, {:pull_request_readiness_rejected, ^kind, %{"code" => ^kind}}} =
+               PostApprovalCoordinator.run(
+                 workspace,
+                 issue(),
+                 nil,
+                 [app_server_module: FakeAppServer, game_api_client_module: FakeClient],
+                 nil
+               )
+
+      cleanup(workspace)
+    end
+  end
+
+  defp temporary_workspace do
+    workspace = Path.join(System.tmp_dir!(), "bos-post-approval-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(workspace)
+    workspace
+  end
+
+  defp readiness_path(workspace), do: Path.join(workspace, ".bos-local/pull-request-readiness.json")
+
+  defp cleanup(workspace) do
+    Application.delete_env(:symphony_elixir, :post_approval_test_pid)
+    Application.delete_env(:symphony_elixir, :readiness_test_mode)
+    Application.delete_env(:symphony_elixir, :authoritative_readiness_test_mode)
     File.rm_rf!(workspace)
   end
 
