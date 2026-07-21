@@ -181,8 +181,20 @@ defmodule SymphonyElixir.GameApi.Client do
 
     with true <- (is_binary(run_id) and run_id != "") || {:error, :missing_run_id},
          {:ok, repository} <- find_repository(repository_id),
-         {:ok, run} <- ensure_run_record(repository, issue, run_id, issue_number, attempt_id),
-         :ok <- ensure_attempt_record(repository, issue, run, run_id, attempt_id, attempt_number) do
+         {:ok, run, run_disposition} <-
+           ensure_run_record(repository, issue, run_id, issue_number, attempt_id),
+         {:ok, attempt_disposition} <-
+           ensure_attempt_record(repository, issue, run, run_id, attempt_id, attempt_number),
+         :ok <-
+           record_recovery_decision(
+             repository,
+             issue,
+             run,
+             run_id,
+             attempt_id,
+             run_disposition,
+             attempt_disposition
+           ) do
       {:ok, attempt_id}
     else
       {:error, reason} -> {:error, reason}
@@ -373,13 +385,17 @@ defmodule SymphonyElixir.GameApi.Client do
   defp ensure_run_record(repository, issue, run_id, issue_number, attempt_id) do
     case fetch_run(repository["repository_id"], run_id) do
       {:ok, %{"currentAttemptId" => ^attempt_id} = run} ->
-        {:ok, run}
+        {:ok, run, :existing}
 
       {:ok, run} ->
-        record_run(repository, issue, run_id, issue_number, attempt_id, run)
+        with {:ok, updated} <- record_run(repository, issue, run_id, issue_number, attempt_id, run) do
+          {:ok, updated, :updated}
+        end
 
       {:error, {:game_api_http_error, 404}} ->
-        record_run(repository, issue, run_id, issue_number, attempt_id, nil)
+        with {:ok, created} <- record_run(repository, issue, run_id, issue_number, attempt_id, nil) do
+          {:ok, created, :created}
+        end
 
       {:error, reason} ->
         {:error, reason}
@@ -418,16 +434,22 @@ defmodule SymphonyElixir.GameApi.Client do
     case list_artifacts(repository, run_id, "attempts") do
       {:ok, artifacts} when is_list(artifacts) ->
         if Enum.any?(artifacts, &(&1["attemptId"] == attempt_id)) do
-          :ok
+          {:ok, :existing}
         else
-          record_attempt(repository, issue, run, run_id, attempt_id, attempt_number)
+          create_attempt(repository, issue, run, run_id, attempt_id, attempt_number)
         end
 
       {:error, {:game_api_http_error, 404}} ->
-        record_attempt(repository, issue, run, run_id, attempt_id, attempt_number)
+        create_attempt(repository, issue, run, run_id, attempt_id, attempt_number)
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp create_attempt(repository, issue, run, run_id, attempt_id, attempt_number) do
+    with :ok <- record_attempt(repository, issue, run, run_id, attempt_id, attempt_number) do
+      {:ok, :created}
     end
   end
 
@@ -454,6 +476,52 @@ defmodule SymphonyElixir.GameApi.Client do
            ) do
       :ok
     end
+  end
+
+  defp record_recovery_decision(
+         repository,
+         issue,
+         run,
+         run_id,
+         attempt_id,
+         :existing,
+         :existing
+       ) do
+    with {:ok, event} <-
+           lifecycle_event(
+             repository,
+             issue,
+             run_id,
+             attempt_id,
+             run,
+             "recovery.resumed",
+             "Existing AgentRun and Attempt selected for idempotent restart recovery."
+           ),
+         {:ok, _receipt} <- append_recovery_event(repository, event) do
+      :ok
+    end
+  end
+
+  defp record_recovery_decision(
+         _repository,
+         _issue,
+         _run,
+         _run_id,
+         _attempt_id,
+         _run_disposition,
+         _attempt_disposition
+       ),
+       do: :ok
+
+  defp append_recovery_event(repository, event) do
+    operation_id = event["operationId"]
+
+    append_audit_batch(%{
+      "operationId" => "append_#{operation_id}",
+      "batchId" => "batch_#{operation_id}",
+      "repository" => repository_body(repository),
+      "events" => [event]
+    })
   end
 
   defp record_artifact(repository, issue_number, run_id, kind, artifact, event) do
