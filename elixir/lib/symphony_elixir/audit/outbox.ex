@@ -360,6 +360,10 @@ defmodule SymphonyElixir.Audit.Outbox do
   def provider_rate_limited_for_test?(reason), do: provider_rate_limited?(reason)
 
   @doc false
+  @spec immediate_flush_for_test?(map()) :: boolean()
+  def immediate_flush_for_test?(update), do: critical?(update)
+
+  @doc false
   @spec rebase_pending_events([map()], non_neg_integer(), String.t() | nil) :: [map()]
   def rebase_pending_events(events, confirmed_sequence, confirmed_hash)
       when is_list(events) and is_integer(confirmed_sequence) and confirmed_sequence >= 0 do
@@ -1045,7 +1049,6 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp event_method(_event), do: ""
 
   defp critical?(%{event: event}) when event in [:turn_completed, :turn_failed, :turn_cancelled], do: true
-  defp critical?(%{payload: %{"method" => "turn/diff/updated"}}), do: true
   defp critical?(_update), do: false
 
   defp event_type("item/completed", payload), do: item_event_type(payload, "completed")

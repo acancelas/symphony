@@ -32,10 +32,12 @@ state cannot be read reliably, Symphony preserves the workspace for recovery and
 reason. A clean worktree is not sufficient: its `HEAD` must also be reachable from the configured
 upstream, so local commits that have not been pushed survive cleanup. A later attempt reuses that
 directory. Only clean, remotely durable terminal workspaces are disposable.
-Codex `turn/diff/updated` notifications are treated as critical recovery checkpoints: Symphony
-redacts their unified diff, writes it to the append-only outbox immediately, and flushes it as an
-independent `workspace.checkpointed` event to the GitHub audit ledger. This keeps the filesystem
-fast-path recoverable locally while giving a replacement X1 the last confirmed patch.
+Codex `turn/diff/updated` notifications are treated as durable recovery checkpoints: Symphony
+redacts their unified diff and writes it to the append-only outbox immediately. Checkpoints are
+confirmed in the GitHub audit ledger using the ordinary 50-event or 60-second batch boundary,
+instead of forcing one remote commit per diff notification. Terminal turn completion, failure and
+cancellation events still flush immediately. This preserves the filesystem recovery fast-path and
+the replacement-X1 ledger while avoiding unnecessary GitHub ref/tree/commit pressure.
 Ordinary flush failures use bounded exponential backoff with jitter per AgentRun. A `game-api` or
 GitHub provider rate limit opens one process-wide audit circuit for 1 to 15 minutes: hundreds of
 pending runs cannot take turns bypassing the same integration cooldown. Critical events continue
