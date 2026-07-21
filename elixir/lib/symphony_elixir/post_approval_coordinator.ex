@@ -22,7 +22,7 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
 
     with :ok <- require_local_probe_handoff(worker_host),
          {:ok, readiness} <- prepare_readiness_intent(client, workspace, issue),
-         :ok <- ensure_pull_request_ready(app_server, workspace, issue, recipient, worker_host, readiness),
+         :ok <- ensure_pull_request_ready(client, app_server, workspace, issue, recipient, worker_host, readiness),
          :ok <- prepare_probe_handoff(workspace),
          :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),
          {:ok, request} <- load_probe_request(workspace, issue),
@@ -94,11 +94,11 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
     end
   end
 
-  defp ensure_pull_request_ready(_app_server, _workspace, _issue, _recipient, _worker_host, %{"status" => "confirmed"} = handoff) do
-    validate_confirmed_readiness(handoff)
+  defp ensure_pull_request_ready(client, _app_server, _workspace, _issue, _recipient, _worker_host, %{"status" => "confirmed"} = handoff) do
+    confirm_authoritative_readiness(client, handoff)
   end
 
-  defp ensure_pull_request_ready(app_server, workspace, issue, recipient, worker_host, readiness) do
+  defp ensure_pull_request_ready(client, app_server, workspace, issue, recipient, worker_host, readiness) do
     prompt = """
     You are the BOS pull-request readiness coordinator for #{issue.identifier}.
     Symphony durably recorded the exact readiness intent at #{@readiness_path}.
@@ -118,8 +118,9 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
     """
 
     with :ok <- run_role(app_server, workspace, issue, worker_host, "pull-request-readiness-coordinator", prompt, recipient),
-         {:ok, handoff} <- read_readiness_handoff(workspace, readiness) do
-      readiness_outcome(handoff)
+         {:ok, handoff} <- read_readiness_handoff(workspace, readiness),
+         :ok <- readiness_outcome(handoff) do
+      confirm_authoritative_readiness(client, handoff)
     end
   end
 
@@ -154,6 +155,28 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
       :ok
     else
       {:error, :pull_request_readiness_confirmation_invalid}
+    end
+  end
+
+  defp confirm_authoritative_readiness(client, readiness) do
+    with {:ok, receipt} <- client.mark_pull_request_ready(readiness),
+         :ok <- validate_readiness_receipt(receipt),
+         {:ok, pull_request} <-
+           client.fetch_pull_request(readiness["repositoryId"], readiness["pullRequestNumber"]) do
+      validate_current_pull_request(pull_request, readiness)
+    end
+  end
+
+  defp validate_readiness_receipt(%{"status" => "completed", "receipt" => receipt}) when is_map(receipt), do: :ok
+  defp validate_readiness_receipt(other), do: {:error, {:pull_request_readiness_not_confirmed, other}}
+
+  defp validate_current_pull_request(pull_request, readiness) do
+    if pull_request["number"] == readiness["pullRequestNumber"] and
+         get_in(pull_request, ["head", "sha"]) == readiness["expectedHeadSha"] and
+         pull_request["state"] == "open" and pull_request["draft"] == false do
+      :ok
+    else
+      {:error, {:pull_request_readiness_current_state_invalid, pull_request}}
     end
   end
 
