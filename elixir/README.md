@@ -82,6 +82,7 @@ Codex, FIFO, SSH, and helper commands are tagged with a unique test owner and re
 callback before launch. Teardown sends TERM, waits for a bounded interval, escalates to KILL, and
 asserts that no process carrying that exact owner remains. This applies when the test passes,
 fails, or is interrupted by an ExUnit timeout; cleanup must never select an unrelated process.
+The release gate finishes with an owner-marker process scan and records a zero-process result.
 
 Lack of an execution slot is a queue condition, not a failed Attempt. Eligible work remains in a
 separate capacity queue without incrementing retry/backoff state. `agent:merging`, rework and
