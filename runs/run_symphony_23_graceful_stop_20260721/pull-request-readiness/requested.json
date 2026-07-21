@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run_symphony_23_graceful_stop_20260721",
+  "issueNumber": 23,
+  "pullRequestNumber": 27,
+  "expectedHeadSha": "406070d49289bf2ccf3cd2d930fd04f20bbd0243",
+  "status": "requested"
+}
