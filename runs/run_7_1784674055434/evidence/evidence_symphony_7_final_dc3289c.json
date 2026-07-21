@@ -1,0 +1,62 @@
+{
+  "evidenceId": "evidence_symphony_7_final_dc3289c",
+  "runId": "run_7_1784674055434",
+  "commitSha": "dc3289caa26419d9d788ce03f27a376901d91ae3",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "One recovery path owns each local workspace",
+      "status": "passed",
+      "evidence": "Per-workspace global transactions serialize local creation, quarantine and atomic publication."
+    },
+    {
+      "criterion": "Invalid workspaces never start Codex",
+      "status": "passed",
+      "evidence": "A ready marker bound to path and inode is required; incomplete directories are quarantined before bootstrap."
+    },
+    {
+      "criterion": "Partial and root-owned artifacts cannot leave the canonical path half-removed",
+      "status": "passed",
+      "evidence": "Bootstrap occurs in a staging sibling and is atomically renamed only after success; original data remains under quarantine."
+    },
+    {
+      "criterion": "Existing safe-removal protections remain intact",
+      "status": "passed",
+      "evidence": "Current-main dirty, unreadable and unpublished workspace preservation was retained during conflict integration."
+    },
+    {
+      "criterion": "Complete Symphony quality gates pass",
+      "status": "passed",
+      "evidence": "Parent implementation passed 332 tests, 100% coverage, Credo and Dialyzer; final exact HEAD passed fmt-check and all 60 affected recovery tests."
+    }
+  ],
+  "checks": [
+    {
+      "name": "workspace-recovery",
+      "status": "passed",
+      "tests": 60
+    },
+    {
+      "name": "make-all-parent",
+      "status": "passed",
+      "tests": 332,
+      "coveragePercent": 100
+    },
+    {
+      "name": "exact-head-format-and-recovery",
+      "status": "passed",
+      "tests": 60
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [],
+  "summary": "Workspace recovery is serialized, quarantines invalid state, bootstraps off-path and publishes atomically."
+}
