@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-2df58ea8-4756-4531-a096-739a9c963812",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671537445_45",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:05:37.417Z",
+  "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/audit/canonical_json_test.exs test/symphony_elixir/audit/outbox_test.exs test/symphony_elixir/game_api_adapter_test.exs'",
+  "durationMs": 998,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Running ExUnit with seed: 993040, max_cases: 20\n\n.....................................\nFinished in 0.2 seconds (0.2s async, 0.01s sync)\n37 tests, 0 failures\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}

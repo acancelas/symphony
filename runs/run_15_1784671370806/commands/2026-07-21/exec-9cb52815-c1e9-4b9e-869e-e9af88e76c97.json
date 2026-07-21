@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9cb52815-c1e9-4b9e-869e-e9af88e76c97",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671521778_39",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:05:21.749Z",
+  "command": "/bin/bash -lc \"python3 -c 'import rfc8785; print(rfc8785.dumps({\\\"output\\\":\\\"\\\\x1b\\\\x00\\\\x1f\\\\b\\\\t\\\\n\\\\f\\\\r\\\"}).decode()); import hashlib; print(hashlib.sha256(rfc8785.dumps({\\\"output\\\":\\\"\\\\x1b\\\\x00\\\\x1f\\\\b\\\\t\\\\n\\\\f\\\\r\\\"})).hexdigest())'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 1,
+  "outputSummary": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nModuleNotFoundError: No module named 'rfc8785'\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "long"
+  }
+}
