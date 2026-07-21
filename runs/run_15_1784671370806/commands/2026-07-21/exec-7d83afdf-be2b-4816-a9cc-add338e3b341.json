@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-7d83afdf-be2b-4816-a9cc-add338e3b341",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671723187_68",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:08:43.117Z",
+  "command": "/bin/bash -lc 'git add -A && git diff --cached --check && git diff --cached --stat && git commit -F /tmp/symphony-15-commit-message.txt && git status --short --branch && git rev-parse HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": " elixir/lib/symphony_elixir/audit/outbox.ex                |  1 +\n elixir/lib/symphony_elixir/game_api/client.ex             |  1 +\n elixir/test/symphony_elixir/audit/canonical_json_test.exs | 12 ++++++++++++\n elixir/test/symphony_elixir/game_api_adapter_test.exs     |  4 ++++\n 4 files changed, 18 insertions(+)\n[bos/issue-15 32c6450] fix(audit): recover canonicalization rejections\n 4 files changed, 18 insertions(+)\n## bos/issue-15\n32c645051f7d9c4e7deaa4a8ebe5e27df3f87ce3\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}
