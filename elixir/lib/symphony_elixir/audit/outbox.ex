@@ -423,6 +423,15 @@ defmodule SymphonyElixir.Audit.Outbox do
     end)
     |> Map.new(fn {run_id, run_state} ->
       pending = Enum.sort_by(run_state.pending, & &1["sequence"])
+      compacted = compact_pending_telemetry(pending)
+
+      if length(compacted) < length(pending) do
+        replace_pending_events(root, run_id, run_state.issue, compacted)
+
+        Logger.info("Compacted #{length(pending)} recovered BOS audit events into #{length(compacted)} durable events run_id=#{run_id}")
+      end
+
+      pending = compacted
       last = List.last(pending)
 
       {run_id,
@@ -433,6 +442,66 @@ defmodule SymphonyElixir.Audit.Outbox do
            previous_hash: last["eventHash"]
        }}
     end)
+  end
+
+  @doc false
+  @spec compact_pending_telemetry([map()]) :: [map()]
+  def compact_pending_telemetry([]), do: []
+
+  def compact_pending_telemetry(events) when is_list(events) do
+    ordered = Enum.sort_by(events, & &1["sequence"])
+
+    if Enum.any?(ordered, &telemetry_event?/1) do
+      first = hd(ordered)
+
+      compacted =
+        ordered
+        |> Enum.chunk_by(&telemetry_event?/1)
+        |> Enum.flat_map(&compact_telemetry_group/1)
+
+      rebase_pending_events(compacted, first["sequence"] - 1, first["previousEventHash"])
+    else
+      ordered
+    end
+  end
+
+  defp telemetry_event?(event) do
+    method = get_in(event, ["payload", "method"])
+    is_binary(method) and telemetry_delta?(method)
+  end
+
+  defp compact_telemetry_group([first | _rest] = group) do
+    if telemetry_event?(first), do: [aggregate_pending_group(group)], else: group
+  end
+
+  defp aggregate_pending_group(events) do
+    first = hd(events)
+    last = List.last(events)
+
+    methods =
+      Enum.frequencies_by(events, fn event -> get_in(event, ["payload", "method"]) end)
+
+    payload_bytes =
+      Enum.reduce(events, 0, fn event, total ->
+        total + (event["payload"] |> Jason.encode_to_iodata!() |> IO.iodata_length())
+      end)
+
+    first
+    |> Map.put("occurredAt", last["occurredAt"])
+    |> Map.put("eventType", "agent.telemetry_aggregated")
+    |> Map.put("status", "completed")
+    |> Map.put("summary", "Aggregated #{length(events)} high-frequency Codex progress events")
+    |> Map.put("retention", %{"category" => "permanent"})
+    |> Map.put("payload", %{
+      "method" => "bos/telemetry/aggregated",
+      "params" => %{
+        "eventCount" => length(events),
+        "payloadBytes" => payload_bytes,
+        "firstOccurredAt" => first["occurredAt"],
+        "lastOccurredAt" => last["occurredAt"],
+        "methods" => methods
+      }
+    })
   end
 
   defp recover_incomplete_rebases(root) do

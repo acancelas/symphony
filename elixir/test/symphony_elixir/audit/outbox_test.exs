@@ -75,6 +75,41 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     refute Outbox.telemetry_delta?("turn/failed")
   end
 
+  test "compacts recovered delta runs without reordering durable boundaries" do
+    events = [
+      pending_event(41, "item/agentMessage/delta", "a", "sha256:confirmed"),
+      pending_event(42, "item/agentMessage/delta", "b", "sha256:stale-41"),
+      pending_event(43, "item/completed", "final", "sha256:stale-42"),
+      pending_event(44, "item/reasoning/delta", "c", "sha256:stale-43")
+    ]
+
+    [first, boundary, last] = Outbox.compact_pending_telemetry(events)
+
+    assert Enum.map([first, boundary, last], & &1["sequence"]) == [41, 42, 43]
+    assert first["previousEventHash"] == "sha256:confirmed"
+    assert first["eventType"] == "agent.telemetry_aggregated"
+    assert first["payload"]["params"]["eventCount"] == 2
+    assert boundary["payload"]["method"] == "item/completed"
+    assert last["payload"]["params"]["eventCount"] == 1
+    assert boundary["previousEventHash"] == first["eventHash"]
+    assert last["previousEventHash"] == boundary["eventHash"]
+  end
+
+  defp pending_event(sequence, method, delta, previous_hash) do
+    %{
+      "schemaVersion" => "1.0",
+      "eventId" => "event_#{sequence}",
+      "operationId" => "op_event_#{sequence}",
+      "occurredAt" => "2026-07-21T03:00:#{sequence}.000Z",
+      "runId" => "run_14",
+      "sequence" => sequence,
+      "previousEventHash" => previous_hash,
+      "eventHash" => "sha256:stale-#{sequence}",
+      "eventType" => "agent.progress_recorded",
+      "payload" => %{"method" => method, "params" => %{"delta" => delta}}
+    }
+  end
+
   test "recovers ordered unconfirmed events and their last hash after restart" do
     root = Path.join(System.tmp_dir!(), "bos-outbox-test-#{System.unique_integer([:positive])}")
     path = Path.join([root, "run_001", "events"])

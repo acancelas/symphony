@@ -49,6 +49,9 @@ fragment. The outbox replaces each bounded group of 100 fragments with one
 The next non-delta lifecycle event also flushes a partial group. Command/tool boundaries, failures,
 completed messages and final turn outcomes remain individual durable events, so aggregation reduces
 provider pressure without removing information required to explain or recover a run.
+On restart, consecutive unconfirmed legacy delta events in the local outbox are compacted with the
+same rule and their remaining chain is re-hashed atomically before any retry. Confirmed events and
+receipt-backed identities are never rewritten.
 
 ## How to use it
 
