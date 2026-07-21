@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8877c7e5-a8bb-41cf-bc40-970cf795d180",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629040762_600",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:17:22.032Z",
+  "command": "/bin/bash -lc 'git rev-parse HEAD && git status --short && git diff --stat && git diff --name-only && git show --stat --oneline --decorate --no-renames HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "1908764463438ee5658223e8be87e5c1237cfa7d\n1908764 (HEAD -> bos/issue-10) feat(delivery): promote draft PR before merge\n .../symphony_elixir/post_approval_coordinator.ex   | 151 ++++++++++++++++++++-\n .../post_approval_coordinator_test.exs             | 135 +++++++++++++++++-\n 2 files changed, 284 insertions(+), 2 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
