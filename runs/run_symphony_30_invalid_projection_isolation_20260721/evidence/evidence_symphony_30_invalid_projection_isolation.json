@@ -1,0 +1,57 @@
+{
+  "evidenceId": "evidence_symphony_30_invalid_projection_isolation",
+  "runId": "run_symphony_30_invalid_projection_isolation_20260721",
+  "commitSha": "cb6c799e48a89f83672b634bfaa35404711d6e9b",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Malformed run projections are isolated",
+      "status": "passed",
+      "evidence": "A missing issueNumber yields a structured invalid_run_projection skip."
+    },
+    {
+      "criterion": "Later valid records continue",
+      "status": "passed",
+      "evidence": "Directed regression proves two valid records after the malformed entry are reconciled in order."
+    },
+    {
+      "criterion": "Provider failures remain fatal",
+      "status": "passed",
+      "evidence": "Directed regression proves a 429 halts before a later record."
+    },
+    {
+      "criterion": "Full Symphony gate passes",
+      "status": "passed",
+      "evidence": "308 tests, 0 failures, 100 percent reported coverage, no Credo or Dialyzer findings."
+    }
+  ],
+  "checks": [
+    {
+      "name": "targeted-game-api-adapter",
+      "status": "passed",
+      "tests": 8
+    },
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 308,
+      "coveragePercent": 100
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "cb6c799e48a89f83672b634bfaa35404711d6e9b"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Malformed historical projections no longer block later repositories while provider failures remain fail-closed."
+}
