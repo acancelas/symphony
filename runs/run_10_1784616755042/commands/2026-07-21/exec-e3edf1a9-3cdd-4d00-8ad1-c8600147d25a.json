@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e3edf1a9-3cdd-4d00-8ad1-c8600147d25a",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629226536_695",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:20:26.363Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format lib/symphony_elixir/game_api/client.ex lib/symphony_elixir/post_approval_coordinator.ex test/symphony_elixir/post_approval_coordinator_test.exs && mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs'",
+  "durationMs": 2507,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Compiling 3 files (.ex)\nGenerated symphony_elixir app\nRunning ExUnit with seed: 455590, max_cases: 20\n\n.....\nFinished in 0.5 seconds (0.00s async, 0.5s sync)\n5 tests, 0 failures\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
