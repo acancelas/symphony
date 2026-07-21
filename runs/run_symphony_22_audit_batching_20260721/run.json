@@ -1,0 +1,18 @@
+{
+  "runId": "run_symphony_22_audit_batching_20260721",
+  "issueNumber": 22,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "github:acancelas"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "25b97866"
+  },
+  "startedAt": "2026-07-21T18:53:00Z",
+  "branch": "bos/issue-22",
+  "currentAttemptId": "attempt_run_symphony_22_audit_batching_20260721_1"
+}
