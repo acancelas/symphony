@@ -453,6 +453,17 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     assert normalized["outputSummary"] =~ "[REDACTED]"
   end
 
+  test "bounds long command summaries without discarding command metadata" do
+    command = "mix run " <> String.duplicate("á", 3_000)
+    payload = %{"command" => command, "exitCode" => 0}
+
+    summary = Outbox.event_summary_for_test("item/completed", payload)
+
+    assert String.length(summary) == 2_000
+    assert String.ends_with?(summary, "… [truncated]")
+    assert payload["command"] == command
+  end
+
   test "attributes Codex lifecycle actions to the agent while retaining runner observation separately" do
     assert Outbox.actor_for_codex_method("item/completed") == %{
              "type" => "agent",
