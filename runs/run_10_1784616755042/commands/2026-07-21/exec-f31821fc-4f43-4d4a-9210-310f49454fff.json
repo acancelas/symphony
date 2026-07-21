@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f31821fc-4f43-4d4a-9210-310f49454fff",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629578979_905",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:26:18.911Z",
+  "command": "/bin/bash -lc 'git log --oneline --decorate -8 && git merge-base HEAD origin/main && git diff --stat origin/main...HEAD && git diff --name-status origin/main...HEAD && git show --stat --oneline --decorate HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "c3554e6 (HEAD -> bos/issue-10) fix(delivery): verify PR readiness through game-api\n1908764 feat(delivery): promote draft PR before merge\n7b22f4b (origin/main, origin/HEAD, main) Bound retained Codex event summaries (#5)\n387aa1f Bound durable audit volume and recover legacy outboxes (#3)\n59964ee Merge pull request #1 from acancelas/agent/bos-game-api-orchestration\n76f5dae (origin/agent/bos-game-api-orchestration) feat(delivery): orchestrate goal planning and terminal verification\n03ad8ca fix: satisfy delivery orchestration quality gate\n9165ead Orchestrate\n7b22f4b7c618f06f7ba3cc95bc8bd4ca6511721e\n elixir/lib/symphony_elixir/game_api/client.ex      |  24 +++\n .../symphony_elixir/post_approval_coordinator.ex   | 174 ++++++++++++++++++-\n .../post_approval_coordinator_test.exs             | 192 ++++++++++++++++++++-\n 3 files changed, 388 insertions(+), 2 deletions(-)\nM\telixir/lib/symphony_elixir/game_api/client.ex\nM\telixir/lib/symphony_elixir/post_approval_coordinator.ex\nM\telixir/test/symphony_elixir/post_approval_coordinator_test.exs\nc3554e6 (HEAD -> bos/issue-10) fix(delivery): verify PR readiness through game-api\n elixir/lib/symphony_elixir/game_api/client.ex      | 24 +++++++++\n .../symphony_elixir/post_approval_coordinator.ex   | 35 ++++++++++---\n .../post_approval_coordinator_test.exs             | 57 ++++++++++++++++++++++\n 3 files changed, 110 insertions(+), 6 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
