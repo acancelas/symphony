@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_symphony_28_reconciliation_cycle_20260721",
-  "lastSequence": 2,
-  "lastEventHash": "sha256:5843873c4a890ab5ab33ed14006418ff4a4c0a0354071ca827a4a3357a9c2a84",
-  "lastEventId": "event_b1a10bb86c34a9bf43926aa0db",
-  "updatedAt": "2026-07-21T19:13:57.681614Z"
+  "lastSequence": 3,
+  "lastEventHash": "sha256:e14df39a56f4b1d291c038e6e054e57355c6a3eadb76c09ee09b3329847733b3",
+  "lastEventId": "event_f894a3f0a9fe3d9693981d15d0",
+  "updatedAt": "2026-07-21T19:14:02.497051Z"
 }
