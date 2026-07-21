@@ -1,0 +1,20 @@
+{
+  "attemptId": "attempt_run_symphony_20_review_resume_20260721_1",
+  "runId": "run_symphony_20_review_resume_20260721",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-21T18:33:00Z",
+  "completedAt": "2026-07-21T18:34:00Z",
+  "reason": "Implementation and exact-HEAD quality gate completed.",
+  "summary": "Review artifact lookup now resumes after provider cooldown without rerunning completed Codex reviewer work.",
+  "metrics": {
+    "testsPassed": 300,
+    "coveragePercent": 100,
+    "credoIssues": 0,
+    "dialyzerErrors": 0
+  }
+}
