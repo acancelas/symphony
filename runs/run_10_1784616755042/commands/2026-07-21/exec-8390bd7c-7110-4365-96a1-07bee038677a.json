@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8390bd7c-7110-4365-96a1-07bee038677a",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628828835_465",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:13:48.835Z",
+  "command": "/bin/bash -lc \"git log --oneline --decorate origin/main..HEAD && git diff --stat origin/main...HEAD && git diff --name-only origin/main...HEAD && sed -n '1,220p' .bos/project.yaml && git diff --find-renames --unified=40 origin/main...HEAD\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "1908764 (HEAD -> bos/issue-10) feat(delivery): promote draft PR before merge\n .../symphony_elixir/post_approval_coordinator.ex   | 151 ++++++++++++++++++++-\n .../post_approval_coordinator_test.exs             | 135 +++++++++++++++++-\n 2 files changed, 284 insertions(+), 2 deletions(-)\nelixir/lib/symphony_elixir/post_approval_coordinator.ex\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs\nschemaVersion: 1\nprojectId: bos\nrepositoryId: symphony\nworkflowId: bos-autonomous-delivery\nremote: https://github.com/acancelas/symphony\ndelivery:\n  issueProvider: github\n  issueRequired: true\n  branchStrategy: issue-based\nquality:\n  commands:\n    - id: test\n      runner: shell\n      script: cd elixir && mise exec -- mix test\n      required: true\n      timeoutSeconds: 900\nenvironments:\n  production:\n    branch: main\n    automaticDeployment: false\n    requiresApproval: true\n    requiresVerification: true\noffline:\n  allowed: [read, edit, local_checks]\n  blocked: [push, pull_request, deployment]\ndiff --git a/elixir/lib/symphony_elixir/post_approval_coordinator.ex b/elixir/lib/symphony_elixir/post_approval_coordinator.ex\nindex cfe1e3e..fdd272c 100644\n--- a/elixir/lib/symphony_elixir/post_approval_coordinator.ex\n+++ b/elixir/lib/symphony_elixir/post_approval_coordinator.ex\n@@ -1,77 +1,226 @@\n defmodule SymphonyElixir.PostApprovalCoordinator do\n   @moduledoc \"\"\"\n   Continues an approved exact-HEAD delivery through merge, deployment evidence,\n   runner-confirmed runtime probing, release, and terminal state.\n \n   The verification agent may exercise browsers and repository test tooling, but\n   it cannot authenticate the probe. Symphony reads the bounded handoff file and\n   records it with the runner-only credential before the final release turn.\n   \"\"\"\n \n   alias SymphonyElixir.Codex.AppServer\n   alias SymphonyElixir.GameApi.Client\n   alias SymphonyElixir.Tracker.Issue\n \n   @probe_path \".bos-local/deployment-probe.json\"\n+  @readiness_path \".bos-local/pull-request-readiness.json",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
