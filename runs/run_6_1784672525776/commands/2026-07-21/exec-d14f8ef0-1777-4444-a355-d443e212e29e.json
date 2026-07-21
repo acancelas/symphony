@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d14f8ef0-1777-4444-a355-d443e212e29e",
+  "runId": "run_6_1784672525776",
+  "attemptId": "attempt_run_6_1784672525776_1",
+  "eventId": "event_1784672595795_24",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:23:15.759Z",
+  "command": "/bin/bash -lc \"grep -Rni '\\\"commitSha\\\"\\\\|headCommit\\\\|candidate.*published\\\\|publication' elixir/lib elixir/test | head -n 400; grep -Rni 'kind.*evidence\\\\|\\\"evidence\\\"' docs elixir 2>/dev/null | head -n 200; git show --stat --oneline 6f6406c; git show --stat --oneline 388664f\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/post_approval_coordinator.ex:110:      not is_binary(probe[\"commitSha\"]) -> {:error, :commit_missing}\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:151:          verification[\"commitSha\"] == probe[\"commitSha\"] and\nelixir/lib/symphony_elixir/game_api/client.ex:254:               \"headCommit\" => existing_run && existing_run[\"headCommit\"],\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:23:          \"commitSha\" => \"a1b2c3d4\",\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:59:           \"commitSha\" => \"a1b2c3d4\",\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:98:    assert request[\"probe\"][\"commitSha\"] == \"a1b2c3d4\"\nelixir/lib/symphony_elixir/audit/outbox.ex:137:        \"evidence\" => [],\nelixir/lib/symphony_elixir/game_api/client.ex:360:      \"evidence\" => [],\n6f6406c fix(delivery): confirm candidate head before reviews\n elixir/lib/symphony_elixir/candidate_head.ex       | 128 +++++++++++++++++++++\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  42 ++++---\n .../test/symphony_elixir/candidate_head_test.exs   |  84 ++++++++++++++\n .../symphony_elixir/delivery_coordinator_test.exs  |  20 ++++\n 4 files changed, 260 insertions(+), 14 deletions(-)\n388664f test(delivery): cover candidate durability failures\n elixir/lib/symphony_elixir/candidate_head.ex       |  24 ++--\n elixir/lib/symphony_elixir/delivery_coordinator.ex |   2 +-\n .../test/symphony_elixir/candidate_head_test.exs   | 149 +++++++++++++++++++++\n 3 files changed, 158 insertions(+), 17 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-6",
+  "retention": {
+    "category": "permanent"
+  }
+}

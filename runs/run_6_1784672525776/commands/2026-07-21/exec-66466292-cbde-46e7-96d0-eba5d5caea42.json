@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-66466292-cbde-46e7-96d0-eba5d5caea42",
+  "runId": "run_6_1784672525776",
+  "attemptId": "attempt_run_6_1784672525776_1",
+  "eventId": "event_1784672585921_22",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:23:05.921Z",
+  "command": "/bin/bash -lc \"sed -n '1,180p' elixir/lib/symphony_elixir/agent_runner.ex; sed -n '1,340p' elixir/lib/symphony_elixir/game_api/client.ex; sed -n '1,220p' elixir/lib/symphony_elixir/game_api/adapter.ex; sed -n '450,540p' elixir/lib/symphony_elixir/audit/outbox.ex; sed -n '1,180p' elixir/lib/symphony_elixir/workspace.ex; grep -RniE \\\"restart|workspace loss|repair cycle|historical evidence|unavailable commit\\\" elixir/test elixir/lib | head -n 300\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.AgentRunner do\n  @moduledoc \"\"\"\n  Executes a single tracker work item in its workspace with Codex.\n  \"\"\"\n\n  require Logger\n  alias SymphonyElixir.Codex.AppServer\n\n  alias SymphonyElixir.{\n    Config,\n    DeliveryCoordinator,\n    GoalPlanningCoordinator,\n    PostApprovalCoordinator,\n    PromptBuilder,\n    Tracker,\n    Workspace\n  }\n\n  alias SymphonyElixir.Tracker.Issue\n\n  @type worker_host :: String.t() | nil\n\n  @doc false\n  @spec continue_with_issue_for_test(Issue.t(), ([String.t()] -> term())) ::\n          {:continue, Issue.t()} | {:done, Issue.t()} | {:error, term()}\n  def continue_with_issue_for_test(%Issue{} = issue, issue_state_fetcher)\n      when is_function(issue_state_fetcher, 1) do\n    continue_with_issue?(issue, issue_state_fetcher)\n  end\n\n  @spec run(map(), pid() | nil, keyword()) :: :ok | no_return()\n  def run(issue, codex_update_recipient \\\\ nil, opts \\\\ []) do\n    # The orchestrator owns host retries so one worker lifetime never hops machines.\n    worker_host = selected_worker_host(Keyword.get(opts, :worker_host), Config.settings!().worker.ssh_hosts)\n\n    Logger.info(\"Starting agent run for #{issue_context(issue)} worker_host=#{worker_host_for_log(worker_host)}\")\n\n    case run_on_worker_host(issue, codex_update_recipient, opts, worker_host) do\n      :ok ->\n        :ok\n\n      {:error, reason} ->\n        Logger.error(\"Agent run failed for #{issue_context(issue)}: #{inspect(reason)}\")\n        raise RuntimeError, \"Agent run failed for #{issue_context(issue)}: #{inspect(reason)}\"\n    end\n  end\n\n  defp run_on_worker_host(issue, codex_update_recipient, opts, worker_host) do\n    Logger.info(\"Starting worker attempt for #{issue_context(issue)} worker_host=#{worker_host_for_log(worker_host)}\")\n    attempt_number = normalize_attempt_number(Keyword.get(opts, :attempt))\n\n    with {:ok, issue} <- Tracker.start_execution(issue, attempt_number),\n         {:ok, workspace} <- Workspace.create_for_issue(issue, worker_host) do\n      send_worker_ru",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-6",
+  "retention": {
+    "category": "permanent"
+  }
+}
