@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_symphony_21_terminal_reconciliation_20260721",
-  "lastSequence": 8,
-  "lastEventHash": "sha256:3f2a216fdcca9b9f223f1dcb3185568ff140c7927cb0fb954e578e02e7fc03a0",
-  "lastEventId": "event_78dfce2bed2d24c5ac5f5dca06",
-  "updatedAt": "2026-07-21T18:46:09.939898Z"
+  "lastSequence": 9,
+  "lastEventHash": "sha256:8212024d96ea2a865acc409d8393cfa459cf8d0bbcc218184d3633083e82c84d",
+  "lastEventId": "event_e2dad5a8b907a4d03c3020c73f",
+  "updatedAt": "2026-07-21T20:35:22.408896Z"
 }
