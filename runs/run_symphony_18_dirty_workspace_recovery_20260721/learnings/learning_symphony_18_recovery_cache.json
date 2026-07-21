@@ -1,0 +1,23 @@
+{
+  "learningId": "learning_symphony_18_recovery_cache",
+  "runId": "run_symphony_18_dirty_workspace_recovery_20260721",
+  "category": "operations",
+  "summary": "Process termination, local audit retention and aggregate token totals each hid a different operational failure mode. Elixir task death did not reap shell descendants; confirmed receipts accumulated despite GitHub being canonical; aggregate input obscured ~92.8% model cache reuse. PR creation also duplicated canonical markers when callers supplied them.",
+  "action": "Fail closed on workspace deletion, checkpoint diffs, reap test children with bounded writes, collapse receipts to sequence watermarks, aggregate low-value telemetry, expose cached versus uncached tokens, require compact context first, and make PR marker generation idempotent in game-api. Continue bos-mcp memory/cache work under bos-mcp#12.",
+  "references": [
+    {
+      "type": "pull_request",
+      "number": 19,
+      "url": "https://github.com/acancelas/symphony/pull/19"
+    },
+    {
+      "type": "issue",
+      "repositoryId": "bos-mcp",
+      "number": 12
+    },
+    {
+      "type": "commit",
+      "sha": "36f631bab500ccce618a88fdae035c6ac681ab70"
+    }
+  ]
+}
