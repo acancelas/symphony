@@ -1,0 +1,21 @@
+{
+  "attemptId": "attempt_run_13_manual_20260721T0416Z_1",
+  "runId": "run_13_manual_20260721T0416Z",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp_internal_token"
+  },
+  "startedAt": "2026-07-21T04:16:00Z",
+  "completedAt": "2026-07-21T04:24:00Z",
+  "summary": "Implemented exact-run expired-claim recovery and passed the complete Symphony quality gate at commit 1de53620dc77f2755741b62b39b1d225bc37c961.",
+  "metrics": {
+    "tests": 275,
+    "failures": 0,
+    "coveragePercent": 100,
+    "dialyzerErrors": 0
+  }
+}
