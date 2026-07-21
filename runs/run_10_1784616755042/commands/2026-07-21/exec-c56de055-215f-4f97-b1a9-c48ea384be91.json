@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c56de055-215f-4f97-b1a9-c48ea384be91",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629588272_912",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:26:28.203Z",
+  "command": "/bin/bash -lc 'rg -n -C 5 \"pull-request-readiness|mark_pull_request_ready|BOS_MCP_ACTOR|deployment-verifier\" WORKFLOW.md SPEC.md README.md elixir/README.md .bos/project.yaml elixir/lib elixir/test | head -n 500'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
