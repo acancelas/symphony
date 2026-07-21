@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-ce226396-94a7-4ca3-be7f-192e6a75a261",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675354879_77",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:09:14.834Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format test/support/test_support.exs test/symphony_elixir/candidate_head_test.exs && mise exec -- mix test test/symphony_elixir/candidate_head_test.exs test/symphony_elixir/core_test.exs test/symphony_elixir/workspace_and_config_test.exs'",
+  "durationMs": 67126,
+  "environmentPolicy": "restricted",
+  "exitCode": 2,
+  "outputSummary": "Running ExUnit with seed: 825881, max_cases: 20\r\n\r\nhint: Using 'master' as the name for the initial branch. This default branch name\r\nhint: is subject to change. To configure the initial branch name to use in all\r\nhint: of your new repositories, which will suppress this warning, call:\r\nhint: \r\nhint: \tgit config --global init.defaultBranch <name>\r\nhint: \r\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\r\nhint: 'development'. The just-created branch can be renamed via this command:\r\nhint: \r\nhint: \tgit branch -m <name>\r\n\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\r\n\r\n  1) test workspace remove continues when before_remove hook times out (SymphonyElixir.WorkspaceAndConfigTest)\r\n     \u001b[1m\u001b[30mtest/symphony_elixir/workspace_and_config_test.exs:1144\u001b[0m\r\n     \u001b[31m** (ExUnit.TimeoutError) test timed out after 60000ms. You can change the timeout:\r\n\r\n       1. per test by setting \"@tag timeout: x\" (accepts :infinity)\r\n       2. per test module by setting \"@moduletag timeout: x\" (accepts :infinity)\r\n       3. globally via \"ExUnit.start(timeout: x)\" configuration\r\n       4. by running \"mix test --timeout x\" which sets timeout\r\n       5. or by running \"mix test --trace\" which sets timeout to infinity\r\n          (useful when using IEx.pry/0)\r\n\r\n     where \"x\" is the timeout give",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
