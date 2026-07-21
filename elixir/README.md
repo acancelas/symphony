@@ -96,6 +96,13 @@ wrappers—and direct `api.github.com` or GitHub GraphQL traffic are declined be
 The denial is emitted as a redacted `command_policy_blocked` event with a `bos-mcp` replacement.
 Local Git transport such as `fetch` and guarded non-force `push` remains allowed.
 
+If the exact candidate check finds tracked changes, the delivery coordinator gives one bounded
+repair turn the affected paths, dirty-tree fingerprint, and a redacted summary of the preceding
+command. The repair must validate and publish legitimate generated output, or leave unsafe and
+unrelated changes untouched for one durable coordinator-owned blocker. Reviews and evidence then
+restart only after a clean tree and a newly confirmed remote HEAD; the same failure cannot fall
+back into unbounded generic implementation retries.
+
 Intentional OTP supervisor shutdown (`:normal`, `:shutdown`, or `{:shutdown, reason}`) exits the
 CLI successfully so a controlled `systemctl stop` remains operationally distinct from a crash.
 Unexpected supervisor reasons still return a failure status and remain eligible for service

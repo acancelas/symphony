@@ -42,4 +42,12 @@ defmodule SymphonyElixir.CommandPolicyTest do
     assert :ok = CommandPolicy.inspect_command("env")
     assert :ok = CommandPolicy.inspect_command(nil)
   end
+
+  test "produces a bounded redacted command summary for repair context" do
+    summary = CommandPolicy.safe_summary("uv lock authorization=should-not-survive")
+
+    assert summary == "uv lock [REDACTED]"
+    refute summary =~ "should-not-survive"
+    assert String.length(CommandPolicy.safe_summary(String.duplicate("x", 600))) == 500
+  end
 end

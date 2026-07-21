@@ -5,6 +5,7 @@ defmodule SymphonyElixir.AgentRunner do
 
   require Logger
   alias SymphonyElixir.Codex.AppServer
+  alias SymphonyElixir.Codex.CommandPolicy
 
   alias SymphonyElixir.{
     Config,
@@ -30,6 +31,8 @@ defmodule SymphonyElixir.AgentRunner do
 
   @spec run(map(), pid() | nil, keyword()) :: :ok | no_return()
   def run(issue, codex_update_recipient \\ nil, opts \\ []) do
+    Process.delete(:bos_last_completed_command)
+
     # The orchestrator owns host retries so one worker lifetime never hops machines.
     worker_host = selected_worker_host(Keyword.get(opts, :worker_host), Config.settings!().worker.ssh_hosts)
 
@@ -93,12 +96,12 @@ defmodule SymphonyElixir.AgentRunner do
   defp run_bos_delivery_stage({:ok, true}, workspace, issue, recipient, opts, worker_host) do
     Logger.info("Resuming durable review stage without reopening implementation for #{issue_context(issue)}")
 
-    DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
+    DeliveryCoordinator.run(workspace, issue, recipient, delivery_context_opts(opts), worker_host)
   end
 
   defp run_bos_delivery_stage({:ok, false}, workspace, issue, recipient, opts, worker_host) do
     with :ok <- run_codex_turns(workspace, issue, recipient, opts, worker_host) do
-      DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
+      DeliveryCoordinator.run(workspace, issue, recipient, delivery_context_opts(opts), worker_host)
     end
   end
 
@@ -108,9 +111,29 @@ defmodule SymphonyElixir.AgentRunner do
 
   defp codex_message_handler(recipient, issue) do
     fn message ->
+      remember_completed_command(message)
       send_codex_update(recipient, issue, message)
     end
   end
+
+  defp remember_completed_command(%{event: :item_completed, payload: payload}) do
+    item = get_in(payload || %{}, ["params", "item"]) || get_in(payload || %{}, ["item"])
+
+    if is_map(item) and String.contains?(String.downcase(to_string(item["type"] || "")), "command") do
+      Process.put(:bos_last_completed_command, %{
+        command: CommandPolicy.safe_summary(item["command"] || item["parsedCmd"] || "[command unavailable]"),
+        exit_code: item["exitCode"],
+        status: item["status"]
+      })
+    end
+
+    :ok
+  end
+
+  defp remember_completed_command(_message), do: :ok
+
+  defp delivery_context_opts(opts),
+    do: Keyword.put(opts, :prior_command_context, Process.get(:bos_last_completed_command))
 
   defp send_codex_update(recipient, %Issue{id: issue_id}, message)
        when is_binary(issue_id) and is_pid(recipient) do
