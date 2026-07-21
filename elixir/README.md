@@ -27,6 +27,12 @@ child environment, so the agent does not need a second tracker login.
 
 If a claimed issue moves to a terminal state (`Done`, `Closed`, `Cancelled`, or `Duplicate`),
 Symphony stops the active agent for that issue and cleans up matching workspaces.
+For the BOS `game_api` adapter, startup first lists durable AgentRuns and asks `game-api` to
+reconcile every non-terminal projection against the canonical Issue, pull request, exact HEAD,
+merge, and EvidenceReport. The operation is run-scoped and idempotent: a lost response returns the
+original receipt, an active lease is preserved, and Issue closure without exact-head proof cannot
+be promoted to successful completion. Only after this ledger repair does terminal workspace
+cleanup run from the requested normalized tracker states.
 Cleanup is fail-closed for Git workspaces: if `git status` reports uncommitted changes, or Git
 state cannot be read reliably, Symphony preserves the workspace for recovery and logs the
 reason. A clean worktree is not sufficient: its `HEAD` must also be reachable from the configured

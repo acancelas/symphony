@@ -73,6 +73,7 @@ defmodule SymphonyElixir.Orchestrator do
           codex_rate_limits: nil
         }
 
+        run_terminal_run_reconciliation()
         run_terminal_workspace_cleanup()
         state = schedule_tick(state, 0)
 
@@ -1182,6 +1183,17 @@ defmodule SymphonyElixir.Orchestrator do
 
       {:error, reason} ->
         Logger.warning("Skipping startup terminal workspace cleanup; failed to fetch terminal issues: #{inspect(reason)}")
+    end
+  end
+
+  defp run_terminal_run_reconciliation do
+    case Tracker.reconcile_terminal_runs() do
+      {:ok, results} ->
+        reconciled = Enum.count(results, &(&1["action"] == "reconciled"))
+        Logger.info("Terminal AgentRun reconciliation completed reconciled=#{reconciled} inspected=#{length(results)}")
+
+      {:error, reason} ->
+        Logger.warning("Skipping startup terminal AgentRun reconciliation; gateway request failed: #{inspect(reason)}")
     end
   end
 
