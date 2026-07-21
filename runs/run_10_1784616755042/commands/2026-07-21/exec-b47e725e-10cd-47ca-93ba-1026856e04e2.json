@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b47e725e-10cd-47ca-93ba-1026856e04e2",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784616990863_8728",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:56:30.863Z",
+  "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs'",
+  "durationMs": 6408,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\u001b[0mWaiting for lock on the build directory (held by process 638900)\n\u001b[0mWaiting for lock on the build directory (held by process 638900)\nRunning ExUnit with seed: 474448, max_cases: 20\n\n.....\nFinished in 0.2 seconds (0.00s async, 0.2s sync)\n5 tests, 0 failures\n",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616990863,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616990862,
+      "item": {
+        "aggregatedOutput": "\u001b[0mWaiting for lock on the build directory (held by process 638900)\n\u001b[0mWaiting for lock on the build directory (held by process 638900)\nRunning ExUnit with seed: 474448, max_cases: 20\n\n.....\nFinished in 0.2 seconds (0.00s async, 0.2s sync)\n5 tests, 0 failures\n",
+        "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs'",
+        "commandActions": [
+          {
+            "command": "mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs",
+            "type": "unknown"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+        "durationMs": 6408,
+        "exitCode": 0,
+        "id": "exec-b47e725e-10cd-47ca-93ba-1026856e04e2",
+        "processId": "32774",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8372-d98f-7721-9230-1fb0f32f4ffc",
+      "turnId": "019f8372-dcc3-7292-9b11-f8dbcca20262"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}

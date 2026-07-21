@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f70cfab8-4d0c-4a27-9234-be4b2bb203f6",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784616989759_8713",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:56:29.759Z",
+  "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs'",
+  "durationMs": 41788,
+  "environmentPolicy": "restricted",
+  "exitCode": 1,
+  "outputSummary": "==> file_system\nCompiling 7 files (.ex)\nGenerated file_system app\n==> floki\nCompiling 1 file (.xrl)\nCompiling 2 files (.erl)\nCompiling 30 files (.ex)\nGenerated floki app\n==> mime\nCompiling 1 file (.ex)\nGenerated mime app\n==> nimble_options\nCompiling 3 files (.ex)\nGenerated nimble_options app\n==> fine\nCompiling 1 file (.ex)\nGenerated fine app\n==> bunt\nCompiling 2 files (.ex)\nGenerated bunt app\n==> plug_crypto\nCompiling 5 files (.ex)\nGenerated plug_crypto app\n==> kday\nCompiling 1 file (.ex)\nGenerated kday app\n==> hpax\nCompiling 4 files (.ex)\nGenerated hpax app\n==> mint\nCompiling 1 file (.erl)\nCompiling 19 files (.ex)\nGenerated mint app\n==> symphony_elixir\n===> Analyzing applications...\n===> Compiling yamerl\n==> date_time_parser\nCompiling 15 files (.ex)\nCompiling lib/combinators.ex (it's taking more than 10s)\nGenerated date_time_parser app\n==> elixir_make\nCompiling 8 files (.ex)\nGenerated elixir_make app\n==> decimal\nCompiling 4 files (.ex)\nGenerated decimal app\n==> jason\nCompiling 10 files (.ex)\nGenerated jason app\n==> solid\nCompiling 49 files (.ex)\nGenerated solid app\n==> yaml_elixir\nCompiling 6 files (.ex)\nGenerated yaml_elixir app\n==> symphony_elixir\n===> Analyzing applications...\n===> Compiling telemetry\n==> ecto\nCompiling 56 files (.ex)\nGenerated ecto app\n==> thousand_island\nCompiling 18 files (.ex)\nGenerated thousand_island app\n==> phoenix_html\nCompiling 6 files (.ex)\nGenerated phoenix_html app\n==> phoenix_template\nCompiling 4 files (.ex)\nGenerated phoenix_template app\n==> phoenix_pubsub\nCompiling 12 files (.ex)\nGenerated phoenix_pubsub app\n==> credo\nCompiling 257 files (.ex)\nGenerated credo app\n==> plug\nCompiling 1 file (.erl)\nCompiling 42 files (.ex)\nGenerated plug app\n==> nimble_pool\nCompiling 2 files (.ex)\nGenerated nimble_pool app\n==> finch\nCompiling 23 files (.ex)\nGenerated finch app\n==> req\nCompiling 21 files (.ex)\nGenerated req app\n==> cc_precompiler\nCompiling 3 files (.ex)\nGenerated cc_precompiler app\n==> lazy_html\nCompiling 3 files (.ex)\nGenerated lazy_",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616989758,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616989758,
+      "item": {
+        "aggregatedOutput": "==> file_system\nCompiling 7 files (.ex)\nGenerated file_system app\n==> floki\nCompiling 1 file (.xrl)\nCompiling 2 files (.erl)\nCompiling 30 files (.ex)\nGenerated floki app\n==> mime\nCompiling 1 file (.ex)\nGenerated mime app\n==> nimble_options\nCompiling 3 files (.ex)\nGenerated nimble_options app\n==> fine\nCompiling 1 file (.ex)\nGenerated fine app\n==> bunt\nCompiling 2 files (.ex)\nGenerated bunt app\n==> plug_crypto\nCompiling 5 files (.ex)\nGenerated plug_crypto app\n==> kday\nCompiling 1 file (.ex)\nGenerated kday app\n==> hpax\nCompiling 4 files (.ex)\nGenerated hpax app\n==> mint\nCompiling 1 file (.erl)\nCompiling 19 files (.ex)\nGenerated mint app\n==> symphony_elixir\n===> Analyzing applications...\n===> Compiling yamerl\n==> date_time_parser\nCompiling 15 files (.ex)\nCompiling lib/combinators.ex (it's taking more than 10s)\nGenerated date_time_parser app\n==> elixir_make\nCompiling 8 files (.ex)\nGenerated elixir_make app\n==> decimal\nCompiling 4 files (.ex)\nGenerated decimal app\n==> jason\nCompiling 10 files (.ex)\nGenerated jason app\n==> solid\nCompiling 49 files (.ex)\nGenerated solid app\n==> yaml_elixir\nCompiling 6 files (.ex)\nGenerated yaml_elixir app\n==> symphony_elixir\n===> Analyzing applications...\n===> Compiling telemetry\n==> ecto\nCompiling 56 files (.ex)\nGenerated ecto app\n==> thousand_island\nCompiling 18 files (.ex)\nGenerated thousand_island app\n==> phoenix_html\nCompiling 6 files (.ex)\nGenerated phoenix_html app\n==> phoenix_template\nCompiling 4 files (.ex)\nGenerated phoenix_template app\n==> phoenix_pubsub\nCompiling 12 files (.ex)\nGenerated phoenix_pubsub app\n==> credo\nCompiling 257 files (.ex)\nGenerated credo app\n==> plug\nCompiling 1 file (.erl)\nCompiling 42 files (.ex)\nGenerated plug app\n==> nimble_pool\nCompiling 2 files (.ex)\nGenerated nimble_pool app\n==> finch\nCompiling 23 files (.ex)\nGenerated finch app\n==> req\nCompiling 21 files (.ex)\nGenerated req app\n==> cc_precompiler\nCompiling 3 files (.ex)\nGenerated cc_precompiler app\n==> lazy_html\nCompiling 3 files (.ex)\nGenerated lazy_html app\n==> websock\nCompiling 1 file (.ex)\nGenerated websock app\n==> bandit\nCompiling 54 files (.ex)\nGenerated bandit app\n==> websock_adapter\nCompiling 4 files (.ex)\nGenerated websock_adapter app\n==> phoenix\nCompiling 74 files (.ex)\nGenerated phoenix app\n==> phoenix_live_view\nCompiling 55 files (.ex)\nGenerated phoenix_live_view app\n==> symphony_elixir\n\u001b[0mWaiting for lock on the build directory (held by process 639071)\nCompiling 46 files (.ex)\nGenerated symphony_elixir app\n** (Mix) Could not start application symphony_elixir: SymphonyElixir.Application.start(:normal, []) returned an error: shutdown: failed to start child: SymphonyElixir.Audit.Outbox\n    ** (EXIT) an exception was raised:\n        ** (File.RenameError) could not rename from \"$WORKSPACE/.bos/outbox/run_10_1784616755042/events/00000300.json\" to \"$WORKSPACE/.bos/outbox/run_10_1784616755042/legacy-telemetry/00000300.json\": no such file or directory\n            (elixir 1.19.5) lib/file.ex:974: File.rename!/2\n            (symphony_elixir 0.0.1) lib/symphony_elixir/audit/outbox.ex:386: SymphonyElixir.Audit.Outbox.classify_legacy_event/3\n            (elixir 1.19.5) lib/enum.ex:2520: Enum.\"-reduce/3-lists^foldl/2-0-\"/3\n            (symphony_elixir 0.0.1) lib/symphony_elixir/audit/outbox.ex:51: SymphonyElixir.Audit.Outbox.init/1\n            (stdlib 7.3) gen_server.erl:2276: :gen_server.init_it/2\n            (stdlib 7.3) gen_server.erl:2236: :gen_server.init_it/6\n            (stdlib 7.3) proc_lib.erl:333: :proc_lib.init_p_do_apply/3\n",
+        "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs'",
+        "commandActions": [
+          {
+            "command": "mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs",
+            "type": "unknown"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+        "durationMs": 41788,
+        "exitCode": 1,
+        "id": "exec-f70cfab8-4d0c-4a27-9234-be4b2bb203f6",
+        "processId": "57598",
+        "source": "unifiedExecStartup",
+        "status": "failed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8372-d98f-7721-9230-1fb0f32f4ffc",
+      "turnId": "019f8372-dcc3-7292-9b11-f8dbcca20262"
+    }
+  },
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
