@@ -11,6 +11,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   require Logger
 
   alias SymphonyElixir.Codex.AppServer
+  alias SymphonyElixir.CandidateHead
   alias SymphonyElixir.GameApi.Client
   alias SymphonyElixir.Tracker.Issue
 
@@ -23,6 +24,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     client = Keyword.get(opts, :game_api_client_module, Client)
     roles = Keyword.get(opts, :review_roles, @review_roles)
     max_cycles = Keyword.get(opts, :max_repair_cycles, @max_repair_cycles)
+    candidate_head = Keyword.get(opts, :candidate_head_module, CandidateHead)
 
     context = %{
       workspace: workspace,
@@ -31,24 +33,32 @@ defmodule SymphonyElixir.DeliveryCoordinator do
       worker_host: worker_host,
       app_server: app_server,
       client: client,
-      roles: roles
+      roles: roles,
+      candidate_head: candidate_head
     }
 
-    with :ok <- review_and_repair(context, 1, max_cycles) do
-      run_finalizer(workspace, issue, recipient, worker_host, app_server)
+    with {:ok, _reviewed_candidate} <- review_and_repair(context, 1, max_cycles),
+         {:ok, final_candidate} <- candidate_head.confirm(workspace, issue, worker_host) do
+      run_finalizer(workspace, issue, recipient, worker_host, app_server, final_candidate)
     end
   end
 
   defp review_and_repair(context, cycle, max_cycles) do
-    with :ok <- run_reviews(context, cycle),
+    with {:ok, candidate} <-
+           context.candidate_head.confirm(
+             context.workspace,
+             context.issue,
+             context.worker_host
+           ),
+         :ok <- run_reviews(context, cycle, candidate),
          {:ok, reviews} <- fetch_cycle_reviews(context.client, context.issue, context.roles, cycle) do
-      handle_reviews(context, reviews, cycle, max_cycles)
+      handle_reviews(context, reviews, candidate, cycle, max_cycles)
     end
   end
 
-  defp handle_reviews(context, reviews, cycle, max_cycles) do
+  defp handle_reviews(context, reviews, candidate, cycle, max_cycles) do
     if Enum.all?(reviews, &(&1["status"] == "passed")) do
-      :ok
+      {:ok, candidate}
     else
       continue_review_cycle(context, reviews, cycle, max_cycles)
     end
@@ -68,9 +78,9 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp run_reviews(context, cycle) do
+  defp run_reviews(context, cycle, candidate) do
     Enum.reduce_while(context.roles, :ok, fn role, :ok ->
-      prompt = review_prompt(context.issue, role, cycle)
+      prompt = review_prompt(context.issue, role, cycle, candidate)
 
       case run_role(
              context.app_server,
@@ -133,12 +143,14 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     )
   end
 
-  defp run_finalizer(workspace, issue, recipient, worker_host, app_server) do
+  defp run_finalizer(workspace, issue, recipient, worker_host, app_server, candidate) do
     prompt = """
     You are the BOS delivery coordinator for #{issue.identifier}. All five
     independent specialist Reviews have passed for the current repair cycle.
-    Re-read the exact HEAD, acceptance contract, checks, reviews and evidence
-    through bos-mcp. Ensure the PR exists for that HEAD, record the final
+    Re-read the exact confirmed candidate HEAD `#{candidate.head_sha}`, acceptance
+    contract, checks, reviews and evidence through bos-mcp. Confirm the remote
+    `#{candidate.branch}` branch still equals that SHA. Ensure the PR exists for
+    that HEAD, record the final
     EvidenceReport and Attempt outcome, then request only the next transition
     allowed by the configured risk and approval policy. Never grant Approval,
     lower risk, bypass checks, force merge, or fabricate deployment evidence.
@@ -188,7 +200,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp review_prompt(issue, role, cycle) do
+  defp review_prompt(issue, role, cycle, candidate) do
     native_ref = issue.native_ref || %{}
     run_id = native_ref["runId"]
     attempt_id = native_ref["attemptId"]
@@ -196,7 +208,9 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     """
     You are the independent BOS #{role} reviewer for #{issue.identifier}, cycle #{cycle}.
     Inspect the issue acceptance contract, repository instructions, current diff,
-    exact git HEAD, tests and existing evidence. Do not modify files, commits,
+    exact git HEAD `#{candidate.head_sha}`, tests and existing evidence. Confirm
+    that the local HEAD and remote `#{candidate.branch}` branch both still equal
+    that SHA. Do not modify files, commits,
     issue state, PR state, risk or approvals. Record exactly one typed Review via
     bos_record_review with reviewId `review_#{run_id}_#{cycle}_#{role}`, runId
     `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type

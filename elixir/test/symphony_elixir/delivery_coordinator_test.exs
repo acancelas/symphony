@@ -25,6 +25,22 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     end
   end
 
+  defmodule FakeCandidateHead do
+    def confirm(workspace, issue, worker_host) do
+      send(
+        Application.fetch_env!(:symphony_elixir, :delivery_test_pid),
+        {:candidate_confirmed, workspace, issue.branch_name, worker_host}
+      )
+
+      {:ok,
+       %{
+         branch: issue.branch_name,
+         head_sha: "0123456789abcdef0123456789abcdef01234567",
+         remote_sha: "0123456789abcdef0123456789abcdef01234567"
+       }}
+    end
+  end
+
   setup do
     Application.put_env(:symphony_elixir, :delivery_test_pid, self())
 
@@ -48,6 +64,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
                [
                  app_server_module: FakeAppServer,
                  game_api_client_module: FakeClient,
+                 candidate_head_module: FakeCandidateHead,
                  review_roles: roles
                ],
                nil
@@ -56,6 +73,8 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     actors = collect_actors(length(roles) + 1, [])
     assert actors == Enum.map(roles, &"#{&1}-reviewer") ++ ["delivery-coordinator"]
     refute "repair-agent" in actors
+    assert_received {:candidate_confirmed, "/tmp/workspace", "bos/issue-42", nil}
+    assert_received {:candidate_confirmed, "/tmp/workspace", "bos/issue-42", nil}
   end
 
   test "fails closed after bounded review repair cycles" do
@@ -69,6 +88,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
                [
                  app_server_module: FakeAppServer,
                  game_api_client_module: FakeClient,
+                 candidate_head_module: FakeCandidateHead,
                  review_roles: ["security"],
                  max_repair_cycles: 1
                ],
