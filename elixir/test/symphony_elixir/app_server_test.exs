@@ -355,7 +355,7 @@ defmodule SymphonyElixir.AppServerTest do
             ;;
           3)
             printf '%s\\n' '{"id":3,"result":{"turn":{"id":"turn-89"}}}'
-            printf '%s\\n' '{"id":99,"method":"item/commandExecution/requestApproval","params":{"command":"gh pr view","cwd":"/tmp","reason":"need approval"}}'
+            printf '%s\\n' '{"id":99,"method":"item/commandExecution/requestApproval","params":{"command":"mix test","cwd":"/tmp","reason":"need approval"}}'
             ;;
           *)
             sleep 1
@@ -434,7 +434,7 @@ defmodule SymphonyElixir.AppServerTest do
             ;;
           4)
             printf '%s\\n' '{\"id\":3,\"result\":{\"turn\":{\"id\":\"turn-89\"}}}'
-            printf '%s\\n' '{\"id\":99,\"method\":\"item/commandExecution/requestApproval\",\"params\":{\"command\":\"gh pr view\",\"cwd\":\"/tmp\",\"reason\":\"need approval\"}}'
+            printf '%s\\n' '{\"id\":99,\"method\":\"item/commandExecution/requestApproval\",\"params\":{\"command\":\"mix test\",\"cwd\":\"/tmp\",\"reason\":\"need approval\"}}'
             ;;
           5)
             printf '%s\\n' '{\"method\":\"turn/completed\"}'
@@ -523,6 +523,88 @@ defmodule SymphonyElixir.AppServerTest do
                end
              end)
     after
+      File.rm_rf(test_root)
+    end
+  end
+
+  test "app server declines forbidden GitHub commands and emits a redacted policy event" do
+    test_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-app-server-command-policy-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      workspace_root = Path.join(test_root, "workspaces")
+      workspace = Path.join(workspace_root, "BOS-11")
+      codex_binary = Path.join(test_root, "fake-codex")
+      trace_file = Path.join(test_root, "command-policy.trace")
+      System.put_env("SYMP_TEST_COMMAND_POLICY_TRACE", trace_file)
+      File.mkdir_p!(workspace)
+
+      File.write!(codex_binary, """
+      #!/bin/sh
+      count=0
+      while IFS= read -r line; do
+        count=$((count + 1))
+        printf 'JSON:%s\\n' "$line" >> "$SYMP_TEST_COMMAND_POLICY_TRACE"
+        case "$count" in
+          1) printf '%s\\n' '{"id":1,"result":{}}' ;;
+          2) ;;
+          3) printf '%s\\n' '{"id":2,"result":{"thread":{"id":"thread-policy"}}}' ;;
+          4)
+            printf '%s\\n' '{"id":3,"result":{"turn":{"id":"turn-policy"}}}'
+            printf '%s\\n' '{"id":99,"method":"item/commandExecution/requestApproval","params":{"command":"/usr/bin/gh pr view 32 token=private","cwd":"/tmp"}}'
+            ;;
+          5) printf '%s\\n' '{"method":"turn/completed"}'; exit 0 ;;
+          *) exit 0 ;;
+        esac
+      done
+      """)
+
+      File.chmod!(codex_binary, 0o755)
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        codex_command: "#{codex_binary} app-server",
+        codex_approval_policy: "never"
+      )
+
+      issue = %Issue{
+        id: "issue-command-policy",
+        identifier: "BOS-11",
+        title: "Guard direct GitHub access",
+        description: "Enforce the BOS integration boundary",
+        state: "In Progress",
+        url: "https://example.org/issues/BOS-11",
+        labels: ["bos:issue"]
+      }
+
+      parent = self()
+      on_message = fn message -> send(parent, {:app_server_message, message}) end
+
+      assert {:ok, _result} =
+               AppServer.run(workspace, "Attempt forbidden command", issue, on_message: on_message)
+
+      assert_receive {:app_server_message, %{event: :command_policy_blocked, policy: policy, raw: nil}}
+
+      assert policy.code == "direct_gh_blocked"
+      assert policy.replacement =~ "bos-mcp"
+      refute policy.command_summary =~ "private"
+
+      assert trace_file
+             |> File.read!()
+             |> String.split("\n", trim: true)
+             |> Enum.any?(fn line ->
+               if String.starts_with?(line, "JSON:") do
+                 payload = line |> String.trim_leading("JSON:") |> Jason.decode!()
+                 payload["id"] == 99 and get_in(payload, ["result", "decision"]) == "decline"
+               else
+                 false
+               end
+             end)
+    after
+      System.delete_env("SYMP_TEST_COMMAND_POLICY_TRACE")
       File.rm_rf(test_root)
     end
   end

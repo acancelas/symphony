@@ -77,6 +77,12 @@ session, so Symphony resets its comparison watermark—not its cumulative totals
 role starts a fresh session. Operational token budgets should use uncached input while retaining
 the full totals for capacity and audit reporting.
 
+Before auto-approving a Codex command request, Symphony enforces the BOS integration boundary.
+Direct `gh` invocations—including absolute paths, `env`/`command` prefixes and nested shell
+wrappers—and direct `api.github.com` or GitHub GraphQL traffic are declined before process launch.
+The denial is emitted as a redacted `command_policy_blocked` event with a `bos-mcp` replacement.
+Local Git transport such as `fetch` and guarded non-force `push` remains allowed.
+
 Intentional OTP supervisor shutdown (`:normal`, `:shutdown`, or `{:shutdown, reason}`) exits the
 CLI successfully so a controlled `systemctl stop` remains operationally distinct from a crash.
 Unexpected supervisor reasons still return a failure status and remain eligible for service
