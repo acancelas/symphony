@@ -1,0 +1,23 @@
+{
+  "attemptId": "attempt_run_14_manual_20260721T0457Z_1",
+  "runId": "run_14_manual_20260721T0457Z",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp_internal_token"
+  },
+  "startedAt": "2026-07-21T04:57:00Z",
+  "completedAt": "2026-07-21T05:54:00Z",
+  "summary": "Implemented bounded telemetry, durable shared rate-limit coordination, independent claim safety and exact recovery; all specialized reviews passed at commit 927666a5434c52298fd02d0152dd54e9e106db3f.",
+  "metrics": {
+    "tests": 296,
+    "failures": 0,
+    "coveragePercent": 100,
+    "dialyzerErrors": 0,
+    "specializedReviewsPassed": 3,
+    "integratedRuntimeTests": 297
+  }
+}
