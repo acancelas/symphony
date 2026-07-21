@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "issue",
   "scopeId": "symphony#18",
-  "lastSequence": 1,
-  "lastEventHash": "sha256:92be7d992a6950ffd293dd26cccb20451d5b84bfb6b8188e893501014ed8e510",
-  "lastEventId": "event_9c0b12aa8861ed96f3f2fe597a",
-  "updatedAt": "2026-07-21T09:11:39.160408Z"
+  "lastSequence": 2,
+  "lastEventHash": "sha256:93c0ae416c3f5dbfb097ebf033f399279aeff6803b723c59fef45804c11abab7",
+  "lastEventId": "event_030f545f340f6fd04793d1b5ec",
+  "updatedAt": "2026-07-21T09:21:26.588925Z"
 }
