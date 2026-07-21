@@ -2,7 +2,7 @@
   "runId": "run_14_manual_20260721T0457Z",
   "issueNumber": 14,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "human",
     "subjectId": "github:acancelas"
@@ -14,7 +14,9 @@
     "codexVersion": "codex-desktop"
   },
   "startedAt": "2026-07-21T04:57:00Z",
-  "branch": "bos/issue-14",
+  "completedAt": "2026-07-21T21:43:30Z",
+  "branch": "main",
   "baseCommit": "7b22f4b7c618f06f7ba3cc95bc8bd4ca6511721e",
-  "currentAttemptId": "attempt_run_14_manual_20260721T0457Z_1"
+  "headCommit": "acb5505e889e3a73f76a5bbb70e675eaf9ce20c6",
+  "currentAttemptId": "attempt_run_14_manual_20260721T0457Z_2"
 }
