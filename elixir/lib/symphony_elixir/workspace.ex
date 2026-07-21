@@ -43,7 +43,6 @@ defmodule SymphonyElixir.Workspace do
       end
     end)
   end
-
   defp prepare_local_workspace(workspace, issue_context) do
     if workspace_ready?(workspace) do
       {:ok, workspace}
