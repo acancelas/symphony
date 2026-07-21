@@ -449,6 +449,8 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
         "symphony-elixir-clean-workspace-#{System.unique_integer([:positive])}"
       )
 
+    process_owner = register_process_cleanup!("workspace-git-push-#{System.unique_integer([:positive])}")
+
     try do
       write_workflow_file!(Workflow.workflow_file_path(), workspace_root: workspace_root)
       assert {:ok, workspace} = Workspace.create_for_issue("MT-CLEAN")
@@ -460,7 +462,12 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
       remote = Path.join(workspace_root, "remote.git")
       assert {_, 0} = System.cmd("git", ["init", "--bare", "--quiet", remote])
       assert {_, 0} = System.cmd("git", ["remote", "add", "origin", remote], cd: workspace)
-      assert {_, 0} = System.cmd("git", ["push", "--quiet", "-u", "origin", "HEAD"], cd: workspace)
+
+      assert {_, 0} =
+               System.cmd("git", ["push", "--quiet", "-u", "origin", "HEAD"],
+                 cd: workspace,
+                 env: owned_process_environment(process_owner)
+               )
 
       assert {:ok, _removed} = Workspace.remove(workspace)
       refute File.exists?(workspace)
@@ -521,11 +528,13 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
         "symphony-elixir-workspace-hook-timeout-#{System.unique_integer([:positive])}"
       )
 
+    process_owner = register_process_cleanup!("workspace-create-timeout-#{System.unique_integer([:positive])}")
+
     try do
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
         hook_timeout_ms: 10,
-        hook_after_create: "sleep 1"
+        hook_after_create: "export SYMPHONY_TEST_PROCESS_OWNER=#{process_owner}; exec sleep 1"
       )
 
       assert {:error, {:workspace_hook_timeout, "after_create", 10}} =
@@ -1133,23 +1142,13 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
   end
 
   test "workspace remove continues when before_remove hook times out" do
-    previous_timeout = Application.get_env(:symphony_elixir, :workspace_hook_timeout_ms)
-
-    on_exit(fn ->
-      if is_nil(previous_timeout) do
-        Application.delete_env(:symphony_elixir, :workspace_hook_timeout_ms)
-      else
-        Application.put_env(:symphony_elixir, :workspace_hook_timeout_ms, previous_timeout)
-      end
-    end)
-
-    Application.put_env(:symphony_elixir, :workspace_hook_timeout_ms, 10)
-
     test_root =
       Path.join(
         System.tmp_dir!(),
         "symphony-elixir-workspace-hooks-timeout-#{System.unique_integer([:positive])}"
       )
+
+    process_owner = register_process_cleanup!("workspace-remove-timeout-#{System.unique_integer([:positive])}")
 
     try do
       workspace_root = Path.join(test_root, "workspaces")
@@ -1158,7 +1157,8 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
 
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
-        hook_before_remove: "sleep 1"
+        hook_timeout_ms: 10,
+        hook_before_remove: "export SYMPHONY_TEST_PROCESS_OWNER=#{process_owner}; exec sleep 1"
       )
 
       assert {:ok, workspace} = Workspace.create_for_issue("MT-HOOKS-TIMEOUT")
