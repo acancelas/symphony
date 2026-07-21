@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9cda82be-ef47-4025-9e57-6c0ac3076c58",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629141630_659",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:19:01.606Z",
+  "command": "/bin/bash -lc \"sed -n '245,325p' $WORKSPACE/.bos/runtime-builds/bos-mcp-integration-20260721/src/delivery/apiClient.ts; grep -nE \\\"getRunHistory|history\\\" $WORKSPACE/.bos/runtime-builds/bos-mcp-integration-20260721/src/delivery/apiClient.ts | head -40; grep -nE \\\"markPullRequestReady|getPullRequest\\\" $WORKSPACE/.bos/runtime-builds/bos-mcp-integration-20260721/src/delivery/tools.ts | head -60\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "    return this.request(\"POST\", \"/v1/internal/bos/delivery/deployment-verifications\", {\n      ...this.issueBody(input),\n      ...(auditBatch ? { auditBatch } : {}),\n    });\n  }\n\n  inspectVercelDeployment(input: Record<string, unknown>) {\n    return this.request(\"POST\", \"/v1/internal/bos/delivery/deployment-verifications/vercel/inspect\", this.issueBody(input));\n  }\n\n  inspectVpsDeployment(input: Record<string, unknown>) {\n    return this.request(\"POST\", \"/v1/internal/bos/delivery/deployment-verifications/vps/inspect\", this.issueBody(input));\n  }\n\n  recordArtifact(input: Record<string, unknown>) {\n    const auditBatch = input.auditBatch && typeof input.auditBatch === \"object\"\n      ? this.auditBody(input.auditBatch as Record<string, unknown>)\n      : undefined;\n    return this.request(\"POST\", \"/v1/internal/bos/delivery/artifacts\", {\n      ...this.issueBody(input),\n      ...(auditBatch ? { auditBatch } : {}),\n    });\n  }\n\n  createPullRequest(input: Record<string, unknown>) {\n    const auditBatch = input.auditBatch && typeof input.auditBatch === \"object\"\n      ? this.auditBody(input.auditBatch as Record<string, unknown>)\n      : undefined;\n    return this.request(\"POST\", \"/v1/internal/bos/github/pull-requests\", {\n      ...this.issueBody(input),\n      ...(auditBatch ? { auditBatch } : {}),\n    });\n  }\n\n  inspectRepositorySettings(repository: Record<string, string>) {\n    return this.request(\"GET\", `/v1/internal/bos/github/repositories/settings?${new URLSearchParams(repository)}`);\n  }\n\n  setRepositoryIssues(input: Record<string, unknown>) {\n    return this.request(\"POST\", \"/v1/internal/bos/github/repositories/settings/issues\", input);\n  }\n\n  renameRepository(input: Record<string, unknown>) {\n    this.requireHumanCredentials(\"Repository rename\");\n    return this.request(\"POST\", \"/v1/internal/bos/github/repositories/rename\", input, \"human\");\n  }\n\n  getPullRequest(pullRequestNumber: number) {\n    return this.request(\n      \"GET\",\n      `/v1/internal/bos/github/pull-requests",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
