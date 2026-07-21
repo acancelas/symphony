@@ -1,0 +1,21 @@
+{
+  "attemptId": "attempt_run_14_manual_20260721T0457Z_2",
+  "runId": "run_14_manual_20260721T0457Z",
+  "number": 2,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp_internal_token"
+  },
+  "startedAt": "2026-07-21T21:39:28.116000Z",
+  "completedAt": "2026-07-21T21:43:30Z",
+  "summary": "Verified that later merged PRs satisfy the complete #14 contract at final main, and rejected the obsolete divergent branch to avoid regression.",
+  "metrics": {
+    "tests": 320,
+    "failures": 0,
+    "skipped": 2,
+    "coveragePercent": 100
+  }
+}
