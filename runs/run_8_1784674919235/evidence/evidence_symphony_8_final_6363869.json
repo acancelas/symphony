@@ -1,0 +1,57 @@
+{
+  "evidenceId": "evidence_symphony_8_final_6363869",
+  "runId": "run_8_1784674919235",
+  "commitSha": "6363869366b651d803d59cbffae99945736dce3d",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Test-owned subprocesses are cleaned on every ExUnit outcome",
+      "status": "passed",
+      "evidence": "Unique environment ownership plus on_exit bounded TERM/KILL cleanup applies to pass, failure, timeout and interruption."
+    },
+    {
+      "criterion": "Cleanup cannot select unrelated processes",
+      "status": "passed",
+      "evidence": "Selection requires an exact unique SYMPHONY_TEST_PROCESS_OWNER value in the child environment."
+    },
+    {
+      "criterion": "FIFO and Git push leak sites use the common lifecycle",
+      "status": "passed",
+      "evidence": "Restart hooks, workspace timeouts and real candidate/workspace Git pushes are tagged before launch."
+    },
+    {
+      "criterion": "Complete gates leave no owned child",
+      "status": "passed",
+      "evidence": "332 tests and all gates passed; post-gate /proc scan reported owned_processes=0."
+    }
+  ],
+  "checks": [
+    {
+      "name": "affected-process-tests",
+      "status": "passed",
+      "tests": 119
+    },
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 332,
+      "coveragePercent": 100
+    },
+    {
+      "name": "post-gate-process-scan",
+      "status": "passed",
+      "ownedProcesses": 0
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [],
+  "summary": "Orchestration tests now tag, terminate, reap and assert absence of their own operating-system children."
+}
