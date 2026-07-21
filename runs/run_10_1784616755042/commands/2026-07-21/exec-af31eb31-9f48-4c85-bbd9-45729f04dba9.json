@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-af31eb31-9f48-4c85-bbd9-45729f04dba9",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629056693_611",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:17:36.692Z",
+  "command": "/bin/bash -lc 'rg -n \"post.?approval|draft PR|pull request ready|visual|UI|browser\" README.md SPEC.md elixir/README.md WORKFLOW.md .bos/project.yaml'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "long"
+  }
+}
