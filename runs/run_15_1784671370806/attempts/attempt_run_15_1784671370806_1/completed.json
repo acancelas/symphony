@@ -1,0 +1,26 @@
+{
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "runId": "run_15_1784671370806",
+  "number": 1,
+  "status": "blocked",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp_internal_token"
+  },
+  "startedAt": "2026-07-21T22:02:52.782000Z",
+  "completedAt": "2026-07-21T22:20:00Z",
+  "reason": "Historical retained-telemetry gaps require an explicit game-api retention-proof contract; confirmed history must not be rewritten.",
+  "summary": "Published and validated the future recovery fix at 32c6450; blocked terminal completion on truthful remote-chain verification.",
+  "metrics": {
+    "tests": 321,
+    "failures": 0,
+    "coveragePercent": 100,
+    "historicalMissingSequences": 83,
+    "inputTokens": 3146888,
+    "cachedInputTokens": 3034112,
+    "uncachedInputTokens": 112776,
+    "outputTokens": 7222
+  }
+}
