@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-0e131ebb-217e-4a63-83da-a25551fbd1b2",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628965553_545",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:16:05.478Z",
+  "command": "/bin/bash -lc 'git rev-parse HEAD && git status --short && git diff --stat HEAD''^..HEAD && git diff --find-renames HEAD''^..HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "1908764463438ee5658223e8be87e5c1237cfa7d\n .../symphony_elixir/post_approval_coordinator.ex   | 151 ++++++++++++++++++++-\n .../post_approval_coordinator_test.exs             | 135 +++++++++++++++++-\n 2 files changed, 284 insertions(+), 2 deletions(-)\ndiff --git a/elixir/lib/symphony_elixir/post_approval_coordinator.ex b/elixir/lib/symphony_elixir/post_approval_coordinator.ex\nindex cfe1e3e..fdd272c 100644\n--- a/elixir/lib/symphony_elixir/post_approval_coordinator.ex\n+++ b/elixir/lib/symphony_elixir/post_approval_coordinator.ex\n@@ -13,6 +13,7 @@ defmodule SymphonyElixir.PostApprovalCoordinator do\n   alias SymphonyElixir.Tracker.Issue\n \n   @probe_path \".bos-local/deployment-probe.json\"\n+  @readiness_path \".bos-local/pull-request-readiness.json\"\n \n   @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}\n   def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do\n@@ -20,6 +21,8 @@ defmodule SymphonyElixir.PostApprovalCoordinator do\n     client = Keyword.get(opts, :game_api_client_module, Client)\n \n     with :ok <- require_local_probe_handoff(worker_host),\n+         {:ok, readiness} <- prepare_readiness_intent(client, workspace, issue),\n+         :ok <- ensure_pull_request_ready(app_server, workspace, issue, recipient, worker_host, readiness),\n          :ok <- prepare_probe_handoff(workspace),\n          :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),\n          {:ok, request} <- load_probe_request(workspace, issue),\n@@ -30,11 +33,157 @@ defmodule SymphonyElixir.PostApprovalCoordinator do\n     end\n   end\n \n+  defp prepare_readiness_intent(client, workspace, %Issue{native_ref: native_ref}) do\n+    repository_id = native_ref[\"repositoryId\"]\n+    run_id = native_ref[\"runId\"]\n+\n+    with {:ok, run} <- client.fetch_run(repository_id, run_id),\n+         {:ok, identity} <- readiness_identity(native_ref, run) do\n+      load_or_create_readiness_handoff(workspace, identity)\n+    end\n+  end\n+\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
