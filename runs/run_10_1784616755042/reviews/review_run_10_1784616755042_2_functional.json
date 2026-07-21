@@ -1,0 +1,30 @@
+{
+  "reviewId": "review_run_10_1784616755042_2_functional",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "reviewType": "functional",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "commitSha": "c3554e69d100bbf2a0fe5ec4badfbd8459138dc4",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "info",
+      "area": "authoritative readiness",
+      "finding": "The post-approval coordinator replays the deterministic exact-HEAD readiness operation through GameApi.Client, requires a completed durable receipt, and fetches current PR state before starting the merge-capable deployment-verifier."
+    },
+    {
+      "severity": "info",
+      "area": "recovery and fail-closed behavior",
+      "finding": "A cached confirmed handoff cannot bypass BOS confirmation; restart reuses the same operationId, while rejection, stale identity, closed/non-open state, draft state, or head mismatch stops the sequence before merge."
+    },
+    {
+      "severity": "info",
+      "area": "validation evidence",
+      "finding": "Exact-commit evidence for c3554e69d100bbf2a0fe5ec4badfbd8459138dc4 reports 5 targeted coordinator tests and the full make all gate passing with 278 tests, 2 skipped, formatting, specs, Credo, 100% coverage, and Dialyzer."
+    }
+  ],
+  "summary": "Passed: exact-commit implementation and validation affirmatively show idempotent BOS-only draft-PR promotion, authoritative current-state confirmation, response-loss recovery, and fail-closed protection before policy-checked merge."
+}
