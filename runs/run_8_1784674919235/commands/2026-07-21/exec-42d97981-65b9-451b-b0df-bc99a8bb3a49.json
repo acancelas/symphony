@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-42d97981-65b9-451b-b0df-bc99a8bb3a49",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675024125_29",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:03:44.045Z",
+  "command": "/bin/bash -lc \"sed -n '1,140p' elixir/lib/symphony_elixir/ssh.ex\ngrep -RIn \\\"Task.shutdown\\\\|Port.close\\\\|port_close\\\\|os_pid\\\" elixir/lib elixir/test --include='*.ex' --include='*.exs' | head -n 400\ngrep -RIn \\\"CandidateHead.confirm\\\" elixir/lib elixir/test --include='*.ex' --include='*.exs'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.SSH do\n  @moduledoc false\n\n  @spec run(String.t(), String.t(), keyword()) :: {:ok, {String.t(), non_neg_integer()}} | {:error, term()}\n  def run(host, command, opts \\\\ []) when is_binary(host) and is_binary(command) do\n    with {:ok, executable} <- ssh_executable() do\n      {:ok, System.cmd(executable, ssh_args(host, command), opts)}\n    end\n  end\n\n  @spec start_port(String.t(), String.t(), keyword()) :: {:ok, port()} | {:error, term()}\n  def start_port(host, command, opts \\\\ []) when is_binary(host) and is_binary(command) do\n    with {:ok, executable} <- ssh_executable() do\n      line_bytes = Keyword.get(opts, :line)\n\n      port_opts =\n        [\n          :binary,\n          :exit_status,\n          :stderr_to_stdout,\n          args: Enum.map(ssh_args(host, command), &String.to_charlist/1)\n        ]\n        |> maybe_put_line_option(line_bytes)\n\n      {:ok, Port.open({:spawn_executable, String.to_charlist(executable)}, port_opts)}\n    end\n  end\n\n  @spec remote_shell_command(String.t()) :: String.t()\n  def remote_shell_command(command) when is_binary(command) do\n    \"bash -lc \" <> shell_escape(command)\n  end\n\n  defp ssh_executable do\n    case System.find_executable(\"ssh\") do\n      nil -> {:error, :ssh_not_found}\n      executable -> {:ok, executable}\n    end\n  end\n\n  defp ssh_args(host, command) do\n    %{destination: destination, port: port} = parse_target(host)\n\n    []\n    |> maybe_put_config()\n    |> Kernel.++([\"-T\"])\n    |> maybe_put_port(port)\n    |> Kernel.++([destination, remote_shell_command(command)])\n  end\n\n  defp maybe_put_line_option(port_opts, nil), do: port_opts\n  defp maybe_put_line_option(port_opts, line_bytes), do: Keyword.put(port_opts, :line, line_bytes)\n\n  defp maybe_put_config(args) do\n    case System.get_env(\"SYMPHONY_SSH_CONFIG\") do\n      config_path when is_binary(config_path) and config_path != \"\" ->\n        args ++ [\"-F\", config_path]\n\n      _ ->\n        args\n    end\n  end\n\n  defp maybe_put_port(args, nil), do: args\n  de",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}

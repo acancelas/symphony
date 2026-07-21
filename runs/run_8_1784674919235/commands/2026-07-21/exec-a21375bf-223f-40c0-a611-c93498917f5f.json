@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-a21375bf-223f-40c0-a611-c93498917f5f",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784674982686_17",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:03:02.686Z",
+  "command": "/bin/bash -lc \"sed -n '320,550p' elixir/test/symphony_elixir/core_test.exs\nsed -n '1380,1940p' elixir/test/symphony_elixir/core_test.exs\nsed -n '1,560p' elixir/test/symphony_elixir/workspace_and_config_test.exs\nfind elixir/test -maxdepth 2 -type f -name '*.exs' -print | sort\ngit log --oneline --decorate -8\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\n    write_workflow_file!(Workflow.workflow_file_path(),\n      tracker_kind: \"linear\",\n      tracker_api_token: [REDACTED],\n      tracker_project_slug: nil\n    )\n\n    assert {:error, :missing_linear_project_slug} = Config.validate!()\n    assert Config.settings!().tracker.kind == \"memory\"\n\n    Process.exit(original_orchestrator_pid, :kill)\n\n    restarted_orchestrator_pid =\n      eventually_value(fn ->\n        case Process.whereis(orchestrator_name) do\n          pid when is_pid(pid) and pid != original_orchestrator_pid ->\n            case Orchestrator.snapshot(orchestrator_name, 100) do\n              %{} -> pid\n              _ -> nil\n            end\n\n          _ ->\n            nil\n        end\n      end)\n\n    assert is_pid(restarted_orchestrator_pid)\n    assert Process.whereis(orchestrator_name) == restarted_orchestrator_pid\n    assert Process.alive?(runtime_pid)\n  end\n\n  test \"restarting the orchestrator does not overlap redispatched work\" do\n    issue_suffix = System.unique_integer([:positive])\n\n    test_root =\n      Path.join(\n        System.tmp_dir!(),\n        \"symphony-elixir-orchestrator-restart-#{issue_suffix}\"\n      )\n\n    hook_marker = Path.join(test_root, \"before-run-started\")\n    hook_fifo = Path.join(test_root, \"before-run-blocker\")\n    hook_pid_file = Path.join(test_root, \"before-run-pids\")\n    runtime_supervisor_name = Module.concat(__MODULE__, \"AgentRuntimeSupervisor#{issue_suffix}\")\n    task_supervisor_name = Module.concat(__MODULE__, \"TaskSupervisor#{issue_suffix}\")\n    orchestrator_name = Module.concat(__MODULE__, \"RestartOrchestrator#{issue_suffix}\")\n\n    previous_memory_issues = Application.get_env(:symphony_elixir, :memory_tracker_issues)\n\n    issue = %Issue{\n      id: \"issue-restart-#{issue_suffix}\",\n      identifier: \"MT-#{issue_suffix}\",\n      title: \"Restart an in-flight worker\",\n      description: \"Keep one worker active while the orchestrator restarts\",\n      state: \"In Progress\",\n      url: \"https://example.org/issues/MT-#{issue_suffix}\",\n  ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c519634a-8e5b-4b7b-8983-ab60ce9db79c",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675006567_25",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:03:26.528Z",
+  "command": "/bin/bash -lc \"sed -n '680,810p' elixir/test/symphony_elixir/workspace_and_config_test.exs\nsed -n '280,390p' elixir/test/symphony_elixir/app_server_test.exs\nsed -n '1,230p' elixir/test/symphony_elixir/ssh_test.exs\nsed -n '1,120p' elixir/test/symphony_elixir/core_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "               \"state\" => %{\"name\" => \"Todo\"}\n             },\n             nil\n           ) == nil\n\n    graphql_fun = fn _query, _variables ->\n      {:ok,\n       %{\n         \"data\" => %{\n           \"issues\" => %{\n             \"nodes\" => [\n               %{\n                 \"id\" => \"issue-empty-title\",\n                 \"identifier\" => \"MT-EMPTY\",\n                 \"title\" => \" \",\n                 \"state\" => %{\"name\" => \"Todo\"}\n               }\n             ]\n           }\n         }\n       }}\n    end\n\n    assert {:error, :linear_unknown_payload} =\n             Client.fetch_issues_by_ids_for_test([\"issue-empty-title\"], graphql_fun)\n  end\n\n  test \"linear client marks explicitly unassigned issues as not routed to worker\" do\n    raw_issue = %{\n      \"id\" => \"issue-99\",\n      \"identifier\" => \"MT-99\",\n      \"title\" => \"Someone else's task\",\n      \"state\" => %{\"name\" => \"Todo\"},\n      \"assignee\" => %{\n        \"id\" => \"user-2\"\n      }\n    }\n\n    issue = Client.normalize_issue_for_test(raw_issue, \"user-1\")\n\n    refute issue.dispatchable\n  end\n\n  test \"linear client pagination merge helper preserves issue ordering\" do\n    issue_page_1 = [\n      %Issue{id: \"issue-1\", identifier: \"MT-1\"},\n      %Issue{id: \"issue-2\", identifier: \"MT-2\"}\n    ]\n\n    issue_page_2 = [\n      %Issue{id: \"issue-3\", identifier: \"MT-3\"}\n    ]\n\n    merged = Client.merge_issue_pages_for_test([issue_page_1, issue_page_2])\n\n    assert Enum.map(merged, & &1.identifier) == [\"MT-1\", \"MT-2\", \"MT-3\"]\n  end\n\n  test \"linear client paginates issue state fetches by id beyond one page\" do\n    issue_ids = Enum.map(1..55, &\"issue-#{&1}\")\n    first_batch_ids = Enum.take(issue_ids, 50)\n    second_batch_ids = Enum.drop(issue_ids, 50)\n\n    raw_issue = fn issue_id ->\n      suffix = String.replace_prefix(issue_id, \"issue-\", \"\")\n\n      %{\n        \"id\" => issue_id,\n        \"identifier\" => \"MT-#{suffix}\",\n        \"title\" => \"Issue #{suffix}\",\n        \"description\" => \"Description #{suffix}\",\n        \"state\" => %{\"name\" => \"In Progr",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}

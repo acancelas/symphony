@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-ec0ac96a-6b35-497d-9ff8-6d81d97ad886",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784674994373_21",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:03:14.333Z",
+  "command": "/bin/bash -lc \"grep -RInE \\\"50|events|batch|GIT_|fake-git|git\\\" elixir/test/symphony_elixir/*audit* elixir/test/symphony_elixir/delivery_coordinator_test.exs elixir/test/symphony_elixir/game_api_adapter_test.exs 2>/dev/null | head -n 500\nfind elixir/test -type f -name '*.exs' -print0 | xargs -0 grep -nE \\\"File\\\\.write\"'!'\"\\\\([\"'^'\"\\\\n]*(git|sh)|#\"'!/bin/(sh|bash)|PATH.*test_root|SYMP_TEST\" | head -n 500'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/test/symphony_elixir/audit/outbox_test.exs:6:  test \"recovers ordered unconfirmed events and their last hash after restart\" do\nelixir/test/symphony_elixir/audit/outbox_test.exs:8:    path = Path.join([root, \"run_001\", \"events\"])\nelixir/test/symphony_elixir/audit/outbox_test.exs:42:    events_path = Path.join([root, \"run_001\", \"events\"])\nelixir/test/symphony_elixir/audit/outbox_test.exs:44:    File.mkdir_p!(events_path)\nelixir/test/symphony_elixir/audit/outbox_test.exs:48:    File.write!(Path.join(events_path, \"00000001.json\"), Jason.encode!(%{\"issue\" => issue, \"event\" => event}))\nelixir/test/symphony_elixir/audit/outbox_test.exs:49:    File.write!(Path.join(receipts_path, \"batch.json\"), Jason.encode!(%{\"eventIds\" => [\"event_confirmed\"]}))\nelixir/test/symphony_elixir/audit/outbox_test.exs:50:    batches_path = Path.join([root, \"run_001\", \"batches\"])\nelixir/test/symphony_elixir/audit/outbox_test.exs:51:    File.mkdir_p!(batches_path)\nelixir/test/symphony_elixir/audit/outbox_test.exs:52:    File.write!(Path.join(batches_path, \"batch.json\"), Jason.encode!(%{\"events\" => [event]}))\nelixir/test/symphony_elixir/audit/outbox_test.exs:56:    refute File.exists?(Path.join(events_path, \"00000001.json\"))\nelixir/test/symphony_elixir/audit/outbox_test.exs:57:    refute File.exists?(Path.join(batches_path, \"batch.json\"))\nelixir/test/symphony_elixir/audit/outbox_test.exs:66:    events_path = Path.join(run_dir, \"events\")\nelixir/test/symphony_elixir/audit/outbox_test.exs:68:    File.mkdir_p!(events_path)\nelixir/test/symphony_elixir/audit/outbox_test.exs:81:        Path.join(events_path, String.pad_leading(to_string(sequence), 8, \"0\") <> \".json\"),\nelixir/test/symphony_elixir/audit/outbox_test.exs:87:      Path.join(receipts_path, \"batch_run_with_underscores_1_2.json\"),\nelixir/test/symphony_elixir/audit/outbox_test.exs:89:        \"batchId\" => \"batch_run_with_underscores_1_2\",\nelixir/test/symphony_elixir/audit/outbox_test.exs:115:    valid_path = Path.join(receipts_path, \"batch_ru",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}

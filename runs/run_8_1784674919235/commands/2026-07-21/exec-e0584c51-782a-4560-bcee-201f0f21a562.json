@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e0584c51-782a-4560-bcee-201f0f21a562",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675029101_31",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:03:49.021Z",
+  "command": "/bin/bash -lc \"sed -n '720,785p' elixir/lib/symphony_elixir/workspace.ex\nsed -n '1040,1105p' elixir/lib/symphony_elixir/codex/app_server.ex\ngrep -RIn \\\"candidate_head\\\" elixir/lib/symphony_elixir | head -n 80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "      \"case \\\"$#{variable_name}\\\" in\",\n      \"  '~') #{variable_name}=\\\"$HOME\\\" ;;\",\n      \"  '~/'*) \" <> variable_name <> \"=\\\"$HOME/${\" <> variable_name <> \"#\\\\~/}\\\" ;;\",\n      \"esac\"\n    ]\n    |> Enum.join(\"\\n\")\n  end\n\n  defp parse_remote_workspace_output(output) do\n    lines = String.split(IO.iodata_to_binary(output), \"\\n\", trim: true)\n\n    payload =\n      Enum.find_value(lines, fn line ->\n        case String.split(line, \"\\t\", parts: 3) do\n          [@remote_workspace_marker, created, path] when created in [\"0\", \"1\"] and path != \"\" ->\n            {created == \"1\", path}\n\n          _ ->\n            nil\n        end\n      end)\n\n    case payload do\n      {created?, workspace} when is_boolean(created?) and is_binary(workspace) ->\n        {:ok, workspace, created?}\n\n      _ ->\n        {:error, {:workspace_prepare_failed, :invalid_output, output}}\n    end\n  end\n\n  defp run_remote_command(worker_host, script, timeout_ms)\n       when is_binary(worker_host) and is_binary(script) and is_integer(timeout_ms) and timeout_ms > 0 do\n    task =\n      Task.async(fn ->\n        SSH.run(worker_host, script, stderr_to_stdout: true)\n      end)\n\n    case Task.yield(task, timeout_ms) do\n      {:ok, result} ->\n        result\n\n      nil ->\n        Task.shutdown(task, :brutal_kill)\n        {:error, {:workspace_hook_timeout, \"remote_command\", timeout_ms}}\n    end\n  end\n\n  defp shell_escape(value) when is_binary(value) do\n    \"'\" <> String.replace(value, \"'\", \"'\\\"'\\\"'\") <> \"'\"\n  end\n\n  defp worker_host_for_log(nil), do: \"local\"\n  defp worker_host_for_log(worker_host), do: worker_host\n\n  defp issue_context(%{id: issue_id, identifier: identifier} = issue) do\n    native_ref = Map.get(issue, :native_ref) || %{}\n\n    %{\n      issue_id: issue_id,\n      issue_identifier: identifier || \"issue\",\n      repository_id: native_ref[\"repositoryId\"],\n      repository_owner: native_ref[\"repositoryOwner\"],\n      repository_name: native_ref[\"repositoryName\"],\n      repository_clone_url: native_ref[\"repositoryClo",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}

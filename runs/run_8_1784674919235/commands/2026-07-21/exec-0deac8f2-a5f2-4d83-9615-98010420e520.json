@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-0deac8f2-a5f2-4d83-9615-98010420e520",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784674989107_19",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:03:09.067Z",
+  "command": "/bin/bash -lc \"grep -RInE \\\"Task\\\\.(async|start)|spawn\\\\(|Port\\\\.open|System\\\\.cmd|mkfifo|sleep [0-9]|git push|open_port|start_link\\\" elixir/test --include='*.exs' | sed -n '1,1000p'\ngrep -RIn \\\"audit-volume\\\\|audit volume\\\\|volume\\\" elixir/test --include='*.exs'\nsed -n '560,700p' elixir/lib/symphony_elixir/workspace.ex\nsed -n '1,260p' elixir/test/test_helper.exs\nsed -n '1,280p' elixir/test/support/test_support.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/test/symphony_elixir/extensions_test.exs:27:    def start_link(opts) do\nelixir/test/symphony_elixir/extensions_test.exs:28:      GenServer.start_link(__MODULE__, :ok, opts)\nelixir/test/symphony_elixir/extensions_test.exs:46:    def start_link(opts) do\nelixir/test/symphony_elixir/extensions_test.exs:48:      GenServer.start_link(__MODULE__, opts, name: name)\nelixir/test/symphony_elixir/extensions_test.exs:151:  test \"workflow store start_link and poll callback cover missing-file error paths\" do\nelixir/test/symphony_elixir/extensions_test.exs:170:    assert {:ok, manual_pid} = WorkflowStore.start_link()\nelixir/test/symphony_elixir/extensions_test.exs:249:      StaticOrchestrator.start_link(\nelixir/test/symphony_elixir/extensions_test.exs:442:    {:ok, _pid} = SlowOrchestrator.start_link(name: timeout_orchestrator)\nelixir/test/symphony_elixir/extensions_test.exs:458:      StaticOrchestrator.start_link(\nelixir/test/symphony_elixir/extensions_test.exs:511:      StaticOrchestrator.start_link(\nelixir/test/symphony_elixir/extensions_test.exs:605:    assert spec.start == {HttpServer, :start_link, [[port: 0]]}\nelixir/test/symphony_elixir/extensions_test.exs:607:    assert :ignore = HttpServer.start_link(port: nil)\nelixir/test/symphony_elixir/extensions_test.exs:670:    assert {:error, _reason} = HttpServer.start_link(host: \"bad host\", port: 0)\nelixir/test/symphony_elixir/core_test.exs:216:  test \"SymphonyElixir.start_link starts the agent runtime\" do\nelixir/test/symphony_elixir/core_test.exs:241:    assert {:ok, pid} = SymphonyElixir.start_link()\nelixir/test/symphony_elixir/core_test.exs:290:             Orchestrator.start_link(name: orchestrator_name)\nelixir/test/symphony_elixir/core_test.exs:312:             SymphonyElixir.AgentRuntimeSupervisor.start_link(\nelixir/test/symphony_elixir/core_test.exs:407:      hook_before_run: \"echo $$ >> \\\"#{hook_pid_file}\\\"; trap 'exit 0' TERM INT; mkfifo \\\"#{hook_fifo}\\\"; : > \\\"#{hook_marker}\\\"; read _ < \\\"#{hook_fifo}\\\"\",\nelixir/te",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}

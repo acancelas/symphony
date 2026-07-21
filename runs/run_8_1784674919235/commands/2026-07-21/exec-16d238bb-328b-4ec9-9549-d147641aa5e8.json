@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-16d238bb-328b-4ec9-9549-d147641aa5e8",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675019441_27",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:03:39.361Z",
+  "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/core_test.exs:352 test/symphony_elixir/workspace_and_config_test.exs:518 test/symphony_elixir/workspace_and_config_test.exs:1151'",
+  "durationMs": 394,
+  "environmentPolicy": "restricted",
+  "exitCode": 1,
+  "outputSummary": "\u001b[31m\u001b[1mUnchecked dependencies for environment test:\u001b[0m\r\n\u001b[31m\u001b[1m* floki (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* jason (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* ecto (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* req (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* solid (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* bandit (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* phoenix_live_view (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* yaml_elixir (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* phoenix_html (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* phoenix (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* lazy_html (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m* credo (Hex package)\u001b[0m\r\n\u001b[31m\u001b[1m  the dependency is not available, run \"mix deps.get\"\u001b[0m\r\n\u001b[31m\u001b[1m** (Mix) Can't continue due to errors on dependencies\u001b[0m\r\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
