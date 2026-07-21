@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_symphony_20_review_resume_20260721",
-  "lastSequence": 5,
-  "lastEventHash": "sha256:19dc024fda32d7e00915cb844d0020e36712a6bdb3affa970480a9b03cb1e256",
-  "lastEventId": "event_3009b9cc0f22696331d544783b",
-  "updatedAt": "2026-07-21T18:33:27.631747Z"
+  "lastSequence": 6,
+  "lastEventHash": "sha256:4aa32252019c66d8a6eaec22eb31c5439cf2fd5b148e36e02c20fa9d9e364b4c",
+  "lastEventId": "event_43d8e37b811a50f815e87476ae",
+  "updatedAt": "2026-07-21T18:34:28.475238Z"
 }

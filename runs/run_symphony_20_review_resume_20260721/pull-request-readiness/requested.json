@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run_symphony_20_review_resume_20260721",
+  "issueNumber": 20,
+  "pullRequestNumber": 24,
+  "expectedHeadSha": "ab30f7e6472ef33b668d297d78b710578ebc701b",
+  "status": "requested"
+}
