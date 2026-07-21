@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-1e178b68-a8cb-4cfb-8f34-cf5eb0b010fb",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628278469_175",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:04:39.540Z",
+  "command": "/bin/bash -lc 'mise exec -- mix test'",
+  "durationMs": 14661,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Running ExUnit with seed: 289645, max_cases: 20\n\n............................................................................**.......................................................................................................................................................................................................\nFinished in 13.5 seconds (1.3s async, 12.2s sync)\n277 tests, 0 failures, 2 skipped\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
