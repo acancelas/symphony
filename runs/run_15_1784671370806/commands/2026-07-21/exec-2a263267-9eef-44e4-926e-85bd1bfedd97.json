@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-2a263267-9eef-44e4-926e-85bd1bfedd97",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671403010_8",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:03:22.981Z",
+  "command": "/bin/bash -lc 'git status --short --branch && git log --oneline --decorate -12 && git branch -avv && git show --stat --oneline 31b224b && git diff --stat && rg -n \"canonical|audit_event_hash_invalid|rebase|RFC 8785|rfc8785\" elixir/lib elixir/test'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "## bos/issue-15\nacb5505 (HEAD -> bos/issue-15, origin/main, origin/HEAD, main) separate-capacity-queue-from-retries (#34)\nc12c70c enforce-bos-command-integration-boundary (#33)\n2c96429 fix(recovery): resume expired runner claims (#16)\n9451abb Promote verified draft pull requests before merge (#32)\nd5b4fbe isolate-invalid-run-projections (#31)\nfd1cf49 refresh-terminal-reconciliation-idempotency-scope (#29)\nff1b82f fix-cli-graceful-service-shutdown (#27)\nc2ffde2 Batch durable audit checkpoints under provider pressure (#26)\nf591fb7 Reconcile terminal Issues with durable AgentRuns (#25)\nb910515 Resume review lookups after provider cooldown (#24)\n0444da0 Preserve dirty workspaces during recovery (#19)\n7b22f4b Bound retained Codex event summaries (#5)\n* bos/issue-15                                                       acb5505 separate-capacity-queue-from-retries (#34)\n  main                                                               acb5505 [origin/main] separate-capacity-queue-from-retries (#34)\n  remotes/origin/HEAD                                                -> origin/main\n  remotes/origin/agent/bos-game-api-orchestration                    76f5dae feat(delivery): orchestrate goal planning and terminal verification\n  remotes/origin/agent/bos-repository-contract                       2da33f7 chore(delivery): add BOS repository contract\n  remotes/origin/bede/netsec-1129-supervisor-snapshot-reconciliation 51532eb fix(orchestrator): reconcile stale supervisor snapshots\n  remotes/origin/bos/audit                                           9fea2b8 bos-audit: append batch_attempt_started_attempt_run_15_1784671370806_1\n  remotes/origin/bos/checkpoint-batching-rate-pressure               b3be082 fix-audit-batch-reconstructible-checkpoints\n  remotes/origin/bos/issue-10                                        c3554e6 fix(delivery): verify PR readiness through game-api\n  remotes/origin/bos/issue-10-final                                  92e0ce2 fix(delivery): verify PR readin",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "long"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-bbf44c6e-db7a-449f-91c8-120dfdcde4d4",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671417269_16",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:03:37.240Z",
+  "command": "/bin/bash -lc \"git show --format=fuller --find-renames 31b224b -- elixir/lib/symphony_elixir/audit/canonical_json.ex elixir/lib/symphony_elixir/audit/outbox.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/test/symphony_elixir/audit/canonical_json_test.exs elixir/test/symphony_elixir/game_api_adapter_test.exs elixir/README.md && sed -n '1,260p' elixir/lib/symphony_elixir/audit/canonical_json.ex && sed -n '1,360p' elixir/lib/symphony_elixir/audit/outbox.ex && sed -n '1,260p' elixir/lib/symphony_elixir/game_api/client.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "commit 31b224bb39322c3b3c3bde20a09337dde2edbeb9\nAuthor:     Alejandro Cancelas <hola@alejandrocancelas.com>\nAuthorDate: Tue Jul 21 05:06:54 2026 +0200\nCommit:     Alejandro Cancelas <hola@alejandrocancelas.com>\nCommitDate: Tue Jul 21 05:06:54 2026 +0200\n\n    fix(audit): canonicalize ANSI events with RFC 8785\n\ndiff --git a/elixir/README.md b/elixir/README.md\nindex 25f5411..ce4567b 100644\n--- a/elixir/README.md\n+++ b/elixir/README.md\n@@ -33,6 +33,16 @@ issue claimed and exposes it as blocked in the runtime state, JSON API, and dash\n entries are in memory only; restarting the orchestrator clears that blocked map, so any still-active\n tracker issue can become a dispatch candidate again after restart.\n \n+### BOS durable audit outbox\n+\n+The BOS tracker profile records App Server lifecycle, command and tool events in an append-only\n+local outbox before sending batches to `game-api`. Event hashes use RFC 8785 JSON canonicalization\n+and SHA-256, including lowercase hexadecimal control escapes such as `\\\\u001b` from ANSI command\n+output. If GitHub has advanced the run chain concurrently, or an older local hash is rejected, the\n+outbox preserves event and operation identities, rebases only unconfirmed events onto the confirmed\n+remote head, atomically replaces the pending event set and retries idempotently. Receipted events\n+are never replayed.\n+\n ## How to use it\n \n 1. Make sure your codebase is set up to work well with agents: see\ndiff --git a/elixir/lib/symphony_elixir/audit/canonical_json.ex b/elixir/lib/symphony_elixir/audit/canonical_json.ex\nindex 17c13d5..e7dc836 100644\n--- a/elixir/lib/symphony_elixir/audit/canonical_json.ex\n+++ b/elixir/lib/symphony_elixir/audit/canonical_json.ex\n@@ -21,7 +21,7 @@ defmodule SymphonyElixir.Audit.CanonicalJson do\n   def encode(value) when is_list(value),\n     do: [?[, Enum.intersperse(Enum.map(value, &encode/1), ?,), ?]]\n \n-  def encode(value) when is_binary(value), do: Jason.encode!(value)\n+  def encode(value) when is_binary(value), do",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}

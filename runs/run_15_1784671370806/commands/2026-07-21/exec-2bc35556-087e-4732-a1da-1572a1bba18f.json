@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-2bc35556-087e-4732-a1da-1572a1bba18f",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671424923_18",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:03:45.561Z",
+  "command": "/bin/bash -lc \"git diff --stat HEAD..31b224b && git diff HEAD..31b224b -- elixir/lib/symphony_elixir/audit/canonical_json.ex elixir/lib/symphony_elixir/audit/outbox.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/test/symphony_elixir/audit/canonical_json_test.exs elixir/test/symphony_elixir/audit/outbox_test.exs elixir/test/symphony_elixir/game_api_adapter_test.exs && grep -RIn \\\"audit_event_hash_invalid\\\\|audit_canonicalization_failed\\\\|rebase_pending_events\\\\|preserv.*eventId\\\\|ANSI\\\" elixir/test elixir/lib | head -200\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": " .bos/project.yaml                                  |  25 -\n .codex/config.toml                                 |   4 -\n AGENTS.md                                          |  39 -\n WORKFLOW.md                                        |   7 -\n elixir/README.md                                   |  76 +-\n elixir/config/config.exs                           |   3 +-\n elixir/lib/mix/tasks/pr_body.check.ex              |   9 +-\n elixir/lib/symphony_elixir/agent_runner.ex         |  40 +-\n elixir/lib/symphony_elixir/audit/canonical_json.ex |  42 +-\n elixir/lib/symphony_elixir/audit/outbox.ex         | 797 ++-------------------\n elixir/lib/symphony_elixir/cli.ex                  |  11 +-\n elixir/lib/symphony_elixir/codex/app_server.ex     |  39 +-\n elixir/lib/symphony_elixir/codex/command_policy.ex | 125 ----\n elixir/lib/symphony_elixir/config/schema.ex        |   3 +-\n elixir/lib/symphony_elixir/delivery_coordinator.ex | 158 +---\n elixir/lib/symphony_elixir/game_api/adapter.ex     |   7 +-\n elixir/lib/symphony_elixir/game_api/client.ex      | 277 +------\n .../symphony_elixir/game_api/provider_circuit.ex   | 108 ---\n elixir/lib/symphony_elixir/orchestrator.ex         | 294 +-------\n .../symphony_elixir/post_approval_coordinator.ex   | 174 +----\n elixir/lib/symphony_elixir/status_dashboard.ex     |  26 -\n elixir/lib/symphony_elixir/tracker.ex              |  15 +-\n elixir/lib/symphony_elixir/workspace.ex            | 158 +---\n .../lib/symphony_elixir_web/live/dashboard_live.ex |  49 +-\n elixir/lib/symphony_elixir_web/presenter.ex        |  73 +-\n .../backoff_queue.evidence.md                      |   4 -\n .../backoff_queue.snapshot.txt                     |   4 -\n .../credits_unlimited.evidence.md                  |   4 -\n .../credits_unlimited.snapshot.txt                 |   4 -\n .../status_dashboard_snapshots/idle.evidence.md    |   4 -\n .../status_dashboard_snapshots/idle.snapshot.txt   |   4 -\n .../idle_with_dashboard_url.evidence.md            |   4 -\n .../idle_with_dashb",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}
