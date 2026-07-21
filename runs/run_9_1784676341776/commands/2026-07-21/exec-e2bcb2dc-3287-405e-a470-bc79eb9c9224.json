@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e2bcb2dc-3287-405e-a470-bc79eb9c9224",
+  "runId": "run_9_1784676341776",
+  "attemptId": "attempt_run_9_1784676341776_1",
+  "eventId": "event_1784676412011_24",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:26:51.926Z",
+  "command": "/bin/bash -lc \"grep -n \\\"audit\\\\|history\\\\|events\\\" elixir/lib/symphony_elixir/game_api/client.ex | head -100; grep -RIn \\\"codex_worker_update\\\" elixir/lib/symphony_elixir/orchestrator.ex | head -60\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "13:  @recoverable_audit_error_codes ~w(\n14:    audit_chain_conflict\n15:    audit_chain_start_invalid\n16:    audit_event_hash_invalid\n17:    audit_hash_chain_mismatch\n18:    audit_sequence_gap\n103:  @spec append_audit_batch(map()) :: {:ok, map()} | {:error, term()}\n104:  def append_audit_batch(batch) when is_map(batch) do\n105:    request(:post, \"/v1/internal/bos/delivery/audit/events\", json: batch)\n265:      code when status in [409, 422] and code in @recoverable_audit_error_codes ->\n519:    append_audit_batch(%{\n523:      \"events\" => [event]\n538:        \"auditBatch\" => %{\n542:          \"events\" => [event]\n554:    chain = (run && run[\"auditChain\"]) || %{}\n590:    error -> {:error, {:audit_event_build_failed, error}}\n187:        {:codex_worker_update, issue_id, %{event: _, timestamp: _} = update},\n208:  def handle_info({:codex_worker_update, _issue_id, _update}, state), do: {:noreply, state}\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-9",
+  "retention": {
+    "category": "permanent"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-6a6fd9af-b620-4a6c-ad9b-01d09ad04b01",
+  "runId": "run_9_1784676341776",
+  "attemptId": "attempt_run_9_1784676341776_1",
+  "eventId": "event_1784676421034_26",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:27:00.950Z",
+  "command": "/bin/bash -lc \"grep -n \\\"retry\\\\|worker.*failed\\\\|DOWN\\\" elixir/lib/symphony_elixir/orchestrator.ex | head -180; sed -n '820,1030p' elixir/lib/symphony_elixir/orchestrator.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "14:  @continuation_retry_delay_ms 1_000\n15:  @failure_retry_base_ms 10_000\n47:      retry_attempts: %{},\n148:        {:DOWN, ref, :process, _pid, reason},\n210:  def handle_info({:retry_issue, issue_id, retry_token}, state) do\n212:      case pop_retry_attempt_state(state, issue_id, retry_token) do\n213:        {:ok, attempt, metadata, state} -> handle_retry_issue(state, issue_id, attempt, metadata)\n221:  def handle_info({:retry_issue, _issue_id}, state), do: {:noreply, state}\n245:      |> schedule_issue_retry(issue_id, 1, %{\n259:      retry_agent_down(state, issue_id, running_entry, session_id, reason)\n271:  defp retry_agent_down(state, issue_id, running_entry, session_id, reason) do\n272:    Logger.warning(\"Agent task exited for issue_id=#{issue_id} session_id=#{session_id} reason=#{inspect(reason)}; scheduling retry\")\n274:    next_attempt = next_retry_attempt_from_running(running_entry)\n276:    schedule_issue_retry(state, issue_id, next_attempt, %{\n401:  @spec handle_retry_issue_lookup_for_test(Issue.t(), term(), String.t(), non_neg_integer(), map()) ::\n403:  def handle_retry_issue_lookup_for_test(%Issue{} = issue, %State{} = state, issue_id, attempt, metadata)\n405:    {:noreply, updated_state} = handle_retry_issue_lookup(issue, state, issue_id, attempt, metadata)\n612:            retry_attempts: Map.delete(state.retry_attempts, issue_id)\n665:        next_attempt = next_retry_attempt_from_running(running_entry)\n669:        |> schedule_issue_retry(issue_id, next_attempt, %{\n814:        retry_attempts: Map.delete(state.retry_attempts, issue_id),\n1074:            retry_attempt: normalize_retry_attempt(attempt),\n1083:            retry_attempts: Map.delete(state.retry_attempts, issue.id)\n1090:        schedule_issue_retry(state, issue.id, next_attempt, %{\n1103:        if retry_candidate_issue?(refreshed_issue, terminal_states) do\n1123:        retry_attempts: Map.delete(state.retry_attempts, issue_id)\n1127:  defp schedule_issue_retry(%State{} = state, issue_id, attempt, meta",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-9",
+  "retention": {
+    "category": "permanent"
+  }
+}
