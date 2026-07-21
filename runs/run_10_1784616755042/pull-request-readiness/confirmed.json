@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run_10_1784616755042",
+  "issueNumber": 10,
+  "pullRequestNumber": 32,
+  "headSha": "92e0ce29c9a292171ed09d4d53e9f01f106ef5d4",
+  "status": "ready",
+  "alreadyReady": false,
+  "recoveredAfterProviderError": false
+}
