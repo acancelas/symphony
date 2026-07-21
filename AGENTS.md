@@ -25,6 +25,7 @@ This repository is the BOS-maintained Symphony fork used by the X1 delivery orch
 - Audit canonicalization must implement RFC 8785 exactly, including lowercase `\\u00xx` escapes and UTF-16 property ordering. Generic JSON encoders are not canonicalizers; keep cross-runtime fixtures for control characters and non-BMP keys.
 - Treat provider rate limits as a process-wide circuit across every `game-api` request, not independent per-run or audit-only failures; scheduler reads, heartbeats and a large outbox must not bypass backoff by rotating across repositories or runs.
 - Use the full 50-event audit contract for non-critical batches to reduce GitHub ref/tree/commit operations. Critical lifecycle and irreversible-boundary events still flush immediately.
+- Persist workspace checkpoints to the local outbox immediately, but confirm them through normal 50-event or 60-second batches. A reconstructible diff is durable evidence, not an irreversible boundary, and must not force one GitHub commit per notification.
 - Preserve retry-attempt state until a batch succeeds; an expired cooldown permits a probe but must not reset exponential backoff.
 - Parse structured `game-api` errors whether the HTTP client returns decoded JSON or a JSON string. Recoverable audit codes must reach the outbox so it can rebase from GitHub instead of retrying a permanently invalid batch.
 - Test processes must use an isolated temporary outbox. Never let `mix test` open the live `~/.bos/outbox`; concurrent writers can interrupt an otherwise atomic rebase.

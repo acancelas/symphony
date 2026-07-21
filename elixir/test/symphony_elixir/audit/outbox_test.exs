@@ -168,6 +168,22 @@ defmodule SymphonyElixir.Audit.OutboxTest do
     refute Outbox.auditable_update?(%{event: :notification, payload: %{"method" => "account/rateLimits/updated"}})
   end
 
+  test "batches reconstructible checkpoints while immediately flushing terminal boundaries" do
+    refute Outbox.immediate_flush_for_test?(%{
+             event: :notification,
+             payload: %{"method" => "turn/diff/updated"}
+           })
+
+    refute Outbox.immediate_flush_for_test?(%{
+             event: :item_completed,
+             payload: %{"method" => "item/completed"}
+           })
+
+    assert Outbox.immediate_flush_for_test?(%{event: :turn_completed, payload: %{}})
+    assert Outbox.immediate_flush_for_test?(%{event: :turn_failed, payload: %{}})
+    assert Outbox.immediate_flush_for_test?(%{event: :turn_cancelled, payload: %{}})
+  end
+
   test "retains a complete redacted workspace checkpoint instead of a summary-only diff" do
     secret = "BOS_API_INTERNAL_TOKEN=do-not-persist"
     diff = "diff --git a/lib/example.ex b/lib/example.ex\n" <> String.duplicate("+safe change\n", 2_000) <> "+#{secret}\n"
