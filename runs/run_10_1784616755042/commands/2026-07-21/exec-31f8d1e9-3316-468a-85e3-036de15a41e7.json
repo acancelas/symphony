@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-31f8d1e9-3316-468a-85e3-036de15a41e7",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629137176_657",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:18:58.300Z",
+  "command": "/bin/bash -lc \"grep -nE \\\"markPullRequestReady|getPullRequest|getRunHistory|pull-requests|history\\\" $WORKSPACE/.bos/runtime-builds/bos-mcp-integration-20260721/src/delivery/apiClient.ts | head -100; sed -n '520,700p' $WORKSPACE/.bos/runtime-builds/bos-mcp-integration-20260721/src/delivery/apiClient.ts\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "273:    return this.request(\"POST\", \"/v1/internal/bos/github/pull-requests\", {\n292:  getPullRequest(pullRequestNumber: number) {\n295:      `/v1/internal/bos/github/pull-requests/${pullRequestNumber}?${this.repositoryQuery()}`,\n299:  getPullRequestChecks(pullRequestNumber: number) {\n302:      `/v1/internal/bos/github/pull-requests/${pullRequestNumber}/checks?${this.repositoryQuery()}`,\n306:  markPullRequestReady(input: Record<string, unknown>) {\n309:      \"/v1/internal/bos/github/pull-requests/ready\",\n318:    return this.request(\"POST\", \"/v1/internal/bos/github/pull-requests/merge\", {\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
