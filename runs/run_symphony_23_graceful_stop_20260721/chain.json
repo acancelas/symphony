@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_symphony_23_graceful_stop_20260721",
-  "lastSequence": 2,
-  "lastEventHash": "sha256:3f1d3e25c46491ccb8d8c72ed53d52a2a74aa18f00f7b1a5890e0604e8dc8fd5",
-  "lastEventId": "event_30018b86afe36be669442bb23e",
-  "updatedAt": "2026-07-21T18:58:09.689946Z"
+  "lastSequence": 3,
+  "lastEventHash": "sha256:fd4f77dd5b389634b1489d1e9bb48108a041ca65cc83f65725797db972974552",
+  "lastEventId": "event_e8dda45c02b43212f10612bf1d",
+  "updatedAt": "2026-07-21T18:58:14.896724Z"
 }
