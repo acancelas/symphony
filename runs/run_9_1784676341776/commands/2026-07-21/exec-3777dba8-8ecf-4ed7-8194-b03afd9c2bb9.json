@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3777dba8-8ecf-4ed7-8194-b03afd9c2bb9",
+  "runId": "run_9_1784676341776",
+  "attemptId": "attempt_run_9_1784676341776_1",
+  "eventId": "event_1784676405365_22",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:26:45.281Z",
+  "command": "/bin/bash -lc \"sed -n '130,205p' elixir/lib/symphony_elixir/game_api/client.ex; grep -RIn \\\"fetch_run_artifacts(.*commands\\\\|\\\\\\\"commands\\\\\\\"\\\" elixir | head -80; grep -n \\\"normalize_codex_payload\\\" -A90 elixir/lib/symphony_elixir/audit/outbox.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "        }\n      )\n    end\n  end\n\n  @spec fetch_run(String.t(), String.t()) :: {:ok, map()} | {:error, term()}\n  def fetch_run(repository_id, run_id) when is_binary(repository_id) and is_binary(run_id) do\n    with {:ok, repository} <- find_repository(repository_id) do\n      request(:get, \"/v1/internal/bos/delivery/runs/#{URI.encode(run_id)}\", params: repository_query(repository))\n    end\n  end\n\n  @spec mark_pull_request_ready(map()) :: {:ok, map()} | {:error, term()}\n  def mark_pull_request_ready(readiness) when is_map(readiness) do\n    with {:ok, repository} <- find_repository(readiness[\"repositoryId\"]) do\n      request(:post, \"/v1/internal/bos/github/pull-requests/ready\",\n        json: %{\n          \"repository\" => repository_body(repository),\n          \"issueNumber\" => readiness[\"issueNumber\"],\n          \"operationId\" => readiness[\"operationId\"],\n          \"runId\" => readiness[\"runId\"],\n          \"pullRequestNumber\" => readiness[\"pullRequestNumber\"],\n          \"expectedHeadSha\" => readiness[\"expectedHeadSha\"]\n        }\n      )\n    end\n  end\n\n  @spec fetch_pull_request(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\n  def fetch_pull_request(repository_id, pull_request_number)\n      when is_binary(repository_id) and is_integer(pull_request_number) and pull_request_number > 0 do\n    with {:ok, repository} <- find_repository(repository_id) do\n      request(:get, \"/v1/internal/bos/github/pull-requests/#{pull_request_number}\", params: repository_query(repository))\n    end\n  end\n\n  @spec fetch_run_artifacts(String.t(), String.t(), String.t()) :: {:ok, [map()]} | {:error, term()}\n  def fetch_run_artifacts(repository_id, run_id, directory)\n      when is_binary(repository_id) and is_binary(run_id) and is_binary(directory) do\n    with {:ok, repository} <- find_repository(repository_id) do\n      list_artifacts(repository, run_id, directory)\n    end\n  end\n\n  @spec start_execution(Issue.t(), pos_integer()) :: {:ok, String.t()} | {:error, term()}\n  def start_executi",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-9",
+  "retention": {
+    "category": "permanent"
+  }
+}

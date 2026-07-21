@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-a255b845-2716-4572-8b13-3d70b74352fc",
+  "runId": "run_9_1784676341776",
+  "attemptId": "attempt_run_9_1784676341776_1",
+  "eventId": "event_1784676401268_20",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:26:41.184Z",
+  "command": "/bin/bash -lc \"grep -n \\\"def fetch_run_artifacts\\\\|command\\\" elixir/lib/symphony_elixir/game_api/client.ex | head -120; sed -n '1060,1140p' elixir/lib/symphony_elixir/audit/outbox.ex; grep -RIn \\\"item/completed\\\\|commandExecution\\\\|command_execution\\\\|command\\\" elixir/test/symphony_elixir/app_server_test.exs | head -120\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "167:  def fetch_run_artifacts(repository_id, run_id, directory)\n        |> Map.get(:payload, %{})\n        |> codex_item()\n        |> auditable_item?()\n\n      method == \"turn/diff/updated\" ->\n        true\n\n      true ->\n        false\n    end\n  end\n\n  defp auditable_item?(item) when is_map(item) do\n    item_kind(String.downcase(to_string(Map.get(item, ~s(type))))) in [:command, :tool]\n  end\n\n  defp auditable_item?(_item), do: false\n\n  defp event_method(event) when is_atom(event), do: event |> Atom.to_string() |> String.replace(\"_\", \"/\")\n  defp event_method(_event), do: \"\"\n\n  defp critical?(%{event: event}) when event in [:turn_completed, :turn_failed, :turn_cancelled], do: true\n  defp critical?(_update), do: false\n\n  defp event_type(\"item/completed\", payload), do: item_event_type(payload, \"completed\")\n  defp event_type(\"item/started\", payload), do: item_event_type(payload, \"started\")\n  defp event_type(\"turn/started\", _payload), do: \"agent.turn_started\"\n  defp event_type(\"turn/completed\", _payload), do: \"agent.turn_completed\"\n  defp event_type(\"turn/failed\", _payload), do: \"agent.turn_failed\"\n  defp event_type(\"turn/cancelled\", _payload), do: \"agent.turn_cancelled\"\n  defp event_type(\"turn/diff/updated\", _payload), do: \"workspace.checkpointed\"\n  defp event_type(_method, _payload), do: \"agent.progress_recorded\"\n\n  defp item_event_type(payload, suffix) do\n    type = get_in(payload, [\"params\", \"item\", \"type\"]) || get_in(payload, [\"item\", \"type\"]) || \"\"\n    normalized = String.downcase(to_string(type))\n\n    cond do\n      String.contains?(normalized, \"command\") ->\n        \"command.#{suffix}\"\n\n      String.contains?(normalized, \"mcp\") or String.contains?(normalized, \"tool\") ->\n        if suffix == \"started\", do: \"tool.requested\", else: \"tool.confirmed\"\n\n      true ->\n        \"agent.item_#{suffix}\"\n    end\n  end\n\n  defp event_status(%{event: :turn_failed}), do: \"failed\"\n  defp event_status(%{event: :turn_cancelled}), do: \"cancelled\"\n  defp event_status(_update), do: \"completed",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-9",
+  "retention": {
+    "category": "permanent"
+  }
+}
