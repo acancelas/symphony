@@ -1,0 +1,25 @@
+{
+  "reviewId": "review_run_10_1784616755042_2_visual",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "reviewType": "visual",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "commitSha": "c3554e69d100bbf2a0fe5ec4badfbd8459138dc4",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "none",
+      "area": "visual-scope",
+      "finding": "The exact commit changes only two Elixir backend orchestration modules and one Elixir test module; it changes no frontend, template, stylesheet, image, or other rendered UI asset."
+    },
+    {
+      "severity": "none",
+      "area": "evidence",
+      "finding": "Commit-matched evidence for c3554e69d100bbf2a0fe5ec4badfbd8459138dc4 reports the complete repository validation passing (278 tests, 2 skipped, formatting, specs, Credo, 100% coverage, and Dialyzer), consistent with the non-visual scope."
+    }
+  ],
+  "summary": "Passed: the exact-HEAD diff is exclusively backend PR-readiness orchestration and tests, with no user-facing visual changes requiring screenshot or browser comparison; commit-matched repository validation passed."
+}
