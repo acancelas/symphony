@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d14c2017-a55f-47ab-a933-4fdac68731cc",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629591650_914",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:26:31.514Z",
+  "command": "/bin/bash -lc 'grep -RIn -C 5 -E \"pull-request-readiness|mark_pull_request_ready|BOS_MCP_ACTOR|deployment-verifier\" WORKFLOW.md SPEC.md README.md elixir/README.md .bos/project.yaml elixir/lib elixir/test | head -n 700'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/post_approval_coordinator.ex-11-  alias SymphonyElixir.Codex.AppServer\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-12-  alias SymphonyElixir.GameApi.Client\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-13-  alias SymphonyElixir.Tracker.Issue\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-14-\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-15-  @probe_path \".bos-local/deployment-probe.json\"\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:16:  @readiness_path \".bos-local/pull-request-readiness.json\"\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-17-\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-18-  @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-19-  def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-20-    app_server = Keyword.get(opts, :app_server_module, AppServer)\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-21-    client = Keyword.get(opts, :game_api_client_module, Client)\n--\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-100-\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-101-  defp ensure_pull_request_ready(client, app_server, workspace, issue, recipient, worker_host, readiness) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-102-    prompt = \"\"\"\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-103-    You are the BOS pull-request readiness coordinator for #{issue.identifier}.\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-104-    Symphony durably recorded the exact readiness intent at #{@readiness_path}.\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:105:    Read it, then call bos_mark_pull_request_ready exactly for its operationId,\nelixir/lib/symphony_elixir/post_approval_coordinator.ex-106-    runId, issueNumber, pullReques",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
