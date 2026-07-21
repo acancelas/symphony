@@ -19,10 +19,8 @@ defmodule SymphonyElixir.Workspace do
       safe_id = workspace_key(issue_or_identifier)
 
       with {:ok, workspace} <- workspace_path_for_issue(safe_id, worker_host),
-           :ok <- validate_workspace_path(workspace, worker_host),
-           {:ok, workspace, created?} <- ensure_workspace(workspace, worker_host),
-           :ok <- maybe_run_after_create_hook(workspace, issue_context, created?, worker_host) do
-        {:ok, workspace}
+           :ok <- validate_workspace_path(workspace, worker_host) do
+        prepare_workspace(workspace, issue_context, worker_host)
       end
     rescue
       error in [ArgumentError, ErlangError, File.Error] ->
@@ -31,22 +29,155 @@ defmodule SymphonyElixir.Workspace do
     end
   end
 
-  defp ensure_workspace(workspace, nil) do
+  defp prepare_workspace(workspace, issue_context, nil) do
+    :global.trans({{__MODULE__, :workspace, workspace}, self()}, fn ->
+      prepare_local_workspace(workspace, issue_context)
+    end)
+  end
+
+  defp prepare_workspace(workspace, issue_context, worker_host) when is_binary(worker_host) do
+    :global.trans({{__MODULE__, :workspace, worker_host, workspace}, self()}, fn ->
+      with {:ok, workspace, created?} <- ensure_workspace(workspace, worker_host),
+           :ok <- maybe_run_after_create_hook(workspace, issue_context, created?, worker_host) do
+        {:ok, workspace}
+      end
+    end)
+  end
+
+  defp prepare_local_workspace(workspace, issue_context) do
+    if workspace_ready?(workspace) do
+      {:ok, workspace}
+    else
+      with :ok <- quarantine_incomplete_workspace(workspace),
+           {:ok, staging} <- create_staging_workspace(workspace),
+           :ok <- bootstrap_staging_workspace(staging, issue_context),
+           :ok <- publish_staging_workspace(staging, workspace),
+           :ok <- mark_workspace_ready(workspace, issue_context) do
+        {:ok, workspace}
+      end
+    end
+  end
+
+  defp create_staging_workspace(workspace) do
+    staging_root = Path.join(Path.dirname(workspace), ".symphony-staging")
+    File.mkdir_p!(staging_root)
+    staging = Path.join(staging_root, "#{Path.basename(workspace)}-#{unique_token()}")
+
+    case File.mkdir(staging) do
+      :ok -> {:ok, staging}
+      {:error, reason} -> {:error, {:workspace_staging_create_failed, staging, reason}}
+    end
+  end
+
+  defp bootstrap_staging_workspace(staging, issue_context) do
+    case maybe_run_after_create_hook(staging, issue_context, true, nil) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        _ = quarantine_path(staging, "bootstrap-failed")
+        {:error, reason}
+    end
+  end
+
+  defp publish_staging_workspace(staging, workspace) do
+    case File.rename(staging, workspace) do
+      :ok -> :ok
+      {:error, reason} -> {:error, {:workspace_publish_failed, staging, workspace, reason}}
+    end
+  end
+
+  defp quarantine_incomplete_workspace(workspace) do
     cond do
-      File.dir?(workspace) and recover_non_git_directories?() and
-          !File.exists?(Path.join(workspace, ".git")) ->
-        recover_non_git_workspace(workspace)
+      not File.exists?(workspace) ->
+        :ok
 
-      File.dir?(workspace) ->
-        {:ok, workspace, false}
-
-      File.exists?(workspace) ->
-        File.rm_rf!(workspace)
-        create_workspace(workspace)
+      workspace_ready?(workspace) ->
+        :ok
 
       true ->
-        create_workspace(workspace)
+        File.rm(ready_marker_path(workspace))
+        quarantine_path(workspace, "incomplete")
     end
+  end
+
+  defp quarantine_path(path, reason) do
+    workspace_root =
+      if Path.basename(Path.dirname(path)) == ".symphony-staging" do
+        Path.dirname(Path.dirname(path))
+      else
+        Path.dirname(path)
+      end
+
+    quarantine_root =
+      Path.join([
+        workspace_root,
+        ".symphony-quarantine",
+        Path.basename(path)
+      ])
+
+    File.mkdir_p!(quarantine_root)
+    destination = Path.join(quarantine_root, "#{reason}-#{unique_token()}")
+
+    case File.rename(path, destination) do
+      :ok -> :ok
+      {:error, :enoent} -> :ok
+      {:error, error} -> {:error, {:workspace_quarantine_failed, path, destination, error}}
+    end
+  end
+
+  defp mark_workspace_ready(workspace, issue_context) do
+    with {:ok, stat} <- File.stat(workspace),
+         :ok <- File.mkdir_p(Path.dirname(ready_marker_path(workspace))) do
+      marker = %{
+        "schemaVersion" => "1.0",
+        "workspace" => workspace,
+        "inode" => stat.inode,
+        "issueId" => issue_context.issue_id,
+        "issueIdentifier" => issue_context.issue_identifier,
+        "readyAt" => DateTime.utc_now() |> DateTime.to_iso8601()
+      }
+
+      atomic_write(ready_marker_path(workspace), Jason.encode!(marker))
+    else
+      {:error, reason} -> {:error, {:workspace_ready_marker_failed, workspace, reason}}
+    end
+  end
+
+  defp workspace_ready?(workspace) do
+    with true <- File.dir?(workspace),
+         {:ok, stat} <- File.stat(workspace),
+         {:ok, contents} <- File.read(ready_marker_path(workspace)),
+         {:ok, %{"workspace" => ^workspace, "inode" => inode}} <- Jason.decode(contents) do
+      inode == stat.inode
+    else
+      _ -> false
+    end
+  end
+
+  defp ready_marker_path(workspace) do
+    Path.join([
+      Path.dirname(workspace),
+      ".symphony-workspace-state",
+      Path.basename(workspace) <> ".json"
+    ])
+  end
+
+  defp atomic_write(path, contents) do
+    temporary = path <> ".tmp-" <> unique_token()
+
+    with :ok <- File.write(temporary, contents, [:binary, :sync]),
+         :ok <- File.rename(temporary, path) do
+      :ok
+    else
+      {:error, reason} ->
+        File.rm(temporary)
+        {:error, reason}
+    end
+  end
+
+  defp unique_token do
+    "#{System.system_time(:millisecond)}-#{System.unique_integer([:positive, :monotonic])}"
   end
 
   defp ensure_workspace(workspace, worker_host) when is_binary(worker_host) do
@@ -91,31 +222,6 @@ defmodule SymphonyElixir.Workspace do
 
       {:error, reason} ->
         {:error, reason}
-    end
-  end
-
-  defp create_workspace(workspace) do
-    File.rm_rf!(workspace)
-    File.mkdir_p!(workspace)
-    {:ok, workspace, true}
-  end
-
-  defp recover_non_git_workspace(workspace) do
-    case File.ls(workspace) do
-      {:ok, []} ->
-        {:ok, workspace, true}
-
-      {:ok, _entries} ->
-        orphan = "#{workspace}.orphaned-#{System.system_time(:second)}-#{System.unique_integer([:positive])}"
-
-        with :ok <- File.rename(workspace, orphan),
-             :ok <- File.mkdir_p(workspace) do
-          Logger.warning("Preserved non-Git workspace before reconstruction workspace=#{workspace} orphan=#{orphan}")
-          {:ok, workspace, true}
-        end
-
-      {:error, reason} ->
-        {:error, {:workspace_inspection_failed, workspace, reason}}
     end
   end
 

@@ -40,6 +40,117 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
     end
   end
 
+  test "concurrent recovery has one bootstrap owner and publishes only a complete workspace" do
+    test_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-workspace-single-owner-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      workspace_root = Path.join(test_root, "workspaces")
+      counter = Path.join(test_root, "bootstrap.count")
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        hook_after_create: "printf 'call\\n' >> #{counter}; sleep 0.1; printf 'ready\\n' > READY"
+      )
+
+      tasks = Enum.map(1..4, fn _ -> Task.async(fn -> Workspace.create_for_issue("BOS-ATOMIC") end) end)
+      results = Enum.map(tasks, &Task.await(&1, 5_000))
+
+      assert Enum.uniq(results) == [{:ok, Path.join(workspace_root, "BOS-ATOMIC")}]
+      assert File.read!(counter) == "call\n"
+      assert File.read!(Path.join(workspace_root, "BOS-ATOMIC/READY")) == "ready\n"
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
+  test "partial workspace is quarantined and replaced from a complete atomic bootstrap" do
+    test_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-workspace-quarantine-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      workspace_root = Path.join(test_root, "workspaces")
+      partial = Path.join(workspace_root, "BOS-RECOVER")
+      File.mkdir_p!(partial)
+      File.write!(Path.join(partial, "partial.txt"), "preserve me\n")
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        hook_after_create: "printf 'complete\\n' > READY"
+      )
+
+      assert {:ok, ^partial} = Workspace.create_for_issue("BOS-RECOVER")
+      refute File.exists?(Path.join(partial, "partial.txt"))
+      assert File.read!(Path.join(partial, "READY")) == "complete\n"
+
+      quarantined =
+        Path.wildcard(
+          Path.join([
+            workspace_root,
+            ".symphony-quarantine",
+            "BOS-RECOVER",
+            "incomplete-*",
+            "partial.txt"
+          ])
+        )
+
+      assert length(quarantined) == 1
+      assert File.read!(hd(quarantined)) == "preserve me\n"
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
+  test "failed bootstrap never publishes a target and a later retry can recover" do
+    test_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-workspace-bootstrap-retry-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      workspace_root = Path.join(test_root, "workspaces")
+      workspace = Path.join(workspace_root, "BOS-RETRY")
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        hook_after_create: "printf 'partial\\n' > PARTIAL; exit 17"
+      )
+
+      assert {:error, {:workspace_hook_failed, "after_create", 17, _output}} =
+               Workspace.create_for_issue("BOS-RETRY")
+
+      refute File.exists?(workspace)
+
+      assert [_failed_partial] =
+               Path.wildcard(
+                 Path.join([
+                   workspace_root,
+                   ".symphony-quarantine",
+                   "BOS-RETRY-*",
+                   "bootstrap-failed-*",
+                   "PARTIAL"
+                 ])
+               )
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        hook_after_create: "printf 'complete\\n' > READY"
+      )
+
+      assert {:ok, ^workspace} = Workspace.create_for_issue("BOS-RETRY")
+      assert File.read!(Path.join(workspace, "READY")) == "complete\n"
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
   test "workspace path is deterministic per issue identifier" do
     workspace_root =
       Path.join(
@@ -167,8 +278,17 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
       assert File.exists?(Path.join(workspace, ".git"))
       refute File.exists?(Path.join(workspace, "exclusive-progress.txt"))
 
-      assert [orphan] = Path.wildcard("#{workspace}.orphaned-*")
-      assert File.read!(Path.join(orphan, "exclusive-progress.txt")) == "preserve me\n"
+      assert [quarantine] =
+               Path.wildcard(
+                 Path.join([
+                   workspace_root,
+                   ".symphony-quarantine",
+                   "MT-PARTIAL",
+                   "incomplete-*"
+                 ])
+               )
+
+      assert File.read!(Path.join(quarantine, "exclusive-progress.txt")) == "preserve me\n"
     after
       File.rm_rf(workspace_root)
     end
