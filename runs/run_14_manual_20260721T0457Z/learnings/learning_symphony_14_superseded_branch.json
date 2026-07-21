@@ -1,0 +1,25 @@
+{
+  "learningId": "learning_symphony_14_superseded_branch",
+  "runId": "run_14_manual_20260721T0457Z",
+  "category": "operations",
+  "summary": "Before merging a recovered branch, compare its acceptance contract with current main. Close with exact-main evidence when later hardened PRs already satisfy it; never merge obsolete code merely to obtain a one-to-one PR.",
+  "action": "Add already-satisfied detection to recovery planning, require current-main validation before reviving old branches, and record superseding PRs plus the exact verified commit.",
+  "references": [
+    {
+      "type": "issue",
+      "number": 14
+    },
+    {
+      "type": "commit",
+      "sha": "acb5505e889e3a73f76a5bbb70e675eaf9ce20c6"
+    },
+    {
+      "type": "pull_requests",
+      "numbers": [
+        3,
+        5,
+        26
+      ]
+    }
+  ]
+}
