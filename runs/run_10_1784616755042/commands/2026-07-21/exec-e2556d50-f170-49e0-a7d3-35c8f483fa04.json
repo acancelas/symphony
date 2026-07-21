@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e2556d50-f170-49e0-a7d3-35c8f483fa04",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629174342_675",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:19:34.341Z",
+  "command": "/bin/bash -lc \"grep -n \\\"defp require_confirmed_receipt\\\" -A20 elixir/lib/symphony_elixir/post_approval_coordinator.ex; grep -RIn \\\"pullRequest.*headSha\\\\|headSha.*draft\\\\|\\\\\\\"isDraft\\\\\\\"\\\" $WORKSPACE/.bos/runtime-builds/bos-mcp-integration-20260721/src | head -80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "318:  defp require_confirmed_receipt(%{\"status\" => \"completed\", \"receipt\" => receipt}) when is_map(receipt), do: :ok\n319:  defp require_confirmed_receipt(other), do: {:error, {:runtime_probe_not_confirmed, other}}\n320-\n321-  defp require_local_probe_handoff(nil), do: :ok\n322-  defp require_local_probe_handoff(_worker_host), do: {:error, :remote_probe_handoff_not_supported}\n323-\n324-  defp run_role(app_server, workspace, issue, worker_host, actor, prompt, recipient) do\n325-    with {:ok, session} <-\n326-           app_server.start_session(workspace,\n327-             worker_host: worker_host,\n328-             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\n329-           ) do\n330-      try do\n331-        callback = fn message -> send_update(recipient, issue, actor, message) end\n332-\n333-        case app_server.run_turn(session, prompt, issue, on_message: callback) do\n334-          {:ok, _turn} -> :ok\n335-          {:error, reason} -> {:error, reason}\n336-        end\n337-      after\n338-        app_server.stop_session(session)\n339-      end\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
