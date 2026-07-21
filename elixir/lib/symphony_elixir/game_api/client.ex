@@ -7,7 +7,16 @@ defmodule SymphonyElixir.GameApi.Client do
 
   alias SymphonyElixir.Audit.CanonicalJson
   alias SymphonyElixir.Config
+  alias SymphonyElixir.GameApi.ProviderCircuit
   alias SymphonyElixir.Tracker.Issue
+
+  @recoverable_audit_error_codes ~w(
+    audit_chain_conflict
+    audit_chain_start_invalid
+    audit_event_hash_invalid
+    audit_hash_chain_mismatch
+    audit_sequence_gap
+  )
 
   @spec fetch_ready_issues() :: {:ok, [map()]} | {:error, term()}
   def fetch_ready_issues do
@@ -185,10 +194,21 @@ defmodule SymphonyElixir.GameApi.Client do
         retry: false
       )
 
-    case Req.request(Keyword.merge(options, method: method, url: url)) do
-      {:ok, %Req.Response{status: status, body: body}} when status in 200..299 -> {:ok, body}
-      {:ok, %Req.Response{status: status, body: body}} -> {:error, http_error(status, body)}
-      {:error, reason} -> {:error, {:game_api_request_failed, reason}}
+    with :ok <- ProviderCircuit.before_request() do
+      case Req.request(Keyword.merge(options, method: method, url: url)) do
+        {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
+          ProviderCircuit.succeeded()
+          {:ok, body}
+
+        {:ok, %Req.Response{status: status} = response} when status in [403, 429] ->
+          {:error, {:game_api_rate_limited, ProviderCircuit.rate_limited(retry_after_ms(response))}}
+
+        {:ok, %Req.Response{status: status, body: body}} ->
+          {:error, http_error(status, body)}
+
+        {:error, reason} ->
+          {:error, {:game_api_request_failed, reason}}
+      end
     end
   end
 
@@ -196,7 +216,7 @@ defmodule SymphonyElixir.GameApi.Client do
   @spec http_error(non_neg_integer(), term()) :: tuple()
   def http_error(status, body) do
     case response_error_code(body) do
-      code when status == 409 and code in ["audit_chain_conflict", "audit_sequence_gap"] ->
+      code when status in [409, 422] and code in @recoverable_audit_error_codes ->
         {:game_api_http_error, status, code}
 
       _ ->
@@ -205,8 +225,32 @@ defmodule SymphonyElixir.GameApi.Client do
   end
 
   defp response_error_code(%{"detail" => %{"error" => code}}) when is_binary(code), do: code
+  defp response_error_code(%{"detail" => %{"code" => code}}) when is_binary(code), do: code
+  defp response_error_code(%{"detail" => detail}) when is_binary(detail), do: response_error_code(detail)
   defp response_error_code(%{"error" => code}) when is_binary(code), do: code
+  defp response_error_code(%{"code" => code}) when is_binary(code), do: code
+
+  defp response_error_code(body) when is_binary(body) do
+    case Jason.decode(body) do
+      {:ok, decoded} -> response_error_code(decoded)
+      {:error, _reason} -> nil
+    end
+  end
+
   defp response_error_code(_body), do: nil
+
+  defp retry_after_ms(response) do
+    case Req.Response.get_header(response, "retry-after") do
+      [value | _rest] ->
+        case Integer.parse(value) do
+          {seconds, ""} when seconds > 0 -> seconds * 1_000
+          _invalid -> nil
+        end
+
+      [] ->
+        nil
+    end
+  end
 
   defp response_list({:ok, payload}, key) when is_map(payload) do
     case Map.get(payload, key) do

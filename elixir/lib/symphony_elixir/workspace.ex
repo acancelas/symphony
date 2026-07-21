@@ -33,6 +33,10 @@ defmodule SymphonyElixir.Workspace do
 
   defp ensure_workspace(workspace, nil) do
     cond do
+      File.dir?(workspace) and recover_non_git_directories?() and
+          !File.exists?(Path.join(workspace, ".git")) ->
+        recover_non_git_workspace(workspace)
+
       File.dir?(workspace) ->
         {:ok, workspace, false}
 
@@ -46,12 +50,24 @@ defmodule SymphonyElixir.Workspace do
   end
 
   defp ensure_workspace(workspace, worker_host) when is_binary(worker_host) do
+    recover_non_git = if recover_non_git_directories?(), do: "1", else: "0"
+
     script =
       [
         "set -eu",
         remote_shell_assign("workspace", workspace),
+        remote_shell_assign("recover_non_git", recover_non_git),
         "if [ -d \"$workspace\" ]; then",
-        "  created=0",
+        "  if [ \"$recover_non_git\" = 1 ] && [ ! -e \"$workspace/.git\" ] && [ -n \"$(find \"$workspace\" -mindepth 1 -maxdepth 1 -print -quit)\" ]; then",
+        "    orphan=\"${workspace}.orphaned-$(date +%s)-$$\"",
+        "    mv -- \"$workspace\" \"$orphan\"",
+        "    mkdir -p \"$workspace\"",
+        "    created=1",
+        "  elif [ \"$recover_non_git\" = 1 ] && [ ! -e \"$workspace/.git\" ]; then",
+        "    created=1",
+        "  else",
+        "    created=0",
+        "  fi",
         "elif [ -e \"$workspace\" ]; then",
         "  rm -rf \"$workspace\"",
         "  mkdir -p \"$workspace\"",
@@ -84,6 +100,25 @@ defmodule SymphonyElixir.Workspace do
     {:ok, workspace, true}
   end
 
+  defp recover_non_git_workspace(workspace) do
+    case File.ls(workspace) do
+      {:ok, []} ->
+        {:ok, workspace, true}
+
+      {:ok, _entries} ->
+        orphan = "#{workspace}.orphaned-#{System.system_time(:second)}-#{System.unique_integer([:positive])}"
+
+        with :ok <- File.rename(workspace, orphan),
+             :ok <- File.mkdir_p(workspace) do
+          Logger.warning("Preserved non-Git workspace before reconstruction workspace=#{workspace} orphan=#{orphan}")
+          {:ok, workspace, true}
+        end
+
+      {:error, reason} ->
+        {:error, {:workspace_inspection_failed, workspace, reason}}
+    end
+  end
+
   @spec remove(Path.t()) :: {:ok, [String.t()]} | {:error, term(), String.t()}
   def remove(workspace), do: remove(workspace, nil)
 
@@ -93,8 +128,7 @@ defmodule SymphonyElixir.Workspace do
       true ->
         case validate_workspace_path(workspace, nil) do
           :ok ->
-            maybe_run_before_remove_hook(workspace, nil)
-            File.rm_rf(workspace)
+            remove_local_workspace(workspace)
 
           {:error, reason} ->
             {:error, reason, ""}
@@ -107,10 +141,39 @@ defmodule SymphonyElixir.Workspace do
 
   def remove(workspace, worker_host) when is_binary(worker_host) do
     maybe_run_before_remove_hook(workspace, worker_host)
+    recover_non_git = if recover_non_git_directories?(), do: "1", else: "0"
 
     script =
       [
+        "set -u",
         remote_shell_assign("workspace", workspace),
+        remote_shell_assign("recover_non_git", recover_non_git),
+        "if [ \"$recover_non_git\" = 1 ] && [ ! -e \"$workspace/.git\" ]; then",
+        "  printf '%s\\n' '__SYMPHONY_GIT_STATUS_FAILED__'",
+        "  printf '%s\\n' 'Configured Git workspace is missing .git metadata.'",
+        "  exit 74",
+        "fi",
+        "if [ -e \"$workspace/.git\" ]; then",
+        "  git_status=$(git -C \"$workspace\" status --porcelain=v1 --untracked-files=all 2>&1)",
+        "  git_status_code=$?",
+        "  if [ \"$git_status_code\" -ne 0 ]; then",
+        "    printf '%s\\n' '__SYMPHONY_GIT_STATUS_FAILED__'",
+        "    printf '%s\\n' \"$git_status\"",
+        "    exit 74",
+        "  fi",
+        "  if [ -n \"$git_status\" ]; then",
+        "    printf '%s\\n' '__SYMPHONY_DIRTY_WORKSPACE__'",
+        "    printf '%s\\n' \"$git_status\"",
+        "    exit 73",
+        "  fi",
+        "  upstream=$(git -C \"$workspace\" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>&1)",
+        "  upstream_status=$?",
+        "  if [ \"$upstream_status\" -ne 0 ] || ! git -C \"$workspace\" merge-base --is-ancestor HEAD \"$upstream\"; then",
+        "    printf '%s\\n' '__SYMPHONY_UNPUBLISHED_HEAD__'",
+        "    printf '%s\\n' \"$upstream\"",
+        "    exit 75",
+        "  fi",
+        "fi",
         "rm -rf \"$workspace\""
       ]
       |> Enum.join("\n")
@@ -119,6 +182,15 @@ defmodule SymphonyElixir.Workspace do
       {:ok, {_output, 0}} ->
         {:ok, []}
 
+      {:ok, {output, 73}} ->
+        preserve_dirty_workspace(workspace, worker_host, output)
+
+      {:ok, {output, 74}} ->
+        preserve_unreadable_workspace(workspace, worker_host, output)
+
+      {:ok, {output, 75}} ->
+        preserve_unpublished_workspace(workspace, worker_host, output)
+
       {:ok, {output, status}} ->
         {:error, {:workspace_remove_failed, worker_host, status, output}, ""}
 
@@ -126,6 +198,86 @@ defmodule SymphonyElixir.Workspace do
         {:error, reason, ""}
     end
   end
+
+  defp remove_local_workspace(workspace) do
+    maybe_run_before_remove_hook(workspace, nil)
+
+    case local_workspace_git_state(workspace) do
+      :clean -> File.rm_rf(workspace)
+      {:dirty, output} -> preserve_dirty_workspace(workspace, nil, output)
+      {:unreadable, output} -> preserve_unreadable_workspace(workspace, nil, output)
+      {:unpublished, output} -> preserve_unpublished_workspace(workspace, nil, output)
+    end
+  end
+
+  defp local_workspace_git_state(workspace) do
+    if File.exists?(Path.join(workspace, ".git")) do
+      case System.cmd("git", ["status", "--porcelain=v1", "--untracked-files=all"],
+             cd: workspace,
+             stderr_to_stdout: true
+           ) do
+        {"", 0} -> local_workspace_head_state(workspace)
+        {output, 0} -> {:dirty, output}
+        {output, _status} -> {:unreadable, output}
+      end
+    else
+      if recover_non_git_directories?() do
+        {:unreadable, "Configured Git workspace is missing .git metadata."}
+      else
+        :clean
+      end
+    end
+  rescue
+    error -> {:unreadable, Exception.message(error)}
+  end
+
+  defp local_workspace_head_state(workspace) do
+    with {upstream, 0} <-
+           System.cmd("git", ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
+             cd: workspace,
+             stderr_to_stdout: true
+           ),
+         {_, 0} <-
+           System.cmd("git", ["merge-base", "--is-ancestor", "HEAD", String.trim(upstream)],
+             cd: workspace,
+             stderr_to_stdout: true
+           ) do
+      :clean
+    else
+      {output, _status} -> {:unpublished, output}
+    end
+  rescue
+    error -> {:unreadable, Exception.message(error)}
+  end
+
+  defp preserve_dirty_workspace(workspace, worker_host, output) do
+    summary = bounded_git_status(output)
+
+    Logger.warning("Preserving dirty workspace instead of deleting it workspace=#{workspace} worker_host=#{worker_host_for_log(worker_host)} status=#{inspect(summary)}")
+
+    {:error, {:workspace_has_uncommitted_changes, workspace, worker_host}, summary}
+  end
+
+  defp preserve_unreadable_workspace(workspace, worker_host, output) do
+    summary = bounded_git_status(output)
+
+    Logger.warning("Preserving workspace because Git state is unreadable workspace=#{workspace} worker_host=#{worker_host_for_log(worker_host)} error=#{inspect(summary)}")
+
+    {:error, {:workspace_git_status_failed, workspace, worker_host}, summary}
+  end
+
+  defp preserve_unpublished_workspace(workspace, worker_host, output) do
+    summary = bounded_git_status(output)
+
+    Logger.warning("Preserving workspace because HEAD is not confirmed by its upstream workspace=#{workspace} worker_host=#{worker_host_for_log(worker_host)} detail=#{inspect(summary)}")
+
+    {:error, {:workspace_head_not_durable, workspace, worker_host}, summary}
+  end
+
+  defp bounded_git_status(output) when is_binary(output), do: String.slice(output, 0, 4_000)
+  defp bounded_git_status(output), do: output |> inspect() |> String.slice(0, 4_000)
+
+  defp recover_non_git_directories?, do: Config.settings!().workspace.recover_non_git_directories
 
   @spec remove_issue_workspaces(term()) :: :ok
   def remove_issue_workspaces(identifier), do: remove_issue_workspaces(identifier, nil)

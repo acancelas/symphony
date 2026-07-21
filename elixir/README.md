@@ -27,6 +27,41 @@ child environment, so the agent does not need a second tracker login.
 
 If a claimed issue moves to a terminal state (`Done`, `Closed`, `Cancelled`, or `Duplicate`),
 Symphony stops the active agent for that issue and cleans up matching workspaces.
+Cleanup is fail-closed for Git workspaces: if `git status` reports uncommitted changes, or Git
+state cannot be read reliably, Symphony preserves the workspace for recovery and logs the
+reason. A clean worktree is not sufficient: its `HEAD` must also be reachable from the configured
+upstream, so local commits that have not been pushed survive cleanup. A later attempt reuses that
+directory. Only clean, remotely durable terminal workspaces are disposable.
+Codex `turn/diff/updated` notifications are treated as critical recovery checkpoints: Symphony
+redacts their unified diff, writes it to the append-only outbox immediately, and flushes it as an
+independent `workspace.checkpointed` event to the GitHub audit ledger. This keeps the filesystem
+fast-path recoverable locally while giving a replacement X1 the last confirmed patch.
+Ordinary flush failures use bounded exponential backoff with jitter per AgentRun. A `game-api` or
+GitHub provider rate limit opens one process-wide audit circuit for 1 to 15 minutes: hundreds of
+pending runs cannot take turns bypassing the same integration cooldown. Critical events continue
+to be written locally, but no pending run flushes until the shared circuit permits a probe. An
+expired retry keeps its attempt counter until a batch succeeds, so repeated failures actually
+progress through the exponential schedule instead of restarting at the shortest delay.
+After a batch is confirmed, Symphony atomically advances a single local sequence watermark for
+the AgentRun before removing the corresponding event files. Legacy per-batch receipts are
+compacted into that watermark at startup. GitHub remains the permanent receipt and ledger; local
+recovery therefore stays crash-safe without accumulating or rescanning one file per historical
+batch.
+Legacy high-frequency progress deltas are compacted only after their sequence is confirmed in
+GitHub. Unconfirmed telemetry remains in the pending hash chain and previously quarantined
+unconfirmed files are restored before recovery. If an older runtime already removed detail from
+an unconfirmed chain, Symphony reads the confirmed GitHub projection, atomically rebases the
+remaining events, and carries the aggregate compaction summary in the first repaired event.
+Recovered hash-chained events are never normalized or mutated without recomputing their sequence,
+previous hash and event hash. Startup validates both adjacency and every event's canonical hash;
+an internally contiguous but hash-invalid legacy chain is rebased from the confirmed GitHub head.
+Lifecycle events, command metadata, tool operations, checkpoints and failures keep their stronger
+retention class.
+Runtime token telemetry reports total input, cached input, derived uncached input, output, and
+reasoning output separately. Provider usage counters are monotonic only within one App Server
+session, so Symphony resets its comparison watermark—not its cumulative totals—when a specialist
+role starts a fresh session. Operational token budgets should use uncached input while retaining
+the full totals for capacity and audit reporting.
 
 If Codex reports that operator input, approval, or MCP elicitation is required, Symphony keeps the
 issue claimed and exposes it as blocked in the runtime state, JSON API, and dashboard. Blocked

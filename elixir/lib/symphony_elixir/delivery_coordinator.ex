@@ -16,6 +16,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   @review_roles ~w(functional architecture security quality visual)
   @max_repair_cycles 3
+  @max_review_record_attempts 2
 
   @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}
   def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do
@@ -70,21 +71,55 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   defp run_reviews(context, cycle) do
     Enum.reduce_while(context.roles, :ok, fn role, :ok ->
-      prompt = review_prompt(context.issue, role, cycle)
-
-      case run_role(
-             context.app_server,
-             context.workspace,
-             context.issue,
-             context.worker_host,
-             "#{role}-reviewer",
-             prompt,
-             context.recipient
-           ) do
+      case run_review_until_durable(context, role, cycle, 1) do
         :ok -> {:cont, :ok}
-        {:error, reason} -> {:halt, {:error, {:reviewer_failed, role, reason}}}
+        {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
+  end
+
+  defp run_review_until_durable(context, role, cycle, record_attempt) do
+    prompt = review_prompt(context.issue, role, cycle, record_attempt)
+
+    case run_role(
+           context.app_server,
+           context.workspace,
+           context.issue,
+           context.worker_host,
+           "#{role}-reviewer",
+           prompt,
+           context.recipient
+         ) do
+      :ok -> verify_or_retry_review(context, role, cycle, record_attempt)
+      {:error, reason} -> {:error, {:reviewer_failed, role, reason}}
+    end
+  end
+
+  defp verify_or_retry_review(context, role, cycle, record_attempt) do
+    case review_recorded?(context.client, context.issue, role, cycle) do
+      {:ok, true} ->
+        :ok
+
+      {:ok, false} when record_attempt < @max_review_record_attempts ->
+        Logger.warning("Reviewer ended without a durable artifact; retrying role=#{role} cycle=#{cycle} record_attempt=#{record_attempt + 1}")
+
+        run_review_until_durable(context, role, cycle, record_attempt + 1)
+
+      {:ok, false} ->
+        {:error, {:review_artifact_missing, role, cycle}}
+
+      {:error, reason} ->
+        {:error, {:review_lookup_failed, role, reason}}
+    end
+  end
+
+  defp review_recorded?(client, issue, role, cycle) do
+    native_ref = issue.native_ref || %{}
+    expected_id = "review_#{native_ref["runId"]}_#{cycle}_#{role}"
+
+    with {:ok, artifacts} <- client.fetch_run_artifacts(native_ref["repositoryId"], native_ref["runId"], "reviews") do
+      {:ok, Enum.any?(artifacts, &(&1["reviewId"] == expected_id))}
+    end
   end
 
   defp fetch_cycle_reviews(client, issue, roles, cycle) do
@@ -188,15 +223,19 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp review_prompt(issue, role, cycle) do
+  defp review_prompt(issue, role, cycle, record_attempt) do
     native_ref = issue.native_ref || %{}
     run_id = native_ref["runId"]
     attempt_id = native_ref["attemptId"]
 
     """
     You are the independent BOS #{role} reviewer for #{issue.identifier}, cycle #{cycle}.
-    Inspect the issue acceptance contract, repository instructions, current diff,
-    exact git HEAD, tests and existing evidence. Do not modify files, commits,
+    Begin with the compact delivery context, current diff, exact git HEAD and
+    existing evidence. Inspect only the repository instructions and files needed
+    to decide this review; do not repeatedly load broad context or rerun an
+    unchanged passing validation unless its evidence is missing, stale or
+    insufficient for the #{role} decision. Prefer targeted search and summaries
+    before full documents. Do not modify files, commits,
     issue state, PR state, risk or approvals. Record exactly one typed Review via
     bos_record_review with reviewId `review_#{run_id}_#{cycle}_#{role}`, runId
     `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type
@@ -204,7 +243,14 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     `passed`, `changes_requested`, or `inconclusive`, concrete findings, and a
     concise summary. Passing requires affirmative evidence; missing evidence is
     inconclusive. End after the durable Review receipt is confirmed.
+    #{review_record_retry_instruction(record_attempt)}
     """
+  end
+
+  defp review_record_retry_instruction(1), do: ""
+
+  defp review_record_retry_instruction(record_attempt) do
+    "A prior reviewer session ended without the required durable Review. This is record attempt #{record_attempt}; call bos_record_review and confirm its receipt before doing anything else."
   end
 
   defp summarize_findings(reviews) do

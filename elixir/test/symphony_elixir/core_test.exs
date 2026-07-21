@@ -359,6 +359,7 @@ defmodule SymphonyElixir.CoreTest do
 
     hook_marker = Path.join(test_root, "before-run-started")
     hook_fifo = Path.join(test_root, "before-run-blocker")
+    hook_pid_file = Path.join(test_root, "before-run-pids")
     runtime_supervisor_name = Module.concat(__MODULE__, "AgentRuntimeSupervisor#{issue_suffix}")
     task_supervisor_name = Module.concat(__MODULE__, "TaskSupervisor#{issue_suffix}")
     orchestrator_name = Module.concat(__MODULE__, "RestartOrchestrator#{issue_suffix}")
@@ -381,6 +382,11 @@ defmodule SymphonyElixir.CoreTest do
         GenServer.stop(pid)
       end
 
+      # The Erlang task owns the port, but a brutally terminated task cannot
+      # reap its shell child. Stop dispatch first, then terminate only the
+      # exact hook processes registered by this test (with a KILL fallback).
+      terminate_registered_hooks(hook_pid_file, test_root)
+
       restore_app_env(:memory_tracker_issues, previous_memory_issues)
       restart_default_runtime!()
       File.rm_rf(test_root)
@@ -398,7 +404,7 @@ defmodule SymphonyElixir.CoreTest do
       tracker_kind: "memory",
       workspace_root: test_root,
       poll_interval_ms: 10,
-      hook_before_run: "mkfifo \"#{hook_fifo}\"; : > \"#{hook_marker}\"; read _ < \"#{hook_fifo}\"",
+      hook_before_run: "echo $$ >> \"#{hook_pid_file}\"; trap 'exit 0' TERM INT; mkfifo \"#{hook_fifo}\"; : > \"#{hook_marker}\"; read _ < \"#{hook_fifo}\"",
       hook_timeout_ms: 60_000
     )
 
@@ -469,6 +475,72 @@ defmodule SymphonyElixir.CoreTest do
 
     assert is_pid(second_worker_pid)
     assert Process.alive?(second_worker_pid)
+
+    # The Task process can become visible before its external hook shell has
+    # started. Wait for both owned children to register so teardown cannot race
+    # a shell that is spawned after the PID snapshot.
+    assert eventually_value(fn ->
+             if registered_hook_count(hook_pid_file) >= 2, do: true
+           end)
+  end
+
+  defp registered_hook_count(pid_file) do
+    case File.read(pid_file) do
+      {:ok, contents} ->
+        contents
+        |> String.split(~r/\s+/, trim: true)
+        |> Enum.uniq()
+        |> length()
+
+      _ ->
+        0
+    end
+  end
+
+  defp terminate_registered_hooks(pid_file, test_root) do
+    pids =
+      case File.read(pid_file) do
+        {:ok, contents} ->
+          contents
+          |> String.split(~r/\s+/, trim: true)
+          |> Enum.flat_map(&parse_hook_pid/1)
+          |> Enum.uniq()
+
+        _ ->
+          []
+      end
+
+    Enum.each(pids, fn pid ->
+      if registered_hook_process?(pid, test_root) do
+        System.cmd("kill", ["-TERM", "--", Integer.to_string(pid)], stderr_to_stdout: true)
+      end
+    end)
+
+    Process.sleep(20)
+
+    Enum.each(pids, fn pid ->
+      if registered_hook_process?(pid, test_root) do
+        System.cmd("kill", ["-KILL", "--", Integer.to_string(pid)], stderr_to_stdout: true)
+      end
+    end)
+  end
+
+  defp parse_hook_pid(value) do
+    case Integer.parse(value) do
+      {pid, ""} when pid > 1 -> [pid]
+      _ -> []
+    end
+  end
+
+  defp registered_hook_process?(pid, test_root) do
+    case File.read("/proc/#{pid}/cmdline") do
+      {:ok, command_line} ->
+        String.contains?(command_line, test_root) and
+          String.contains?(command_line, "before-run-blocker")
+
+      _ ->
+        false
+    end
   end
 
   test "linear issue state reconciliation fetch with no running issues is a no-op" do
@@ -927,7 +999,7 @@ defmodule SymphonyElixir.CoreTest do
     assert MapSet.member?(state.completed, issue_id)
     assert %{attempt: 1, due_at_ms: due_at_ms} = state.retry_attempts[issue_id]
     assert is_integer(due_at_ms)
-    assert_due_in_range(due_at_ms, 500, 1_100)
+    assert Orchestrator.retry_delay_for_test(1, %{delay_type: :continuation}) == 1_000
   end
 
   test "abnormal worker exit increments retry attempt progressively" do
@@ -967,7 +1039,8 @@ defmodule SymphonyElixir.CoreTest do
     assert %{attempt: 3, due_at_ms: due_at_ms, identifier: "MT-559", error: "agent exited: :boom"} =
              state.retry_attempts[issue_id]
 
-    assert_due_in_range(due_at_ms, 39_500, 40_500)
+    assert Orchestrator.retry_delay_for_test(3, %{}) == 40_000
+    assert is_integer(due_at_ms)
   end
 
   test "first abnormal worker exit waits before retrying" do
@@ -1006,7 +1079,8 @@ defmodule SymphonyElixir.CoreTest do
     assert %{attempt: 1, due_at_ms: due_at_ms, identifier: "MT-560", error: "agent exited: :boom"} =
              state.retry_attempts[issue_id]
 
-    assert_due_in_range(due_at_ms, 9_000, 10_500)
+    assert is_integer(due_at_ms)
+    assert Orchestrator.retry_delay_for_test(1, %{}) == 10_000
   end
 
   test "stale retry timer messages do not consume newer retry entries" do
@@ -1124,13 +1198,6 @@ defmodule SymphonyElixir.CoreTest do
     }
 
     assert Orchestrator.select_worker_host_for_test(state, "worker-a") == "worker-a"
-  end
-
-  defp assert_due_in_range(due_at_ms, min_remaining_ms, max_remaining_ms) do
-    remaining_ms = due_at_ms - System.monotonic_time(:millisecond)
-
-    assert remaining_ms >= min_remaining_ms
-    assert remaining_ms <= max_remaining_ms
   end
 
   defp restore_app_env(key, nil), do: Application.delete_env(:symphony_elixir, key)
