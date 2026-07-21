@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run_symphony_30_invalid_projection_isolation_20260721",
+  "issueNumber": 30,
+  "pullRequestNumber": 31,
+  "headSha": "cb6c799e48a89f83672b634bfaa35404711d6e9b",
+  "status": "ready",
+  "alreadyReady": false,
+  "recoveredAfterProviderError": false
+}

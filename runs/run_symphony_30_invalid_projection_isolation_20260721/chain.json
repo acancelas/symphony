@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_symphony_30_invalid_projection_isolation_20260721",
-  "lastSequence": 4,
-  "lastEventHash": "sha256:68191a6d01fe64cc9b913af12a568662e6fb903fce8af90004399a49959e0c2e",
-  "lastEventId": "event_a1123571f0c88f312a42939d41",
-  "updatedAt": "2026-07-21T20:30:33.347319Z"
+  "lastSequence": 5,
+  "lastEventHash": "sha256:11521eb2d474a991c354358814c5d5991b4ceca4beb3c8ad8eb3f57ce2406b14",
+  "lastEventId": "event_861f9b16b585f5076931f7d2c8",
+  "updatedAt": "2026-07-21T20:30:36.255170Z"
 }
