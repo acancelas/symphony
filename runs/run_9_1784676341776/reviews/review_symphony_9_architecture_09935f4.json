@@ -1,0 +1,13 @@
+{
+  "reviewId": "review_symphony_9_architecture_09935f4",
+  "runId": "run_9_1784676341776",
+  "reviewType": "architecture",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "commitSha": "09935f47b1326cffc6351fb52c6978cd92ebc080",
+  "status": "passed",
+  "findings": [],
+  "summary": "One coordinator owns repair and durable escalation; clean remote-confirmed HEAD remains the invariant before renewed reviews and finalization."
+}
