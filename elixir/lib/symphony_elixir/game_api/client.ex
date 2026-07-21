@@ -11,6 +11,7 @@ defmodule SymphonyElixir.GameApi.Client do
   alias SymphonyElixir.Tracker.Issue
 
   @recoverable_audit_error_codes ~w(
+    audit_canonicalization_failed
     audit_chain_conflict
     audit_chain_start_invalid
     audit_event_hash_invalid

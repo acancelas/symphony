@@ -234,6 +234,7 @@ defmodule SymphonyElixir.Audit.Outbox do
        )
        when status in [409, 422] and
               code in [
+                "audit_canonicalization_failed",
                 "audit_chain_conflict",
                 "audit_chain_start_invalid",
                 "audit_event_hash_invalid",
