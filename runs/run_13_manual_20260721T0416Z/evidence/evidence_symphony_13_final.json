@@ -1,0 +1,57 @@
+{
+  "evidenceId": "evidence_symphony_13_final",
+  "runId": "run_13_manual_20260721T0416Z",
+  "commitSha": "625ea25160d775497fde8b5367178b5df6cbee8f",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Expired running claims remain discoverable",
+      "status": "passed",
+      "evidence": "Requested active states use the normalized by-states contract."
+    },
+    {
+      "criterion": "Restart reconstructs canonical execution state",
+      "status": "passed",
+      "evidence": "Recovery reads running Issues and their canonical claim/run projection through game-api."
+    },
+    {
+      "criterion": "Repeated reconciliation is idempotent",
+      "status": "passed",
+      "evidence": "Adapter regressions prove stable recovery decisions without duplicate work."
+    },
+    {
+      "criterion": "Complete Symphony gates pass",
+      "status": "passed",
+      "evidence": "309 tests, 0 failures, 2 intentional skips, 100 percent reported coverage, Credo and Dialyzer clean."
+    }
+  ],
+  "checks": [
+    {
+      "name": "game-api-adapter",
+      "status": "passed",
+      "tests": 9
+    },
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 309,
+      "coveragePercent": 100
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "625ea25160d775497fde8b5367178b5df6cbee8f"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Expired X1 claims are recovered through canonical tracker state after restart."
+}
