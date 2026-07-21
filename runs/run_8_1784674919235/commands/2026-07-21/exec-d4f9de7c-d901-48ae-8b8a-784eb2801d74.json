@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d4f9de7c-d901-48ae-8b8a-784eb2801d74",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675145350_43",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:05:45.272Z",
+  "command": "/bin/bash -lc \"sed -n '1120,1180p' elixir/test/symphony_elixir/workspace_and_config_test.exs\nsed -n '430,475p' elixir/test/symphony_elixir/workspace_and_config_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "      workspace_root = Path.join(test_root, \"workspaces\")\n\n      File.mkdir_p!(workspace_root)\n\n      write_workflow_file!(Workflow.workflow_file_path(),\n        workspace_root: workspace_root,\n        hook_before_remove: \"i=0; while [ $i -lt 3000 ]; do printf a; i=$((i+1)); done; exit 17\"\n      )\n\n      assert {:ok, workspace} = Workspace.create_for_issue(\"MT-HOOKS-LARGE-FAIL\")\n      assert :ok = Workspace.remove_issue_workspaces(\"MT-HOOKS-LARGE-FAIL\")\n      refute File.exists?(workspace)\n    after\n      File.rm_rf(test_root)\n    end\n  end\n\n  test \"workspace remove continues when before_remove hook times out\" do\n    previous_timeout = Application.get_env(:symphony_elixir, :workspace_hook_timeout_ms)\n\n    on_exit(fn ->\n      if is_nil(previous_timeout) do\n        Application.delete_env(:symphony_elixir, :workspace_hook_timeout_ms)\n      else\n        Application.put_env(:symphony_elixir, :workspace_hook_timeout_ms, previous_timeout)\n      end\n    end)\n\n    Application.put_env(:symphony_elixir, :workspace_hook_timeout_ms, 10)\n\n    test_root =\n      Path.join(\n        System.tmp_dir!(),\n        \"symphony-elixir-workspace-hooks-timeout-#{System.unique_integer([:positive])}\"\n      )\n\n    try do\n      workspace_root = Path.join(test_root, \"workspaces\")\n\n      File.mkdir_p!(workspace_root)\n\n      write_workflow_file!(Workflow.workflow_file_path(),\n        workspace_root: workspace_root,\n        hook_before_remove: \"sleep 1\"\n      )\n\n      assert {:ok, workspace} = Workspace.create_for_issue(\"MT-HOOKS-TIMEOUT\")\n      assert :ok = Workspace.remove_issue_workspaces(\"MT-HOOKS-TIMEOUT\")\n      refute File.exists?(workspace)\n    after\n      File.rm_rf(test_root)\n    end\n  end\n\n  test \"config reads defaults for optional settings\" do\n    previous_linear_api_key = [REDACTED]\n    on_exit(fn -> restore_env(\"LINEAR_API_KEY\", previous_linear_api_key) end)\n    System.delete_env(\"LINEAR_API_KEY\")\n\n    write_workflow_file!(Workflow.workflow_file_path(),\n      tracker_kind: \"memory\",\n\n     ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8",
+  "retention": {
+    "category": "permanent"
+  }
+}
