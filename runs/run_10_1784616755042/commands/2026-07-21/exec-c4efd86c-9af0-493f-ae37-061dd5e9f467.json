@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c4efd86c-9af0-493f-ae37-061dd5e9f467",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784616938478_8521",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:55:38.478Z",
+  "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs'",
+  "durationMs": 691,
+  "environmentPolicy": "restricted",
+  "exitCode": 1,
+  "outputSummary": "Unchecked dependencies for environment test:\n* floki (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* jason (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* ecto (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* req (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* solid (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* bandit (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* phoenix_live_view (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* yaml_elixir (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* phoenix_html (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* phoenix (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* lazy_html (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* credo (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n** (Mix) Can't continue due to errors on dependencies\n",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616938476,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616938476,
+      "item": {
+        "aggregatedOutput": "Unchecked dependencies for environment test:\n* floki (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* jason (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* ecto (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* req (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* solid (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* bandit (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* phoenix_live_view (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* yaml_elixir (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* phoenix_html (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* phoenix (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* lazy_html (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n* credo (Hex package)\n  the dependency is not available, run \"mix deps.get\"\n** (Mix) Can't continue due to errors on dependencies\n",
+        "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs'",
+        "commandActions": [
+          {
+            "command": "mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs",
+            "type": "unknown"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+        "durationMs": 691,
+        "exitCode": 1,
+        "id": "exec-c4efd86c-9af0-493f-ae37-061dd5e9f467",
+        "processId": "73291",
+        "source": "unifiedExecStartup",
+        "status": "failed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8372-d98f-7721-9230-1fb0f32f4ffc",
+      "turnId": "019f8372-dcc3-7292-9b11-f8dbcca20262"
+    }
+  },
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
