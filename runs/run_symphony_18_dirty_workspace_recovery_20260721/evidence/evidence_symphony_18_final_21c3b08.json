@@ -1,0 +1,98 @@
+{
+  "evidenceId": "evidence_symphony_18_final_21c3b08",
+  "runId": "run_symphony_18_dirty_workspace_recovery_20260721",
+  "commitSha": "21c3b089e1ad6245bb06bdc7591a9ead051451ff",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Dirty, unreadable and unpublished Git workspaces survive cleanup",
+      "status": "passed",
+      "evidence": "Removal fails closed unless Git state is readable, clean and published; regression tests cover every branch."
+    },
+    {
+      "criterion": "Interrupted partial clones are not mistaken for healthy workspaces",
+      "status": "passed",
+      "evidence": "Configured Git directories missing .git are preserved as adjacent orphan paths and reconstructed; removal fails closed."
+    },
+    {
+      "criterion": "A lost X1 can resume from GitHub",
+      "status": "passed",
+      "evidence": "Checkpoints are bounded/redacted, run state reads the remote projection, and pending chains rebase atomically without changing event identity."
+    },
+    {
+      "criterion": "Audit canonicalization is interoperable",
+      "status": "passed",
+      "evidence": "RFC 8785 string escapes use lowercase hexadecimal and properties sort by UTF-16 code units; control/non-BMP cross-runtime fixtures pass."
+    },
+    {
+      "criterion": "Outbox remains durable and bounded",
+      "status": "passed",
+      "evidence": "Receipts collapse to per-run watermarks; confirmed stale event/batch files are removed; unconfirmed events are never compacted."
+    },
+    {
+      "criterion": "Provider failures cannot create retry storms",
+      "status": "passed",
+      "evidence": "One process-wide circuit covers every game-api operation, honors bounded Retry-After and permits only one half-open probe."
+    },
+    {
+      "criterion": "API chain errors are actionable",
+      "status": "passed",
+      "evidence": "Decoded and string-encoded 409/422 bodies preserve recoverable error codes for remote-state reconciliation."
+    },
+    {
+      "criterion": "Tests cannot race the live audit outbox",
+      "status": "passed",
+      "evidence": "Test startup allocates an isolated temporary outbox before the application starts."
+    },
+    {
+      "criterion": "Token/cache efficiency is measurable",
+      "status": "passed",
+      "evidence": "Cached and uncached input, output and reasoning tokens are separated and provider watermarks reset per App Server session."
+    },
+    {
+      "criterion": "GitHub mutations are reduced",
+      "status": "passed",
+      "evidence": "Non-critical batches use the contract maximum of 50 events while critical boundaries still flush immediately."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make all",
+      "status": "passed",
+      "summary": "297 tests, 0 failures, 2 skipped; 100% coverage; format, specs, Credo and Dialyzer passed."
+    },
+    {
+      "name": "installed runtime",
+      "status": "passed",
+      "commitSha": "21c3b089e1ad6245bb06bdc7591a9ead051451ff",
+      "summary": "Verified escript installed separately from the portable launcher and user service restarted successfully."
+    },
+    {
+      "name": "real audit replay",
+      "status": "passed",
+      "summary": "BOS Front advanced from confirmed sequence 9,617 through the recovered chain; the idle outbox reached zero pending events/batches and 632 KB."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "number": 19,
+      "url": "https://github.com/acancelas/symphony/pull/19"
+    },
+    {
+      "type": "commit",
+      "sha": "21c3b089e1ad6245bb06bdc7591a9ead051451ff"
+    },
+    {
+      "type": "runtime_hash",
+      "sha256": "be3686914f9600fb4cb1369b572f77a39d19d01429c7850d5456208dfc111d05"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "GitHub provider quotas can still pause the control plane",
+      "mitigation": "Global circuit, 50-event batches and bounded Retry-After prevent storms; quota exhaustion remains visible and reversible."
+    }
+  ],
+  "summary": "Symphony now fails closed around workspace loss, reconstructs from canonical GitHub state, emits cross-runtime valid audit chains, bounds local state and upstream traffic, and measures token/cache behavior."
+}
