@@ -145,6 +145,35 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
     end
   end
 
+  test "configured Git workspaces preserve and replace a partial non-Git directory" do
+    workspace_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-workspace-partial-git-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      workspace = Path.join(workspace_root, "MT-PARTIAL")
+      File.mkdir_p!(workspace)
+      File.write!(Path.join(workspace, "exclusive-progress.txt"), "preserve me\n")
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        workspace_recover_non_git_directories: true,
+        hook_after_create: "git init --quiet"
+      )
+
+      assert {:ok, ^workspace} = Workspace.create_for_issue("MT-PARTIAL")
+      assert File.exists?(Path.join(workspace, ".git"))
+      refute File.exists?(Path.join(workspace, "exclusive-progress.txt"))
+
+      assert [orphan] = Path.wildcard("#{workspace}.orphaned-*")
+      assert File.read!(Path.join(orphan, "exclusive-progress.txt")) == "preserve me\n"
+    after
+      File.rm_rf(workspace_root)
+    end
+  end
+
   test "workspace rejects symlink escapes under the configured root" do
     test_root =
       Path.join(
@@ -216,6 +245,130 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
 
       assert {:error, {:workspace_equals_root, ^canonical_workspace_root, ^canonical_workspace_root}, ""} =
                Workspace.remove(workspace_root)
+    after
+      File.rm_rf(workspace_root)
+    end
+  end
+
+  test "workspace removal preserves a Git workspace with uncommitted changes" do
+    workspace_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-dirty-workspace-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(), workspace_root: workspace_root)
+      assert {:ok, workspace} = Workspace.create_for_issue("MT-DIRTY")
+      assert {_, 0} = System.cmd("git", ["init", "--quiet"], cd: workspace)
+      File.write!(Path.join(workspace, "in-progress.txt"), "recover me\n")
+
+      assert {:error, {:workspace_has_uncommitted_changes, ^workspace, nil}, status} =
+               Workspace.remove(workspace)
+
+      assert status =~ "in-progress.txt"
+      assert File.read!(Path.join(workspace, "in-progress.txt")) == "recover me\n"
+      assert {:ok, ^workspace} = Workspace.create_for_issue("MT-DIRTY")
+    after
+      File.rm_rf(workspace_root)
+    end
+  end
+
+  test "workspace removal remains fail-closed when Git state is unreadable" do
+    workspace_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-unreadable-workspace-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(), workspace_root: workspace_root)
+      assert {:ok, workspace} = Workspace.create_for_issue("MT-UNREADABLE")
+      File.write!(Path.join(workspace, ".git"), "invalid gitdir\n")
+
+      assert {:error, {:workspace_git_status_failed, ^workspace, nil}, _output} =
+               Workspace.remove(workspace)
+
+      assert File.exists?(Path.join(workspace, ".git"))
+    after
+      File.rm_rf(workspace_root)
+    end
+  end
+
+  test "configured Git workspace removal preserves a directory missing Git metadata" do
+    workspace_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-missing-git-workspace-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        workspace_recover_non_git_directories: true
+      )
+
+      workspace = Path.join(workspace_root, "MT-MISSING-GIT")
+      File.mkdir_p!(workspace)
+      File.write!(Path.join(workspace, "recover.txt"), "keep\n")
+
+      assert {:error, {:workspace_git_status_failed, ^workspace, nil}, message} =
+               Workspace.remove(workspace)
+
+      assert message =~ "missing .git"
+      assert File.read!(Path.join(workspace, "recover.txt")) == "keep\n"
+    after
+      File.rm_rf(workspace_root)
+    end
+  end
+
+  test "workspace removal still deletes a clean Git workspace" do
+    workspace_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-clean-workspace-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(), workspace_root: workspace_root)
+      assert {:ok, workspace} = Workspace.create_for_issue("MT-CLEAN")
+      assert {_, 0} = System.cmd("git", ["init", "--quiet"], cd: workspace)
+      configure_test_git!(workspace)
+      File.write!(Path.join(workspace, "tracked.txt"), "durable\n")
+      assert {_, 0} = System.cmd("git", ["add", "tracked.txt"], cd: workspace)
+      assert {_, 0} = System.cmd("git", ["commit", "--quiet", "-m", "durable"], cd: workspace)
+      remote = Path.join(workspace_root, "remote.git")
+      assert {_, 0} = System.cmd("git", ["init", "--bare", "--quiet", remote])
+      assert {_, 0} = System.cmd("git", ["remote", "add", "origin", remote], cd: workspace)
+      assert {_, 0} = System.cmd("git", ["push", "--quiet", "-u", "origin", "HEAD"], cd: workspace)
+
+      assert {:ok, _removed} = Workspace.remove(workspace)
+      refute File.exists?(workspace)
+    after
+      File.rm_rf(workspace_root)
+    end
+  end
+
+  test "workspace removal preserves clean commits that are not confirmed upstream" do
+    workspace_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-unpublished-workspace-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(), workspace_root: workspace_root)
+      assert {:ok, workspace} = Workspace.create_for_issue("MT-UNPUBLISHED")
+      assert {_, 0} = System.cmd("git", ["init", "--quiet"], cd: workspace)
+      configure_test_git!(workspace)
+      File.write!(Path.join(workspace, "tracked.txt"), "local commit\n")
+      assert {_, 0} = System.cmd("git", ["add", "tracked.txt"], cd: workspace)
+      assert {_, 0} = System.cmd("git", ["commit", "--quiet", "-m", "local only"], cd: workspace)
+
+      assert {:error, {:workspace_head_not_durable, ^workspace, nil}, _output} =
+               Workspace.remove(workspace)
+
+      assert File.read!(Path.join(workspace, "tracked.txt")) == "local commit\n"
     after
       File.rm_rf(workspace_root)
     end
@@ -1576,5 +1729,10 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
     after
       File.rm_rf(test_root)
     end
+  end
+
+  defp configure_test_git!(workspace) do
+    assert {_, 0} = System.cmd("git", ["config", "user.name", "Symphony Test"], cd: workspace)
+    assert {_, 0} = System.cmd("git", ["config", "user.email", "symphony-test@example.invalid"], cd: workspace)
   end
 end
