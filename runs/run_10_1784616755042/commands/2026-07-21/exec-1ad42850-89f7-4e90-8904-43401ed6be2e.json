@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-1ad42850-89f7-4e90-8904-43401ed6be2e",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628915196_528",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:15:15.122Z",
+  "command": "/bin/bash -lc \"grep -nE '\"'^##+ Review|Review artifact|reviewId.*attemptId|reviewType'\"' SPEC.md README.md WORKFLOW.md | head -80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
