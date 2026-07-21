@@ -17,6 +17,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   @review_roles ~w(functional architecture security quality visual)
   @max_repair_cycles 3
   @max_review_record_attempts 2
+  @max_review_lookup_attempts 3
 
   @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}
   def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do
@@ -24,6 +25,8 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     client = Keyword.get(opts, :game_api_client_module, Client)
     roles = Keyword.get(opts, :review_roles, @review_roles)
     max_cycles = Keyword.get(opts, :max_repair_cycles, @max_repair_cycles)
+    max_lookup_attempts = Keyword.get(opts, :max_review_lookup_attempts, @max_review_lookup_attempts)
+    sleep_fn = Keyword.get(opts, :review_lookup_sleep, &Process.sleep/1)
 
     context = %{
       workspace: workspace,
@@ -32,7 +35,9 @@ defmodule SymphonyElixir.DeliveryCoordinator do
       worker_host: worker_host,
       app_server: app_server,
       client: client,
-      roles: roles
+      roles: roles,
+      max_lookup_attempts: max_lookup_attempts,
+      sleep_fn: sleep_fn
     }
 
     with :ok <- review_and_repair(context, 1, max_cycles) do
@@ -42,7 +47,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   defp review_and_repair(context, cycle, max_cycles) do
     with :ok <- run_reviews(context, cycle),
-         {:ok, reviews} <- fetch_cycle_reviews(context.client, context.issue, context.roles, cycle) do
+         {:ok, reviews} <- fetch_cycle_reviews(context, cycle) do
       handle_reviews(context, reviews, cycle, max_cycles)
     end
   end
@@ -96,7 +101,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   end
 
   defp verify_or_retry_review(context, role, cycle, record_attempt) do
-    case review_recorded?(context.client, context.issue, role, cycle) do
+    case review_recorded?(context, role, cycle) do
       {:ok, true} ->
         :ok
 
@@ -113,32 +118,56 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp review_recorded?(client, issue, role, cycle) do
-    native_ref = issue.native_ref || %{}
+  defp review_recorded?(context, role, cycle) do
+    native_ref = context.issue.native_ref || %{}
     expected_id = "review_#{native_ref["runId"]}_#{cycle}_#{role}"
 
-    with {:ok, artifacts} <- client.fetch_run_artifacts(native_ref["repositoryId"], native_ref["runId"], "reviews") do
+    with {:ok, artifacts} <- fetch_review_artifacts(context) do
       {:ok, Enum.any?(artifacts, &(&1["reviewId"] == expected_id))}
     end
   end
 
-  defp fetch_cycle_reviews(client, issue, roles, cycle) do
-    native_ref = issue.native_ref || %{}
-    repository_id = native_ref["repositoryId"]
+  defp fetch_cycle_reviews(context, cycle) do
+    native_ref = context.issue.native_ref || %{}
     run_id = native_ref["runId"]
 
-    with {:ok, artifacts} <- client.fetch_run_artifacts(repository_id, run_id, "reviews") do
-      expected_ids = Map.new(roles, &{&1, "review_#{run_id}_#{cycle}_#{&1}"})
+    with {:ok, artifacts} <- fetch_review_artifacts(context) do
+      expected_ids = Map.new(context.roles, &{&1, "review_#{run_id}_#{cycle}_#{&1}"})
 
       reviews =
-        Enum.map(roles, fn role ->
+        Enum.map(context.roles, fn role ->
           Enum.find(artifacts, &(&1["reviewId"] == expected_ids[role]))
         end)
 
       case Enum.find_index(reviews, &is_nil/1) do
         nil -> {:ok, reviews}
-        index -> {:error, {:review_artifact_missing, Enum.at(roles, index), cycle}}
+        index -> {:error, {:review_artifact_missing, Enum.at(context.roles, index), cycle}}
       end
+    end
+  end
+
+  defp fetch_review_artifacts(context, attempt \\ 1) do
+    native_ref = context.issue.native_ref || %{}
+
+    case context.client.fetch_run_artifacts(
+           native_ref["repositoryId"],
+           native_ref["runId"],
+           "reviews"
+         ) do
+      {:error, {:game_api_rate_limited, retry_after_ms}}
+      when attempt < context.max_lookup_attempts and is_integer(retry_after_ms) and retry_after_ms >= 0 ->
+        delay_ms = max(retry_after_ms, 50)
+
+        Logger.warning(
+          "Review lookup paused by the shared provider circuit; preserving the completed Codex stage " <>
+            "attempt=#{attempt} delay_ms=#{delay_ms}"
+        )
+
+        context.sleep_fn.(delay_ms)
+        fetch_review_artifacts(context, attempt + 1)
+
+      result ->
+        result
     end
   end
 

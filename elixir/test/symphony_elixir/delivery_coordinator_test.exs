@@ -51,6 +51,19 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     def stop_session(session), do: FakeAppServer.stop_session(session)
   end
 
+  defmodule RateLimitedReviewClient do
+    def fetch_run_artifacts(_repository_id, _run_id, "reviews") do
+      attempt = Application.get_env(:symphony_elixir, :delivery_review_lookup_attempt, 0) + 1
+      Application.put_env(:symphony_elixir, :delivery_review_lookup_attempt, attempt)
+
+      if attempt == 1 do
+        {:error, {:game_api_rate_limited, 743_083}}
+      else
+        {:ok, Application.fetch_env!(:symphony_elixir, :delivery_test_reviews)}
+      end
+    end
+  end
+
   setup do
     Application.put_env(:symphony_elixir, :delivery_test_pid, self())
 
@@ -58,6 +71,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
       Application.delete_env(:symphony_elixir, :delivery_test_pid)
       Application.delete_env(:symphony_elixir, :delivery_test_reviews)
       Application.delete_env(:symphony_elixir, :delivery_review_record_attempt)
+      Application.delete_env(:symphony_elixir, :delivery_review_lookup_attempt)
     end)
 
     :ok
@@ -123,6 +137,28 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
              )
 
     assert collect_actors(3, []) == ["functional-reviewer", "functional-reviewer", "delivery-coordinator"]
+  end
+
+  test "waits for the provider circuit without rerunning a completed reviewer" do
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [review("functional", "passed")])
+    test_pid = self()
+
+    assert :ok =
+             DeliveryCoordinator.run(
+               "/tmp/workspace",
+               issue(),
+               nil,
+               [
+                 app_server_module: FakeAppServer,
+                 game_api_client_module: RateLimitedReviewClient,
+                 review_roles: ["functional"],
+                 review_lookup_sleep: fn delay_ms -> send(test_pid, {:review_lookup_sleep, delay_ms}) end
+               ],
+               nil
+             )
+
+    assert_received {:review_lookup_sleep, 743_083}
+    assert collect_actors(2, []) == ["functional-reviewer", "delivery-coordinator"]
   end
 
   defp collect_actors(0, actors), do: Enum.reverse(actors)
