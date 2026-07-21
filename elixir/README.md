@@ -231,6 +231,11 @@ Notes:
   identifier, title, and body.
 - Use `hooks.after_create` to bootstrap a fresh workspace. For a Git-backed repo, you can run
   `git clone ... .` there, along with any other setup commands you need.
+- Local workspace bootstrap is single-owner and atomic. Symphony builds the workspace in a sibling
+  staging directory, publishes it only after `after_create` succeeds, and records an inode-bound
+  readiness marker outside the repository. A pre-existing directory without a valid marker is
+  moved to `.symphony-quarantine` for diagnosis before recovery; it is never reused as a runnable
+  workspace. Concurrent scheduler and retry paths therefore converge on one complete workspace.
 - If a hook needs `mise exec` inside a freshly cloned workspace, trust the repo config and fetch
   the project dependencies in `hooks.after_create` before invoking `mise` later from other hooks.
 - For the Linear adapter, `tracker.provider.api_key` reads from `LINEAR_API_KEY` when unset or
