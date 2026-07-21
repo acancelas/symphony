@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8bc5dd07-1ccd-46a0-8080-15ba5c7d84f2",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629229545_697",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:20:29.372Z",
+  "command": "/bin/bash -lc \"find elixir/test -type f | grep game_api; sed -n '1,280p' elixir/test/symphony_elixir/game_api_client_test.exs 2>/dev/null; git diff --check; git diff --stat; git status --short\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/test/symphony_elixir/game_api_adapter_test.exs\n elixir/lib/symphony_elixir/game_api/client.ex      | 24 +++++++++\n .../symphony_elixir/post_approval_coordinator.ex   | 36 +++++++++++---\n .../post_approval_coordinator_test.exs             | 57 ++++++++++++++++++++++\n 3 files changed, 111 insertions(+), 6 deletions(-)\n M elixir/lib/symphony_elixir/game_api/client.ex\n M elixir/lib/symphony_elixir/post_approval_coordinator.ex\n M elixir/test/symphony_elixir/post_approval_coordinator_test.exs\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
