@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b29caeed-0739-441f-a09f-f92ad07f31ab",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784616852557_8387",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:54:13.548Z",
+  "command": "/bin/bash -lc \"sed -n '1,300p' elixir/test/symphony_elixir/game_api_adapter_test.exs; grep -Rni 'Req.Test\\\\|plug:' elixir/test/symphony_elixir | head -n 80; sed -n '1,120p' elixir/test/test_helper.exs; sed -n '1,120p' elixir/mix.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.GameApiAdapterTest do\n  use ExUnit.Case, async: false\n\n  alias SymphonyElixir.GameApi.Adapter\n  alias SymphonyElixir.GameApi.Client\n\n  defmodule FakeClient do\n    @spec validate_config(map()) :: :ok\n    def validate_config(_settings), do: :ok\n\n    @spec fetch_ready_issues() :: {:ok, [map()]}\n    def fetch_ready_issues do\n      {:ok,\n       [\n         %{\n           \"number\" => 42,\n           \"title\" => \"Implement BOS Delivery\",\n           \"body\" => \"Acceptance contract\",\n           \"labels\" => [\"bos:issue\", \"agent:ready\"],\n           \"url\" => \"https://github.test/issues/42\",\n           \"updatedAt\" => \"2026-07-19T18:00:00Z\",\n           \"claim\" => nil,\n           \"_repositoryId\" => \"bos-front\"\n         }\n       ]}\n    end\n\n    @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()}\n    def fetch_issue(\"bos-front\", 42), do: fetch_ready_issues() |> then(fn {:ok, [issue]} -> {:ok, issue} end)\n\n    @spec claim_issue(String.t(), pos_integer(), String.t() | nil) :: {:ok, map()}\n    def claim_issue(\"bos-front\", 42, nil) do\n      {:ok,\n       %{\n         \"status\" => \"completed\",\n         \"disposition\" => \"new_run\",\n         \"claim\" => %{\"runId\" => \"run_42_001\", \"runnerId\" => \"x1\"}\n       }}\n    end\n\n    @spec start_execution(SymphonyElixir.Tracker.Issue.t(), pos_integer()) ::\n            {:ok, String.t()}\n    def start_execution(%SymphonyElixir.Tracker.Issue{native_ref: %{\"runId\" => \"run_42_001\"}}, 1) do\n      {:ok, \"attempt_run_42_001_1\"}\n    end\n  end\n\n  setup do\n    previous_client = Application.get_env(:symphony_elixir, :game_api_client_module)\n    Application.put_env(:symphony_elixir, :game_api_client_module, FakeClient)\n\n    on_exit(fn ->\n      if previous_client do\n        Application.put_env(:symphony_elixir, :game_api_client_module, previous_client)\n      else\n        Application.delete_env(:symphony_elixir, :game_api_client_module)\n      end\n    end)\n\n    :ok\n  end\n\n  test \"normalizes ready issues without exposing GitHub credentials\" do\n",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616853540,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616853539,
+      "item": {
+        "aggregatedOutput": "defmodule SymphonyElixir.GameApiAdapterTest do\n  use ExUnit.Case, async: false\n\n  alias SymphonyElixir.GameApi.Adapter\n  alias SymphonyElixir.GameApi.Client\n\n  defmodule FakeClient do\n    @spec validate_config(map()) :: :ok\n    def validate_config(_settings), do: :ok\n\n    @spec fetch_ready_issues() :: {:ok, [map()]}\n    def fetch_ready_issues do\n      {:ok,\n       [\n         %{\n           \"number\" => 42,\n           \"title\" => \"Implement BOS Delivery\",\n           \"body\" => \"Acceptance contract\",\n           \"labels\" => [\"bos:issue\", \"agent:ready\"],\n           \"url\" => \"https://github.test/issues/42\",\n           \"updatedAt\" => \"2026-07-19T18:00:00Z\",\n           \"claim\" => nil,\n           \"_repositoryId\" => \"bos-front\"\n         }\n       ]}\n    end\n\n    @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()}\n    def fetch_issue(\"bos-front\", 42), do: fetch_ready_issues() |> then(fn {:ok, [issue]} -> {:ok, issue} end)\n\n    @spec claim_issue(String.t(), pos_integer(), String.t() | nil) :: {:ok, map()}\n    def claim_issue(\"bos-front\", 42, nil) do\n      {:ok,\n       %{\n         \"status\" => \"completed\",\n         \"disposition\" => \"new_run\",\n         \"claim\" => %{\"runId\" => \"run_42_001\", \"runnerId\" => \"x1\"}\n       }}\n    end\n\n    @spec start_execution(SymphonyElixir.Tracker.Issue.t(), pos_integer()) ::\n            {:ok, String.t()}\n    def start_execution(%SymphonyElixir.Tracker.Issue{native_ref: %{\"runId\" => \"run_42_001\"}}, 1) do\n      {:ok, \"attempt_run_42_001_1\"}\n    end\n  end\n\n  setup do\n    previous_client = Application.get_env(:symphony_elixir, :game_api_client_module)\n    Application.put_env(:symphony_elixir, :game_api_client_module, FakeClient)\n\n    on_exit(fn ->\n      if previous_client do\n        Application.put_env(:symphony_elixir, :game_api_client_module, previous_client)\n      else\n        Application.delete_env(:symphony_elixir, :game_api_client_module)\n      end\n    end)\n\n    :ok\n  end\n\n  test \"normalizes ready issues without exposing GitHub credentials\" do\n    assert {:ok, [issue]} = Adapter.fetch_issues_by_states([\"agent:ready\"])\n    assert issue.id == \"bos-front#42\"\n    assert issue.identifier == \"bos-front-42\"\n    assert issue.state == \"agent:ready\"\n    assert issue.dispatchable\n  end\n\n  test \"claims through game-api before dispatch\" do\n    assert {:ok, [issue]} = Adapter.fetch_issues_by_states([\"agent:ready\"])\n    assert {:ok, claimed} = Adapter.claim_issue(issue)\n    assert claimed.native_ref[\"runId\"] == \"run_42_001\"\n    assert claimed.state == \"agent:running\"\n  end\n\n  test \"persists the execution identity before Codex starts\" do\n    assert {:ok, [issue]} = Adapter.fetch_issues_by_states([\"agent:ready\"])\n    assert {:ok, claimed} = Adapter.claim_issue(issue)\n    assert {:ok, started} = Adapter.start_execution(claimed, 1)\n    assert started.native_ref[\"attemptId\"] == \"attempt_run_42_001_1\"\n  end\n\n  test \"preserves audit chain conflict identity for outbox recovery\" do\n    assert Client.http_error(409, %{\n             \"detail\" => %{\"error\" => \"audit_chain_conflict\", \"message\" => \"stale\"}\n           }) == {:game_api_http_error, 409, \"audit_chain_conflict\"}\n\n    assert Client.http_error(404, %{\"error\" => \"delivery_run_not_found\"}) ==\n             {:game_api_http_error, 404}\n  end\nend\nExUnit.start()\nCode.require_file(\"support/snapshot_support.exs\", __DIR__)\nCode.require_file(\"support/test_support.exs\", __DIR__)\n\n# Loading the shared support modules can unload the application in local Mix\n# runs. Restore the runtime explicitly so tests never depend on CI-only startup\n# state or a tracker credential being present in the shell.\n{:ok, _started} = Application.ensure_all_started(:symphony_elixir)\ndefmodule SymphonyElixir.MixProject do\n  use Mix.Project\n\n  def project do\n    [\n      app: :symphony_elixir,\n      version: \"0.0.1\",\n      elixir: \"~> 1.19\",\n      compilers: [:phoenix_live_view] ++ Mix.compilers(),\n      start_permanent: Mix.env() == :prod,\n      test_coverage: [\n        summary: [\n          threshold: 100\n        ],\n        ignore_modules: [\n          SymphonyElixir.Config,\n          SymphonyElixir.Audit.CanonicalJson,\n          SymphonyElixir.Audit.Outbox,\n          SymphonyElixir.GameApi.Adapter,\n          SymphonyElixir.GameApi.Client,\n          SymphonyElixir.GoalPlanningCoordinator,\n          SymphonyElixir.Linear.Client,\n          SymphonyElixir.SpecsCheck,\n          SymphonyElixir.Orchestrator,\n          SymphonyElixir.Orchestrator.State,\n          SymphonyElixir.PostApprovalCoordinator,\n          SymphonyElixir.AgentRunner,\n          SymphonyElixir.Application,\n          SymphonyElixir.CLI,\n          SymphonyElixir.Codex.AppServer,\n          SymphonyElixir.Codex.DynamicTool,\n          SymphonyElixir.DeliveryCoordinator,\n          SymphonyElixir.HttpServer,\n          SymphonyElixir.StatusDashboard,\n          SymphonyElixir.LogFile,\n          SymphonyElixir.Tracker,\n          SymphonyElixir.Workspace,\n          SymphonyElixirWeb.DashboardLive,\n          SymphonyElixirWeb.Endpoint,\n          SymphonyElixirWeb.ErrorHTML,\n          SymphonyElixirWeb.ErrorJSON,\n          SymphonyElixirWeb.Layouts,\n          SymphonyElixirWeb.ObservabilityApiController,\n          SymphonyElixirWeb.Presenter,\n          SymphonyElixirWeb.StaticAssetController,\n          SymphonyElixirWeb.StaticAssets,\n          SymphonyElixirWeb.Router,\n          SymphonyElixirWeb.Router.Helpers\n        ]\n      ],\n      test_ignore_filters: [\n        \"test/support/snapshot_support.exs\",\n        \"test/support/test_support.exs\"\n      ],\n      dialyzer: [\n        plt_add_apps: [:mix]\n      ],\n      escript: escript(),\n      releases: releases(),\n      aliases: aliases(),\n      deps: deps()\n    ]\n  end\n\n  # Run \"mix help compile.app\" to learn about applications.\n  def application do\n    [\n      mod: {SymphonyElixir.Application, []},\n      extra_applications: [:logger]\n    ]\n  end\n\n  # Run \"mix help deps\" to learn about dependencies.\n  defp deps do\n    [\n      {:bandit, \"~> 1.12\"},\n      {:floki, \">= 0.30.0\", only: :test},\n      {:lazy_html, \">= 0.1.0\", only: :test},\n      {:phoenix, \"~> 1.8.9\"},\n      {:phoenix_html, \"~> 4.2\"},\n      {:phoenix_live_view, \"~> 1.2.0\"},\n      {:req, \"~> 0.6\"},\n      {:jason, \"~> 1.4\"},\n      {:yaml_elixir, \"~> 2.12\"},\n      {:solid, \"~> 1.3\"},\n      {:ecto, \"~> 3.13\"},\n      {:burrito, \"~> 1.5\", only: :prod, runtime: false},\n      {:credo, \"~> 1.7\", only: [:dev, :test], runtime: false},\n      {:dialyxir, \"~> 1.4\", only: [:dev], runtime: false}\n    ]\n  end\n\n  defp aliases do\n    [\n      setup: [\"deps.get\"],\n      build: [\"escript.build\"],\n      lint: [\"specs.check\", \"credo --strict\"]\n    ]\n  end\n\n  defp escript do\n    [\n      app: nil,\n      main_module: SymphonyElixir.CLI,\n      name: \"symphony\",\n      path: \"bin/symphony\"\n    ]\n  end\n\n  defp releases do\n    [\n      symphony: [\n        steps: [:assemble, &Burrito.wrap/1],\n        burrito: [\n          targets: [\n            macos_arm64: [os: :darwin, cpu: :aarch64],\n            macos_x86_64: [os: :darwin, cpu: :x86_64],\n            linux_arm64: [os: :linux, cpu: :aarch64],\n            linux_x86_64: [os: :linux, cpu: :x86_64]\n          ]\n",
+        "command": "/bin/bash -lc \"sed -n '1,300p' elixir/test/symphony_elixir/game_api_adapter_test.exs; grep -Rni 'Req.Test\\\\|plug:' elixir/test/symphony_elixir | head -n 80; sed -n '1,120p' elixir/test/test_helper.exs; sed -n '1,120p' elixir/mix.exs\"",
+        "commandActions": [
+          {
+            "command": "sed -n '1,300p' elixir/test/symphony_elixir/game_api_adapter_test.exs",
+            "name": "game_api_adapter_test.exs",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/test/symphony_elixir/game_api_adapter_test.exs",
+            "type": "read"
+          },
+          {
+            "command": "grep -Rni \"Req.Test\\\\|plug:\" elixir/test/symphony_elixir",
+            "path": "symphony_elixir",
+            "query": "Req.Test\\|plug:",
+            "type": "search"
+          },
+          {
+            "command": "sed -n '1,120p' elixir/test/test_helper.exs",
+            "name": "test_helper.exs",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/test/test_helper.exs",
+            "type": "read"
+          },
+          {
+            "command": "sed -n '1,120p' elixir/mix.exs",
+            "name": "mix.exs",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-10/elixir/mix.exs",
+            "type": "read"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-10",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-b29caeed-0739-441f-a09f-f92ad07f31ab",
+        "processId": "55204",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8372-d98f-7721-9230-1fb0f32f4ffc",
+      "turnId": "019f8372-dcc3-7292-9b11-f8dbcca20262"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
