@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-13e66af7-8a1b-4b05-aff9-0c9236536bf0",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784617124057_9414",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:58:43.993Z",
+  "command": "/bin/bash -lc \"sed -n '70,115p' elixir/test/symphony_elixir/audit/outbox_test.exs && grep -n 'command.policy_blocked\\\\|bos/commandPolicy' elixir/lib/symphony_elixir/audit/outbox.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "      }\n    }\n\n    normalized = Outbox.normalize_codex_payload(\"item/completed\", payload, \"2026-07-20T10:00:00.000Z\")\n\n    assert normalized[\"commandId\"] == \"cmd_001\"\n    assert normalized[\"command\"] == \"mix test\"\n    assert normalized[\"workingDirectory\"] == \"$WORKSPACE\"\n    assert normalized[\"exitCode\"] == 0\n    assert normalized[\"durationMs\"] == 245\n    assert normalized[\"outputSummary\"] == \"260 tests, 0 failures\"\n    assert normalized[\"redacted\"] == true\n  end\n\n  test \"persists semantic lifecycle but drops high-frequency telemetry deltas\" do\n    command_item = %{\"method\" => \"item/started\", \"params\" => %{\"item\" => %{\"type\" => \"commandExecution\"}}}\n    reasoning_item = %{\"method\" => \"item/completed\", \"params\" => %{\"item\" => %{\"type\" => \"reasoning\"}}}\n\n    assert Outbox.auditable_update?(%{event: :item_started, payload: command_item})\n    assert Outbox.auditable_update?(%{event: :turn_completed, payload: %{\"method\" => \"turn/completed\"}})\n    refute Outbox.auditable_update?(%{event: :notification, payload: reasoning_item})\n    refute Outbox.auditable_update?(%{event: :notification, payload: %{\"method\" => \"item/agentMessage/delta\"}})\n    refute Outbox.auditable_update?(%{event: :notification, payload: %{\"method\" => \"item/commandExecution/outputDelta\"}})\n    refute Outbox.auditable_update?(%{event: :notification, payload: %{\"method\" => \"thread/tokenUsage/updated\"}})\n    refute Outbox.auditable_update?(%{event: :notification, payload: %{\"method\" => \"account/rateLimits/updated\"}})\n  end\n\n  test \"quarantines legacy telemetry while preserving commands, tools and turn lifecycle\" do\n    root = Path.join(System.tmp_dir!(), \"bos-outbox-compaction-test-#{System.unique_integer([:positive])}\")\n    events_path = Path.join([root, \"run_legacy\", \"events\"])\n    File.mkdir_p!(events_path)\n\n    issue = %{\"repositoryId\" => \"bos-front\", \"issueNumber\" => 42, \"runId\" => \"run_legacy\"}\n\n    events = [\n      %{\n        \"eventId\" => \"event_turn\",\n        \"runId\" => \"run_legacy\",\n        \"sequen",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784617119879,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784617119878,
+      "item": {
+        "aggregatedOutput": "      }\n    }\n\n    normalized = Outbox.normalize_codex_payload(\"item/completed\", payload, \"2026-07-20T10:00:00.000Z\")\n\n    assert normalized[\"commandId\"] == \"cmd_001\"\n    assert normalized[\"command\"] == \"mix test\"\n    assert normalized[\"workingDirectory\"] == \"$WORKSPACE\"\n    assert normalized[\"exitCode\"] == 0\n    assert normalized[\"durationMs\"] == 245\n    assert normalized[\"outputSummary\"] == \"260 tests, 0 failures\"\n    assert normalized[\"redacted\"] == true\n  end\n\n  test \"persists semantic lifecycle but drops high-frequency telemetry deltas\" do\n    command_item = %{\"method\" => \"item/started\", \"params\" => %{\"item\" => %{\"type\" => \"commandExecution\"}}}\n    reasoning_item = %{\"method\" => \"item/completed\", \"params\" => %{\"item\" => %{\"type\" => \"reasoning\"}}}\n\n    assert Outbox.auditable_update?(%{event: :item_started, payload: command_item})\n    assert Outbox.auditable_update?(%{event: :turn_completed, payload: %{\"method\" => \"turn/completed\"}})\n    refute Outbox.auditable_update?(%{event: :notification, payload: reasoning_item})\n    refute Outbox.auditable_update?(%{event: :notification, payload: %{\"method\" => \"item/agentMessage/delta\"}})\n    refute Outbox.auditable_update?(%{event: :notification, payload: %{\"method\" => \"item/commandExecution/outputDelta\"}})\n    refute Outbox.auditable_update?(%{event: :notification, payload: %{\"method\" => \"thread/tokenUsage/updated\"}})\n    refute Outbox.auditable_update?(%{event: :notification, payload: %{\"method\" => \"account/rateLimits/updated\"}})\n  end\n\n  test \"quarantines legacy telemetry while preserving commands, tools and turn lifecycle\" do\n    root = Path.join(System.tmp_dir!(), \"bos-outbox-compaction-test-#{System.unique_integer([:positive])}\")\n    events_path = Path.join([root, \"run_legacy\", \"events\"])\n    File.mkdir_p!(events_path)\n\n    issue = %{\"repositoryId\" => \"bos-front\", \"issueNumber\" => 42, \"runId\" => \"run_legacy\"}\n\n    events = [\n      %{\n        \"eventId\" => \"event_turn\",\n        \"runId\" => \"run_legacy\",\n        \"sequence\" => 10,\n        \"eventHash\" => \"sha256:turn\",\n        \"eventType\" => \"agent.progress_recorded\",\n        \"payload\" => %{\"method\" => \"turn/started\"}\n      },\n      %{\n        \"eventId\" => \"event_delta\",\n        \"runId\" => \"run_legacy\",\n31:                         \"command.policy_blocked\",\n535:      method == \"bos/commandPolicy/blocked\" ->\n561:  defp event_type(\"bos/commandPolicy/blocked\", _payload), do: \"command.policy_blocked\"\n582:  defp event_status(%{event: :command_policy_blocked}), do: \"blocked\"\n",
+        "command": "/bin/bash -lc \"sed -n '70,115p' elixir/test/symphony_elixir/audit/outbox_test.exs && grep -n 'command.policy_blocked\\\\|bos/commandPolicy' elixir/lib/symphony_elixir/audit/outbox.ex\"",
+        "commandActions": [
+          {
+            "command": "sed -n '70,115p' elixir/test/symphony_elixir/audit/outbox_test.exs",
+            "name": "outbox_test.exs",
+            "path": "$WORKSPACE/.bos/worktrees/symphony-11/elixir/test/symphony_elixir/audit/outbox_test.exs",
+            "type": "read"
+          },
+          {
+            "command": "grep -n \"command.policy_blocked\\\\|bos/commandPolicy\" elixir/lib/symphony_elixir/audit/outbox.ex",
+            "path": "outbox.ex",
+            "query": "command.policy_blocked\\|bos/commandPolicy",
+            "type": "search"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-13e66af7-8a1b-4b05-aff9-0c9236536bf0",
+        "processId": "94072",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}
