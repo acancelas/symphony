@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-63032885-16a4-4fbf-af7c-eb7bbf253fc5",
+  "runId": "run_11_1784616825040",
+  "attemptId": "attempt_run_11_1784616825040_1",
+  "eventId": "event_1784616886441_8441",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T06:54:45.193Z",
+  "command": "/bin/bash -lc 'git branch -a --no-color && find elixir/lib/symphony_elixir -maxdepth 3 -type f -print | sort && find elixir/test/symphony_elixir -maxdepth 2 -type f -print | sort'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "* bos/issue-11\n  main\n  remotes/origin/HEAD -> origin/main\n  remotes/origin/agent/bos-game-api-orchestration\n  remotes/origin/agent/bos-repository-contract\n  remotes/origin/bede/netsec-1129-supervisor-snapshot-reconciliation\n  remotes/origin/bos/audit\n  remotes/origin/bos/issue-13\n  remotes/origin/bos/issue-14\n  remotes/origin/bos/issue-6\n  remotes/origin/bos/issue-7\n  remotes/origin/codex/asana-tracker\n  remotes/origin/codex/github-tracker\n  remotes/origin/codex/gitlab-tracker\n  remotes/origin/codex/jira-tracker\n  remotes/origin/codex/persist-token-usage-ledger\n  remotes/origin/codex/sd-10-claim-leases\n  remotes/origin/codex/sd-11-jira-claim-leases\n  remotes/origin/codex/sd-5-second-smoke-test-doc\n  remotes/origin/codex/sd-9-board-automation-check\n  remotes/origin/codex/ssh-exec-server-command\n  remotes/origin/cristian/symphony-dashboard-agent-details\n  remotes/origin/dev/dtm/workspacewrite-implicit-issue-root\n  remotes/origin/fix/audit-outbox-rebase\n  remotes/origin/fix/audit-volume-control\n  remotes/origin/fix/bound-codex-event-memory\n  remotes/origin/main\n  remotes/origin/push-nzyowrnsvtsy\n  remotes/origin/sd-7-symphony-smoke-merge-flow\n  remotes/origin/sd-8-daemon-polling-smoke-note\nelixir/lib/symphony_elixir/agent_runner.ex\nelixir/lib/symphony_elixir/agent_runtime_supervisor.ex\nelixir/lib/symphony_elixir/audit/canonical_json.ex\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/lib/symphony_elixir/cli.ex\nelixir/lib/symphony_elixir/codex/app_server.ex\nelixir/lib/symphony_elixir/codex/dynamic_tool.ex\nelixir/lib/symphony_elixir/config.ex\nelixir/lib/symphony_elixir/config/schema.ex\nelixir/lib/symphony_elixir/delivery_coordinator.ex\nelixir/lib/symphony_elixir/game_api/adapter.ex\nelixir/lib/symphony_elixir/game_api/client.ex\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex\nelixir/lib/symphony_elixir/http_server.ex\nelixir/lib/symphony_elixir/linear/adapter.ex\nelixir/lib/symphony_elixir/linear/agent_tool.ex\nelixir/lib/symphony_elixir/linear/client.ex\nelixir/lib/",
+  "redacted": true,
+  "source": {
+    "emittedAtMs": 1784616882283,
+    "method": "item/completed",
+    "params": {
+      "completedAtMs": 1784616882283,
+      "item": {
+        "aggregatedOutput": "* bos/issue-11\n  main\n  remotes/origin/HEAD -> origin/main\n  remotes/origin/agent/bos-game-api-orchestration\n  remotes/origin/agent/bos-repository-contract\n  remotes/origin/bede/netsec-1129-supervisor-snapshot-reconciliation\n  remotes/origin/bos/audit\n  remotes/origin/bos/issue-13\n  remotes/origin/bos/issue-14\n  remotes/origin/bos/issue-6\n  remotes/origin/bos/issue-7\n  remotes/origin/codex/asana-tracker\n  remotes/origin/codex/github-tracker\n  remotes/origin/codex/gitlab-tracker\n  remotes/origin/codex/jira-tracker\n  remotes/origin/codex/persist-token-usage-ledger\n  remotes/origin/codex/sd-10-claim-leases\n  remotes/origin/codex/sd-11-jira-claim-leases\n  remotes/origin/codex/sd-5-second-smoke-test-doc\n  remotes/origin/codex/sd-9-board-automation-check\n  remotes/origin/codex/ssh-exec-server-command\n  remotes/origin/cristian/symphony-dashboard-agent-details\n  remotes/origin/dev/dtm/workspacewrite-implicit-issue-root\n  remotes/origin/fix/audit-outbox-rebase\n  remotes/origin/fix/audit-volume-control\n  remotes/origin/fix/bound-codex-event-memory\n  remotes/origin/main\n  remotes/origin/push-nzyowrnsvtsy\n  remotes/origin/sd-7-symphony-smoke-merge-flow\n  remotes/origin/sd-8-daemon-polling-smoke-note\nelixir/lib/symphony_elixir/agent_runner.ex\nelixir/lib/symphony_elixir/agent_runtime_supervisor.ex\nelixir/lib/symphony_elixir/audit/canonical_json.ex\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/lib/symphony_elixir/cli.ex\nelixir/lib/symphony_elixir/codex/app_server.ex\nelixir/lib/symphony_elixir/codex/dynamic_tool.ex\nelixir/lib/symphony_elixir/config.ex\nelixir/lib/symphony_elixir/config/schema.ex\nelixir/lib/symphony_elixir/delivery_coordinator.ex\nelixir/lib/symphony_elixir/game_api/adapter.ex\nelixir/lib/symphony_elixir/game_api/client.ex\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex\nelixir/lib/symphony_elixir/http_server.ex\nelixir/lib/symphony_elixir/linear/adapter.ex\nelixir/lib/symphony_elixir/linear/agent_tool.ex\nelixir/lib/symphony_elixir/linear/client.ex\nelixir/lib/symphony_elixir/log_file.ex\nelixir/lib/symphony_elixir/orchestrator.ex\nelixir/lib/symphony_elixir/path_safety.ex\nelixir/lib/symphony_elixir/post_approval_coordinator.ex\nelixir/lib/symphony_elixir/prompt_builder.ex\nelixir/lib/symphony_elixir/specs_check.ex\nelixir/lib/symphony_elixir/ssh.ex\nelixir/lib/symphony_elixir/status_dashboard.ex\nelixir/lib/symphony_elixir/tracker.ex\nelixir/lib/symphony_elixir/tracker/issue.ex\nelixir/lib/symphony_elixir/tracker/memory.ex\nelixir/lib/symphony_elixir/workflow.ex\nelixir/lib/symphony_elixir/workflow_store.ex\nelixir/lib/symphony_elixir/workspace.ex\nelixir/test/symphony_elixir/app_server_test.exs\nelixir/test/symphony_elixir/audit/canonical_json_test.exs\nelixir/test/symphony_elixir/audit/outbox_test.exs\nelixir/test/symphony_elixir/cli_test.exs\nelixir/test/symphony_elixir/core_test.exs\nelixir/test/symphony_elixir/delivery_coordinator_test.exs\nelixir/test/symphony_elixir/dynamic_tool_test.exs\nelixir/test/symphony_elixir/extensions_test.exs\nelixir/test/symphony_elixir/game_api_adapter_test.exs\nelixir/test/symphony_elixir/goal_planning_coordinator_test.exs\nelixir/test/symphony_elixir/live_e2e_test.exs\nelixir/test/symphony_elixir/log_file_test.exs\nelixir/test/symphony_elixir/observability_pubsub_test.exs\nelixir/test/symphony_elixir/orchestrator_status_test.exs\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs\nelixir/test/symphony_elixir/specs_check_test.exs\nelixir/test/symphony_elixir/ssh_test.exs\nelixir/test/symphony_elixir/status_dashboard_snapshot_test.exs\nelixir/test/symphony_elixir/workspace_and_config_test.exs\n",
+        "command": "/bin/bash -lc 'git branch -a --no-color && find elixir/lib/symphony_elixir -maxdepth 3 -type f -print | sort && find elixir/test/symphony_elixir -maxdepth 2 -type f -print | sort'",
+        "commandActions": [
+          {
+            "command": "git branch -a --no-color && find elixir/lib/symphony_elixir -maxdepth 3 -type f -print | sort && find elixir/test/symphony_elixir -maxdepth 2 -type f -print | sort",
+            "type": "unknown"
+          }
+        ],
+        "cwd": "$WORKSPACE/.bos/worktrees/symphony-11",
+        "durationMs": 0,
+        "exitCode": 0,
+        "id": "exec-63032885-16a4-4fbf-af7c-eb7bbf253fc5",
+        "processId": "24511",
+        "source": "unifiedExecStartup",
+        "status": "completed",
+        "type": "commandExecution"
+      },
+      "threadId": "019f8373-ec9d-74c1-aedf-e5a1b7276541",
+      "turnId": "019f8373-ee76-7ad0-a451-d7156f7ea9ca"
+    }
+  },
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-11",
+  "retention": {
+    "category": "permanent"
+  }
+}
