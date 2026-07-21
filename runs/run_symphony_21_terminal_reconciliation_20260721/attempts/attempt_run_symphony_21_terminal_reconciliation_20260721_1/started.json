@@ -1,0 +1,12 @@
+{
+  "attemptId": "attempt_run_symphony_21_terminal_reconciliation_20260721_1",
+  "runId": "run_symphony_21_terminal_reconciliation_20260721",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-21T18:41:00Z",
+  "metrics": {}
+}
