@@ -1,0 +1,61 @@
+{
+  "evidenceId": "evidence_symphony_9_09935f4",
+  "runId": "run_9_1784676341776",
+  "commitSha": "09935f47b1326cffc6351fb52c6978cd92ebc080",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "A legitimate generated lockfile is validated, committed and published by one bounded repair turn",
+      "status": "passed",
+      "evidence": "The coordinator provides exact paths, a stable fingerprint and redacted prior-command context to a single repair role, then requires clean remote-confirmed HEAD."
+    },
+    {
+      "criterion": "An unrelated or unsafe tracked change blocks with a precise diagnosis",
+      "status": "passed",
+      "evidence": "Unsafe changes remain untouched and a single coordinator-owned escalation records fingerprint, paths and porcelain status."
+    },
+    {
+      "criterion": "The same dirty-tree fingerprint cannot consume repeated generic retries",
+      "status": "passed",
+      "evidence": "Only one dirty repair is admitted per delivery cycle; a remaining or subsequent dirty candidate is escalated instead of reopening implementation."
+    },
+    {
+      "criterion": "Evidence and reviews restart only at the new remote-confirmed HEAD",
+      "status": "passed",
+      "evidence": "CandidateHead confirms clean local/remote identity after repair and the review cycle restarts from that exact SHA before finalization."
+    },
+    {
+      "criterion": "Complete Symphony tests and recovery gates pass",
+      "status": "passed",
+      "evidence": "335 tests passed with 100% coverage; format, specs, Credo and Dialyzer passed on the exact published commit."
+    }
+  ],
+  "checks": [
+    {
+      "name": "targeted-dirty-repair-tests",
+      "status": "passed",
+      "tests": 21
+    },
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 335,
+      "coveragePercent": 100
+    },
+    {
+      "name": "format-and-specs",
+      "status": "passed"
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [],
+  "summary": "Dirty candidates now enter one safe, diagnosed repair turn and cannot bypass exact-HEAD review durability or loop through generic implementation retries."
+}
