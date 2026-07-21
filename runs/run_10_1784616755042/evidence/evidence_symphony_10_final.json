@@ -1,0 +1,57 @@
+{
+  "evidenceId": "evidence_symphony_10_final",
+  "runId": "run_10_1784616755042",
+  "commitSha": "92e0ce29c9a292171ed09d4d53e9f01f106ef5d4",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Verified draft PR is promoted once before merge",
+      "status": "passed",
+      "evidence": "Coordinator tests cover exact-HEAD readiness and already-ready recovery."
+    },
+    {
+      "criterion": "Remote acceptance followed by response loss is idempotent",
+      "status": "passed",
+      "evidence": "Readiness is re-read through the canonical Game API client before merge."
+    },
+    {
+      "criterion": "Stale HEAD fails closed",
+      "status": "passed",
+      "evidence": "Directed stale-head regression blocks promotion and merge."
+    },
+    {
+      "criterion": "Complete Symphony gates pass",
+      "status": "passed",
+      "evidence": "312 tests, 0 failures, 2 intentional skips, 100 percent reported coverage, Credo and Dialyzer clean."
+    }
+  ],
+  "checks": [
+    {
+      "name": "post-approval-coordinator",
+      "status": "passed",
+      "tests": 5
+    },
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 312,
+      "coveragePercent": 100
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "92e0ce29c9a292171ed09d4d53e9f01f106ef5d4"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "The exact AgentRun pull request is promoted idempotently before policy-checked merge."
+}
