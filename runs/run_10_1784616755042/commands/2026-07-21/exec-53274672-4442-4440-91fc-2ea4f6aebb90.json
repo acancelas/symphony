@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-53274672-4442-4440-91fc-2ea4f6aebb90",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784629095773_644",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:18:15.720Z",
+  "command": "/bin/bash -lc \"sed -n '1,190p' elixir/lib/symphony_elixir/post_approval_coordinator.ex; find elixir/lib elixir/test -type f -print0 | xargs -0 grep -nE \\\"defmodule .*GameApi|def fetch_run|fetch_pull|pull_request|operationId\\\" | head -240; find . -name AGENTS.md -print\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.PostApprovalCoordinator do\n  @moduledoc \"\"\"\n  Continues an approved exact-HEAD delivery through merge, deployment evidence,\n  runner-confirmed runtime probing, release, and terminal state.\n\n  The verification agent may exercise browsers and repository test tooling, but\n  it cannot authenticate the probe. Symphony reads the bounded handoff file and\n  records it with the runner-only credential before the final release turn.\n  \"\"\"\n\n  alias SymphonyElixir.Codex.AppServer\n  alias SymphonyElixir.GameApi.Client\n  alias SymphonyElixir.Tracker.Issue\n\n  @probe_path \".bos-local/deployment-probe.json\"\n  @readiness_path \".bos-local/pull-request-readiness.json\"\n\n  @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}\n  def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do\n    app_server = Keyword.get(opts, :app_server_module, AppServer)\n    client = Keyword.get(opts, :game_api_client_module, Client)\n\n    with :ok <- require_local_probe_handoff(worker_host),\n         {:ok, readiness} <- prepare_readiness_intent(client, workspace, issue),\n         :ok <- ensure_pull_request_ready(app_server, workspace, issue, recipient, worker_host, readiness),\n         :ok <- prepare_probe_handoff(workspace),\n         :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),\n         {:ok, request} <- load_probe_request(workspace, issue),\n         {:ok, receipt} <- client.record_runtime_probe(request),\n         :ok <- require_confirmed_receipt(receipt),\n         :ok <- run_release_turn(app_server, workspace, issue, recipient, worker_host) do\n      verify_terminal_state(client, issue, request[\"probe\"])\n    end\n  end\n\n  defp prepare_readiness_intent(client, workspace, %Issue{native_ref: native_ref}) do\n    repository_id = native_ref[\"repositoryId\"]\n    run_id = native_ref[\"runId\"]\n\n    with {:ok, run} <- client.fetch_run(repository_id, run_id),\n         {:ok, identity} <- readiness_identit",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
