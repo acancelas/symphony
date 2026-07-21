@@ -1,0 +1,70 @@
+{
+  "evidenceId": "evidence_symphony_15_inconclusive_32c6450",
+  "runId": "run_15_1784671370806",
+  "commitSha": "32c645051f7d9c4e7deaa4a8ebe5e27df3f87ce3",
+  "status": "inconclusive",
+  "acceptanceCriteria": [
+    {
+      "criterion": "ANSI-bearing event canonical bytes match Python rfc8785",
+      "status": "passed",
+      "evidence": "Lowercase control-escape fixture and canonical hashing regression pass."
+    },
+    {
+      "criterion": "422 audit_event_hash_invalid triggers bounded rehash/rebase",
+      "status": "passed",
+      "evidence": "Canonicalization and chain rejections enter the bounded local repair path while preserving stable identities."
+    },
+    {
+      "criterion": "All pending bos-front#2 events are confirmed without identity loss",
+      "status": "passed",
+      "evidence": "Local confirmed watermark is 12614 with receipt 9f9d9fcd72d924ae21a5da4f3d and no pending event or batch files."
+    },
+    {
+      "criterion": "Remote run chain verifies from sequence 1 through the recovered tail",
+      "status": "failed",
+      "evidence": "bos_get_run_history returns audit_sequence_gap. Git audit analysis finds 83 retained-telemetry gaps between sequences 9407 and 9507 in the historically accepted sparse batch 9401-9508."
+    },
+    {
+      "criterion": "make all passes",
+      "status": "passed",
+      "evidence": "321 tests, 0 failures, 2 intentional skips, 100 percent coverage, Credo and Dialyzer clean."
+    },
+    {
+      "criterion": "Independent reviews and exact-head evidence pass",
+      "status": "inconclusive",
+      "evidence": "Exact-head implementation is published, but terminal review cannot pass until the historical retention gap has an explicit verifiable contract."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 321,
+      "coveragePercent": 100
+    },
+    {
+      "name": "remote-chain-verification",
+      "status": "failed",
+      "code": "audit_sequence_gap",
+      "missingSequences": 83
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "32c645051f7d9c4e7deaa4a8ebe5e27df3f87ce3"
+    },
+    {
+      "type": "audit-watermark",
+      "sequence": 12614,
+      "receiptId": "receipt_9f9d9fcd72d924ae21a5da4f3d"
+    }
+  ],
+  "residualRisk": [
+    {
+      "severity": "blocking",
+      "summary": "Historical telemetry compaction removed 83 confirmed event bodies without a durable retention-exception proof, so the complete remote chain cannot currently be verified."
+    }
+  ],
+  "summary": "Future ANSI and rejection recovery is implemented and fully tested, but the historical BOS Front chain requires a game-api retention-proof repair before #15 can pass."
+}
