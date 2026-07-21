@@ -13,6 +13,7 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
   alias SymphonyElixir.Tracker.Issue
 
   @probe_path ".bos-local/deployment-probe.json"
+  @readiness_path ".bos-local/pull-request-readiness.json"
 
   @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) :: :ok | {:error, term()}
   def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do
@@ -20,6 +21,8 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
     client = Keyword.get(opts, :game_api_client_module, Client)
 
     with :ok <- require_local_probe_handoff(worker_host),
+         {:ok, readiness} <- prepare_readiness_intent(client, workspace, issue),
+         :ok <- ensure_pull_request_ready(app_server, workspace, issue, recipient, worker_host, readiness),
          :ok <- prepare_probe_handoff(workspace),
          :ok <- run_verification_turn(app_server, workspace, issue, recipient, worker_host),
          {:ok, request} <- load_probe_request(workspace, issue),
@@ -30,11 +33,157 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
     end
   end
 
+  defp prepare_readiness_intent(client, workspace, %Issue{native_ref: native_ref}) do
+    repository_id = native_ref["repositoryId"]
+    run_id = native_ref["runId"]
+
+    with {:ok, run} <- client.fetch_run(repository_id, run_id),
+         {:ok, identity} <- readiness_identity(native_ref, run) do
+      load_or_create_readiness_handoff(workspace, identity)
+    end
+  end
+
+  defp readiness_identity(native_ref, run) do
+    head_sha = run["headCommit"]
+    pull_request_number = run["pullRequestNumber"]
+    run_id = native_ref["runId"]
+
+    cond do
+      not is_binary(head_sha) or head_sha == "" ->
+        {:error, :readiness_head_missing}
+
+      not is_integer(pull_request_number) or pull_request_number <= 0 ->
+        {:error, :readiness_pull_request_missing}
+
+      true ->
+        {:ok,
+         %{
+           "schemaVersion" => 1,
+           "operationId" => "pr_ready_#{run_id}_#{head_sha}",
+           "repositoryId" => native_ref["repositoryId"],
+           "issueNumber" => native_ref["issueNumber"],
+           "runId" => run_id,
+           "pullRequestNumber" => pull_request_number,
+           "expectedHeadSha" => head_sha
+         }}
+    end
+  end
+
+  defp load_or_create_readiness_handoff(workspace, identity) do
+    path = Path.join(workspace, @readiness_path)
+
+    case File.read(path) do
+      {:ok, content} ->
+        with {:ok, handoff} when is_map(handoff) <- Jason.decode(content),
+             true <- readiness_identity_matches?(handoff, identity) || {:error, :readiness_identity_changed} do
+          {:ok, handoff}
+        else
+          {:error, reason} -> {:error, {:readiness_handoff_invalid, reason}}
+          false -> {:error, {:readiness_handoff_invalid, :readiness_identity_changed}}
+        end
+
+      {:error, :enoent} ->
+        handoff = Map.put(identity, "status", "pending")
+
+        with :ok <- atomic_write(path, Jason.encode!(handoff)) do
+          {:ok, handoff}
+        end
+
+      {:error, reason} ->
+        {:error, {:readiness_handoff_invalid, reason}}
+    end
+  end
+
+  defp ensure_pull_request_ready(_app_server, _workspace, _issue, _recipient, _worker_host, %{"status" => "confirmed"} = handoff) do
+    validate_confirmed_readiness(handoff)
+  end
+
+  defp ensure_pull_request_ready(app_server, workspace, issue, recipient, worker_host, readiness) do
+    prompt = """
+    You are the BOS pull-request readiness coordinator for #{issue.identifier}.
+    Symphony durably recorded the exact readiness intent at #{@readiness_path}.
+    Read it, then call bos_mark_pull_request_ready exactly for its operationId,
+    runId, issueNumber, pullRequestNumber, and expectedHeadSha. Do not create a
+    pull request, change code, request merge, approve, deploy, or use GitHub
+    directly. The BOS operation is idempotent: if the PR is already ready,
+    confirm its current state without a second provider mutation.
+
+    After bos-mcp returns a durable receipt, replace the handoff atomically while
+    preserving every identity field. For success set status `confirmed` and add
+    pullRequest with number, headSha, state, and draft from the confirmed result,
+    plus the complete receipt. For failure set status `rejected`, failureKind to
+    exactly one of `stale_head`, `closed_pull_request`, or `provider_failure`, and
+    preserve the returned error in failure. Never report confirmed unless the PR
+    is open, non-draft, and still has the exact expected HEAD.
+    """
+
+    with :ok <- run_role(app_server, workspace, issue, worker_host, "pull-request-readiness-coordinator", prompt, recipient),
+         {:ok, handoff} <- read_readiness_handoff(workspace, readiness) do
+      readiness_outcome(handoff)
+    end
+  end
+
+  defp read_readiness_handoff(workspace, identity) do
+    path = Path.join(workspace, @readiness_path)
+
+    with {:ok, content} <- File.read(path),
+         {:ok, handoff} when is_map(handoff) <- Jason.decode(content),
+         true <- readiness_identity_matches?(handoff, identity) || {:error, :readiness_identity_changed} do
+      {:ok, handoff}
+    else
+      {:error, reason} -> {:error, {:readiness_handoff_invalid, reason}}
+      false -> {:error, {:readiness_handoff_invalid, :readiness_identity_changed}}
+    end
+  end
+
+  defp readiness_outcome(%{"status" => "confirmed"} = handoff), do: validate_confirmed_readiness(handoff)
+
+  defp readiness_outcome(%{"status" => "rejected", "failureKind" => kind, "failure" => failure})
+       when kind in ["stale_head", "closed_pull_request", "provider_failure"],
+       do: {:error, {:pull_request_readiness_rejected, kind, failure}}
+
+  defp readiness_outcome(handoff), do: {:error, {:pull_request_readiness_unconfirmed, handoff["status"]}}
+
+  defp validate_confirmed_readiness(handoff) do
+    pull_request = handoff["pullRequest"] || %{}
+
+    if is_map(handoff["receipt"]) and
+         pull_request["number"] == handoff["pullRequestNumber"] and
+         pull_request["headSha"] == handoff["expectedHeadSha"] and
+         pull_request["state"] == "open" and pull_request["draft"] == false do
+      :ok
+    else
+      {:error, :pull_request_readiness_confirmation_invalid}
+    end
+  end
+
+  defp readiness_identity_matches?(left, right) do
+    Enum.all?(
+      ~w(schemaVersion operationId repositoryId issueNumber runId pullRequestNumber expectedHeadSha),
+      &(left[&1] == right[&1])
+    )
+  end
+
+  defp atomic_write(path, content) do
+    File.mkdir_p!(Path.dirname(path))
+    temporary = path <> ".tmp.#{System.unique_integer([:positive, :monotonic])}"
+
+    with :ok <- File.write(temporary, content, [:binary, :sync]),
+         :ok <- File.rename(temporary, path) do
+      :ok
+    else
+      {:error, reason} ->
+        File.rm(temporary)
+        {:error, {:readiness_handoff_write_failed, reason}}
+    end
+  end
+
   defp run_verification_turn(app_server, workspace, issue, recipient, worker_host) do
     prompt = """
     You are the BOS post-approval deployment verifier for #{issue.identifier}.
     The human Approval is durable. Re-read the exact PR HEAD, approval and
-    evidence through bos-mcp. Request the policy-checked merge; never force it.
+    evidence through bos-mcp. Symphony has confirmed that the exact AgentRun PR
+    is open and ready for review. Request the policy-checked merge; never force it.
     Perform the repository's real deployment or rollback workflow for that exact
     commit, create the GitHub Deployment through bos-mcp, and invoke the matching
     Vercel or VPS provider inspection. Against the real external URL, execute the
