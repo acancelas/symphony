@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-cf3d3d64-8c17-4025-9591-ade4799c9065",
+  "runId": "run_10_1784616755042",
+  "attemptId": "attempt_run_10_1784616755042_1",
+  "eventId": "event_1784628788964_436",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T10:13:09.552Z",
+  "command": "/bin/bash -lc \"grep -n -E \\\"defp run_role|BOS_MCP|allowed|tool\\\" elixir/lib/symphony_elixir/post_approval_coordinator.ex && sed -n '280,460p' elixir/lib/symphony_elixir/post_approval_coordinator.ex && grep -R -n \\\"pull-request-readiness-coordinator\\\\|bos_mark_pull_request_ready\\\" elixir/lib elixir/test | head -80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "6:  The verification agent may exercise browsers and repository test tooling, but\n193:    pass. Use the actual tools and preserve their command evidence.\n219:    diagnose and perform only the controlled retry or rollback allowed by policy;\n324:  defp run_role(app_server, workspace, issue, worker_host, actor, prompt, recipient) do\n328:             environment_overrides: [{\"BOS_MCP_ACTOR\", actor}]\n         {:ok, run} <- client.fetch_run(repository_id, run_id),\n         true <- run[\"status\"] == \"completed\" || {:error, :run_not_completed},\n         {:ok, verifications} <- client.fetch_run_artifacts(repository_id, run_id, \"deployment-verifications\"),\n         :ok <- require_exact_passed_verification(verifications, probe),\n         {:ok, attempts} <- client.fetch_run_artifacts(repository_id, run_id, \"attempts\"),\n         :ok <- require_completed_attempt(attempts, run[\"currentAttemptId\"]),\n         {:ok, learnings} <- client.fetch_run_artifacts(repository_id, run_id, \"learnings\"),\n         true <- learnings != [] || {:error, :learning_missing} do\n      :ok\n    else\n      {:error, reason} -> {:error, {:terminal_delivery_not_confirmed, reason}}\n      false -> {:error, {:terminal_delivery_not_confirmed, :invalid_terminal_state}}\n    end\n  end\n\n  defp require_exact_passed_verification(verifications, probe) do\n    matched =\n      Enum.any?(verifications, fn verification ->\n        verification[\"status\"] == \"passed\" and\n          verification[\"deploymentId\"] == probe[\"deploymentId\"] and\n          verification[\"commitSha\"] == probe[\"commitSha\"] and\n          verification[\"environment\"] == probe[\"environment\"]\n      end)\n\n    if matched, do: :ok, else: {:error, :exact_deployment_verification_missing}\n  end\n\n  defp require_completed_attempt(attempts, current_attempt_id) do\n    completed =\n      Enum.any?(attempts, fn attempt ->\n        attempt[\"attemptId\"] == current_attempt_id and\n          attempt[\"status\"] in [\"passed\", \"failed\", \"cancelled\", \"blocked\"] and\n          not is_nil(",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-10",
+  "retention": {
+    "category": "permanent"
+  }
+}
