@@ -1,0 +1,18 @@
+{
+  "runId": "run_symphony_21_terminal_reconciliation_20260721",
+  "issueNumber": 21,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "github:acancelas"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "25b97866"
+  },
+  "startedAt": "2026-07-21T18:41:00Z",
+  "branch": "bos/issue-21",
+  "currentAttemptId": "attempt_run_symphony_21_terminal_reconciliation_20260721_1"
+}
