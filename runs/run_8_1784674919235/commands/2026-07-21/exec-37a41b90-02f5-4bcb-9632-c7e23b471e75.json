@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-37a41b90-02f5-4bcb-9632-c7e23b471e75",
+  "runId": "run_8_1784674919235",
+  "attemptId": "attempt_run_8_1784674919235_1",
+  "eventId": "event_1784675200373_56",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T23:06:40.904Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format --check-formatted test/support/test_support.exs test/symphony_elixir/core_test.exs test/symphony_elixir/workspace_and_config_test.exs && mise exec -- mix test test/symphony_elixir/core_test.exs:352 test/symphony_elixir/workspace_and_config_test.exs:517 test/symphony_elixir/workspace_and_config_test.exs:1137'",
+  "durationMs": 392,
+  "environmentPolicy": "restricted",
+  "exitCode": 1,
+  "outputSummary": "\u001b[31m\u001b[1m** (Mix) mix format failed due to --check-formatted.\r\nThe following files are not formatted:\r\n\r\n\u001b[1m\u001b[31m$WORKSPACE/.bos/worktrees/symphony-8/elixir/test/symphony_elixir/workspace_and_config_test.exs\r\n\u001b[0m\r\n           |\r\n 463  463  |      assert {_, 0} = System.cmd(\"git\", [\"init\", \"--bare\", \"--quiet\", remote])\r\n 464  464  |      assert {_, 0} = System.cmd(\"git\", [\"remote\", \"add\", \"origin\", remote], cd: workspace)\r\n      465\u001b[32m +\u001b[0m|\u001b[32m\u001b[0m\r\n 465  466  |      assert {_, 0} =\r\n 466  467  |               System.cmd(\"git\", [\"push\", \"--quiet\", \"-u\", \"origin\", \"HEAD\"],\r\n           |\r\n\r\n\u001b[1m\u001b[31m$WORKSPACE/.bos/worktrees/symphony-8/elixir/test/symphony_elixir/core_test.exs\r\n\u001b[0m\r\n           |\r\n 401  401  |      workspace_root: test_root,\r\n 402  402  |      poll_interval_ms: 10,\r\n 403     \u001b[31m -\u001b[0m|\u001b[31m      hook_before_run: \"export SYMPHONY_TEST_PROCESS_OWNER=#{process_owner}; exec sh -c 'echo $$ >> \\\"#{hook_pid_file}\\\"; trap \\\"exit 0\\\" TERM INT; mkfifo \\\"#{hook_fifo}\\\"; : > \\\"#{hook_marker}\\\"; read _ < \\\"#{hook_fifo}\\\"'\",\u001b[0m\r\n      403\u001b[32m +\u001b[0m|\u001b[32m      hook_before_run:\u001b[0m\r\n      404\u001b[32m +\u001b[0m|\u001b[32m        \"export SYMPHONY_TEST_PROCESS_OWNER=#{process_owner}; exec sh -c 'echo $$ >> \\\"#{hook_pid_file}\\\"; trap \\\"exit 0\\\" TERM INT; mkfifo \\\"#{hook_fifo}\\\"; : > \\\"#{hook_marker}\\\"; read _ < \\\"#{hook_fifo}\\\"'\",\u001b[0m\r\n 404  405  |      hook_timeout_ms: 60_000\r\n 405  406  |    )\r\n           |\r\n\r\n\r\n\u001b[0m\r\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-8/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
