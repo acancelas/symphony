@@ -35,6 +35,10 @@ be promoted to successful completion. Only after this ledger repair does termina
 cleanup run from the requested normalized tracker states. The same reconciliation runs every 15
 minutes through the shared provider circuit, so manual Issue closure or an interrupted finalizer
 is repaired without restarting the service and cannot create a provider polling storm.
+An individual historical chain that lacks a valid run manifest is returned as a structured
+`invalid_run_projection` skip and cannot prevent later runs or repositories from reconciling.
+Provider, authentication, rate-limit, and transport failures remain cycle-fatal and continue to
+open the shared circuit.
 Cleanup is fail-closed for Git workspaces: if `git status` reports uncommitted changes, or Git
 state cannot be read reliably, Symphony preserves the workspace for recovery and logs the
 reason. A clean worktree is not sufficient: its `HEAD` must also be reachable from the configured

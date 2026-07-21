@@ -101,6 +101,45 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert first == "reconcile_terminal_run_42_001_cycle_one"
   end
 
+  test "skips malformed run projections and continues with later valid records" do
+    runs = [
+      %{"runId" => "run_missing_issue", "status" => "running"},
+      %{"runId" => "run_valid_1", "issueNumber" => 41, "status" => "running"},
+      %{"runId" => "run_valid_2", "issueNumber" => 42, "status" => "running"}
+    ]
+
+    assert {:ok,
+            [
+              %{
+                "action" => "skipped",
+                "reason" => "invalid_run_projection",
+                "runId" => "run_missing_issue"
+              },
+              %{"action" => "reconciled", "runId" => "run_valid_1"},
+              %{"action" => "reconciled", "runId" => "run_valid_2"}
+            ]} =
+             Client.reconcile_run_projections_for_test(runs, fn run ->
+               {:ok, %{"action" => "reconciled", "runId" => run["runId"]}}
+             end)
+  end
+
+  test "keeps provider failures fatal while isolating malformed projections" do
+    runs = [
+      %{"runId" => "run_missing_issue", "status" => "running"},
+      %{"runId" => "run_provider_failure", "issueNumber" => 42, "status" => "running"},
+      %{"runId" => "run_never_reached", "issueNumber" => 43, "status" => "running"}
+    ]
+
+    assert {:error, {:game_api_http_error, 429, "github_rate_limited"}} =
+             Client.reconcile_run_projections_for_test(runs, fn run ->
+               send(self(), {:reconciled, run["runId"]})
+               {:error, {:game_api_http_error, 429, "github_rate_limited"}}
+             end)
+
+    assert_received {:reconciled, "run_provider_failure"}
+    refute_received {:reconciled, "run_never_reached"}
+  end
+
   test "preserves audit chain conflict identity for outbox recovery" do
     assert Client.http_error(409, %{
              "detail" => %{"error" => "audit_chain_conflict", "message" => "stale"}

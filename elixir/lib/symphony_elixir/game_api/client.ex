@@ -277,10 +277,26 @@ defmodule SymphonyElixir.GameApi.Client do
   end
 
   defp reconcile_repository_runs(repository, runs, reconciliation_cycle_id) do
+    reconcile_run_projections(runs, &reconcile_run(repository, &1, reconciliation_cycle_id))
+  end
+
+  defp reconcile_run_projections(runs, reconcile_fun) do
     runs
     |> Enum.reject(&(&1["status"] in ["completed", "cancelled"]))
     |> Enum.reduce_while({:ok, []}, fn run, {:ok, accumulated} ->
-      case reconcile_run(repository, run, reconciliation_cycle_id) do
+      result =
+        if valid_run_projection?(run) do
+          reconcile_fun.(run)
+        else
+          {:ok,
+           %{
+             "action" => "skipped",
+             "reason" => "invalid_run_projection",
+             "runId" => run["runId"]
+           }}
+        end
+
+      case result do
         {:ok, payload} -> {:cont, {:ok, [payload | accumulated]}}
         {:error, reason} -> {:halt, {:error, reason}}
       end
@@ -289,6 +305,20 @@ defmodule SymphonyElixir.GameApi.Client do
       {:ok, results} -> {:ok, Enum.reverse(results)}
       error -> error
     end
+  end
+
+  defp valid_run_projection?(%{"runId" => run_id, "issueNumber" => issue_number})
+       when is_binary(run_id) and run_id != "" and is_integer(issue_number) and issue_number > 0,
+       do: true
+
+  defp valid_run_projection?(_run), do: false
+
+  @doc false
+  @spec reconcile_run_projections_for_test([map()], (map() -> {:ok, map()} | {:error, term()})) ::
+          {:ok, [map()]} | {:error, term()}
+  def reconcile_run_projections_for_test(runs, reconcile_fun)
+      when is_list(runs) and is_function(reconcile_fun, 1) do
+    reconcile_run_projections(runs, reconcile_fun)
   end
 
   defp reconcile_run(repository, %{"runId" => run_id, "issueNumber" => issue_number}, reconciliation_cycle_id)
@@ -302,9 +332,6 @@ defmodule SymphonyElixir.GameApi.Client do
       }
     )
   end
-
-  defp reconcile_run(_repository, run, _reconciliation_cycle_id),
-    do: {:error, {:invalid_game_api_run_projection, run["runId"]}}
 
   @doc false
   @spec reconciliation_operation_id_for_test(String.t(), String.t()) :: String.t()
