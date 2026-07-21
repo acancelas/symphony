@@ -10,6 +10,11 @@ defmodule SymphonyElixir.GameApi.Client do
   alias SymphonyElixir.GameApi.RateLimit
   alias SymphonyElixir.Tracker.Issue
 
+  @claim_lease_duration_ms 900_000
+
+  @spec claim_lease_duration_ms() :: pos_integer()
+  def claim_lease_duration_ms, do: @claim_lease_duration_ms
+
   @spec fetch_ready_issues() :: {:ok, [map()]} | {:error, term()}
   def fetch_ready_issues do
     repositories()
@@ -46,7 +51,11 @@ defmodule SymphonyElixir.GameApi.Client do
       when is_binary(repository_id) and is_integer(issue_number) do
     run_id = existing_run_id || new_run_id(issue_number)
     runner_id = System.get_env("BOS_RUNNER_ID") || "x1"
-    lease_expires_at = DateTime.utc_now() |> DateTime.add(15, :minute) |> DateTime.to_iso8601()
+
+    lease_expires_at =
+      DateTime.utc_now()
+      |> DateTime.add(@claim_lease_duration_ms, :millisecond)
+      |> DateTime.to_iso8601()
 
     with {:ok, repository} <- find_repository(repository_id) do
       request(:post, "/v1/internal/bos/delivery/issues/claim",
@@ -66,7 +75,11 @@ defmodule SymphonyElixir.GameApi.Client do
   def heartbeat_issue(repository_id, issue_number, run_id)
       when is_binary(repository_id) and is_integer(issue_number) and is_binary(run_id) do
     runner_id = System.get_env("BOS_RUNNER_ID") || "x1"
-    lease_expires_at = DateTime.utc_now() |> DateTime.add(15, :minute) |> DateTime.to_iso8601()
+
+    lease_expires_at =
+      DateTime.utc_now()
+      |> DateTime.add(@claim_lease_duration_ms, :millisecond)
+      |> DateTime.to_iso8601()
 
     with {:ok, repository} <- find_repository(repository_id) do
       request(:post, "/v1/internal/bos/delivery/issues/heartbeat",
@@ -186,21 +199,49 @@ defmodule SymphonyElixir.GameApi.Client do
         retry: false
       )
 
-    with :ok <- RateLimit.check() do
-      case Req.request(Keyword.merge(options, method: method, url: url)) do
-        {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
-          {:ok, body}
-
-        {:ok, %Req.Response{status: 429} = response} ->
-          {:error, {:game_api_rate_limited, RateLimit.block(response)}}
-
-        {:ok, %Req.Response{status: status, body: body}} ->
-          {:error, http_error(status, body)}
-
-        {:error, reason} ->
-          {:error, {:game_api_request_failed, reason}}
-      end
+    with {:ok, permit} <- RateLimit.acquire() do
+      safe_request(Keyword.merge(options, method: method, url: url))
+      |> handle_result(permit)
     end
+  end
+
+  defp safe_request(options) do
+    Req.request(options)
+  rescue
+    error -> {:error, {:request_exception, error.__struct__, Exception.message(error)}}
+  catch
+    kind, reason -> {:error, {:request_throw, kind, reason}}
+  end
+
+  @doc false
+  @spec handle_result({:ok, Req.Response.t()} | {:error, term()}, non_neg_integer()) ::
+          {:ok, term()} | {:error, term()}
+  def handle_result({:ok, %Req.Response{} = response}, permit) do
+    cond do
+      response.status in 200..299 ->
+        :ok = RateLimit.succeed(permit)
+        {:ok, response.body}
+
+      RateLimit.rate_limited_response?(response) ->
+        {:error, {:game_api_rate_limited, RateLimit.block(response)}}
+
+      RateLimit.authentication_response?(response) ->
+        remaining_ms = RateLimit.block_for(900_000)
+        {:error, {:game_api_authentication_failed, response.status, remaining_ms}}
+
+      RateLimit.transient_response?(response) ->
+        remaining_ms = RateLimit.block_transient(response)
+        {:error, {:game_api_temporarily_unavailable, response.status, remaining_ms}}
+
+      true ->
+        :ok = RateLimit.succeed(permit)
+        {:error, http_error(response.status, response.body)}
+    end
+  end
+
+  def handle_result({:error, reason}, _permit) do
+    _remaining_ms = RateLimit.block_transient()
+    {:error, {:game_api_request_failed, reason}}
   end
 
   @doc false

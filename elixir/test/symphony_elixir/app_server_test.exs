@@ -1575,4 +1575,73 @@ defmodule SymphonyElixir.AppServerTest do
       File.rm_rf(test_root)
     end
   end
+
+  test "cooperative claim cancellation closes a blocked Codex app-server turn" do
+    test_root =
+      Path.join(System.tmp_dir!(), "symphony-cancel-app-server-#{System.unique_integer([:positive])}")
+
+    try do
+      workspace_root = Path.join(test_root, "workspaces")
+      workspace = Path.join(workspace_root, "CANCEL-1")
+      codex_binary = Path.join(test_root, "fake-codex")
+      trace_file = Path.join(test_root, "trace")
+      File.mkdir_p!(workspace)
+
+      File.write!(codex_binary, """
+      #!/bin/sh
+      count=0
+      while IFS= read -r line; do
+        count=$((count + 1))
+        printf '%s\n' "$count" >> "#{trace_file}"
+        case "$count" in
+          1) printf '%s\n' '{"id":1,"result":{}}' ;;
+          2) printf '%s\n' '{"id":2,"result":{"thread":{"id":"thread-cancel"}}}' ;;
+          3) printf '%s\n' '{"id":3,"result":{"turn":{"id":"turn-cancel"}}}' ;;
+        esac
+      done
+      """)
+
+      File.chmod!(codex_binary, 0o755)
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        codex_command: "#{codex_binary} app-server",
+        codex_read_timeout_ms: 5_000,
+        codex_turn_timeout_ms: 60_000
+      )
+
+      issue = %Issue{
+        id: "issue-cancel",
+        identifier: "CANCEL-1",
+        title: "Cancel unconfirmed claim",
+        state: "In Progress",
+        url: "https://example.org/issues/CANCEL-1"
+      }
+
+      task = Task.async(fn -> AppServer.run(workspace, "wait", issue) end)
+      assert wait_for_trace(trace_file, 3)
+
+      send(task.pid, {:bos_cancel_agent_run, :claim_lease_unconfirmed})
+
+      assert {:error, {:agent_run_cancelled, :claim_lease_unconfirmed}} = Task.await(task, 2_000)
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
+  defp wait_for_trace(path, count, attempts \\ 100)
+  defp wait_for_trace(_path, _count, 0), do: false
+
+  defp wait_for_trace(path, count, attempts) do
+    ready? =
+      File.exists?(path) and
+        length(File.read!(path) |> String.split("\n", trim: true)) >= count
+
+    if ready? do
+      true
+    else
+      Process.sleep(10)
+      wait_for_trace(path, count, attempts - 1)
+    end
+  end
 end

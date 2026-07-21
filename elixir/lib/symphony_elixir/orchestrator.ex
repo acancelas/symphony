@@ -11,6 +11,8 @@ defmodule SymphonyElixir.Orchestrator do
   alias SymphonyElixir.Audit.Outbox
   alias SymphonyElixir.Tracker.Issue
 
+  @claim_lease_safety_margin_ms 120_000
+  @claim_safety_force_stop_ms 30_000
   @continuation_retry_delay_ms 1_000
   @failure_retry_base_ms 10_000
   # Slightly above the dashboard render interval so "checking now…" can render.
@@ -118,7 +120,7 @@ defmodule SymphonyElixir.Orchestrator do
 
   def handle_info(:run_poll_cycle, state) do
     state = refresh_runtime_config(state)
-    heartbeat_running(state)
+    state = heartbeat_running(state)
     state = maybe_dispatch(state)
     state = schedule_tick(state, state.poll_interval_ms)
     state = %{state | poll_check_in_progress: false}
@@ -203,18 +205,114 @@ defmodule SymphonyElixir.Orchestrator do
 
   def handle_info({:retry_issue, _issue_id}, state), do: {:noreply, state}
 
+  def handle_info({:claim_lease_guard, issue_id, token}, %{running: running} = state) do
+    case Map.get(running, issue_id) do
+      %{claim_guard_token: ^token} = entry ->
+        updated = request_claim_safety_stop(issue_id, entry, token)
+        {:noreply, %{state | running: Map.put(running, issue_id, updated)}}
+
+      _ ->
+        {:noreply, state}
+    end
+  end
+
+  def handle_info({:claim_safety_force_stop, issue_id, token}, %{running: running} = state) do
+    case Map.get(running, issue_id) do
+      %{claim_guard_token: ^token, claim_safety_stop_requested?: true} = entry ->
+        Logger.error("Force-stopping agent that did not acknowledge claim safety cancellation issue_id=#{issue_id}")
+
+        Outbox.record(entry.issue, %{
+          event: :notification,
+          payload: %{"method" => "runner/claimLeaseSafetyForceStop", "params" => %{}},
+          timestamp: DateTime.utc_now()
+        })
+
+        terminate_task(entry.pid, state.task_supervisor)
+        {:noreply, state}
+
+      _ ->
+        {:noreply, state}
+    end
+  end
+
   def handle_info(msg, state) do
     Logger.debug("Orchestrator ignored message: #{inspect(msg)}")
     {:noreply, state}
   end
 
-  defp heartbeat_running(%State{running: running}) do
-    Enum.each(running, fn {_issue_id, entry} ->
-      case Tracker.heartbeat_issue(entry.issue) do
-        :ok -> :ok
-        {:error, reason} -> Logger.warning("BOS claim heartbeat deferred: #{inspect(reason)}")
+  defp heartbeat_running(%State{running: running} = state) do
+    updated_running =
+      Map.new(running, fn {issue_id, entry} ->
+        case Tracker.heartbeat_issue(entry.issue) do
+          :ok ->
+            {issue_id, renew_claim_guard(entry)}
+
+          {:error, reason} ->
+            Logger.warning("BOS claim heartbeat deferred: #{inspect(reason)}")
+            {issue_id, entry}
+        end
+      end)
+
+    %{state | running: updated_running}
+  end
+
+  defp request_claim_safety_stop(issue_id, entry, token) do
+    Logger.error("Requesting cooperative agent stop before BOS claim expiry issue_id=#{issue_id}")
+
+    Outbox.record(entry.issue, %{
+      event: :notification,
+      payload: %{"method" => "runner/claimLeaseSafetyStop", "params" => %{}},
+      timestamp: DateTime.utc_now()
+    })
+
+    send(entry.pid, {:bos_cancel_agent_run, :claim_lease_unconfirmed})
+    Process.send_after(self(), {:claim_safety_force_stop, issue_id, token}, @claim_safety_force_stop_ms)
+    Map.put(entry, :claim_safety_stop_requested?, true)
+  end
+
+  defp renew_claim_guard(entry, mode \\ :renewed) do
+    if claim_lease_contract?(entry.issue) do
+      token = make_ref()
+      delay_ms = claim_guard_delay_ms(entry.issue, mode)
+      Process.send_after(self(), {:claim_lease_guard, entry.issue.id, token}, delay_ms)
+
+      Map.merge(entry, %{
+        claim_guard_token: token,
+        claim_safety_stop_requested?: false
+      })
+    else
+      entry
+    end
+  end
+
+  defp claim_lease_contract?(%Issue{native_ref: native_ref}) do
+    duration_ms = native_ref["claimLeaseDurationMs"]
+    is_integer(duration_ms) and duration_ms > @claim_lease_safety_margin_ms
+  end
+
+  defp claim_guard_delay_ms(%Issue{native_ref: native_ref}, :initial) do
+    exact_delay =
+      with value when is_binary(value) <- native_ref["leaseExpiresAt"],
+           {:ok, expires_at, _offset} <- DateTime.from_iso8601(value) do
+        DateTime.diff(expires_at, DateTime.utc_now(), :millisecond) -
+          @claim_lease_safety_margin_ms
+      else
+        _ -> nil
       end
-    end)
+
+    normalize_claim_guard_delay(exact_delay, native_ref)
+  end
+
+  defp claim_guard_delay_ms(%Issue{native_ref: native_ref}, :renewed),
+    do: normalize_claim_guard_delay(nil, native_ref)
+
+  defp normalize_claim_guard_delay(exact_delay, _native_ref)
+       when is_integer(exact_delay),
+       do: max(exact_delay, 1_000)
+
+  defp normalize_claim_guard_delay(_exact_delay, native_ref) do
+    duration_ms = native_ref["claimLeaseDurationMs"] || 0
+    max(duration_ms - @claim_lease_safety_margin_ms, 1_000)
   end
 
   defp handle_agent_down(:normal, state, issue_id, running_entry, session_id) do
@@ -417,6 +515,12 @@ defmodule SymphonyElixir.Orchestrator do
   @spec select_worker_host_for_test(term(), String.t() | nil) :: String.t() | nil | :no_worker_capacity
   def select_worker_host_for_test(%State{} = state, preferred_worker_host) do
     select_worker_host(state, preferred_worker_host)
+  end
+
+  @doc false
+  @spec claim_guard_delay_for_test(Issue.t(), :initial | :renewed) :: pos_integer() | nil
+  def claim_guard_delay_for_test(%Issue{} = issue, mode) do
+    if claim_lease_contract?(issue), do: claim_guard_delay_ms(issue, mode)
   end
 
   defp reconcile_running_issue_states([], state, _active_states, _terminal_states), do: state
@@ -828,7 +932,7 @@ defmodule SymphonyElixir.Orchestrator do
 
   defp should_dispatch_issue?(
          %Issue{} = issue,
-         %State{running: running, claimed: claimed, blocked: blocked} = state,
+         %State{running: running, claimed: claimed, blocked: blocked, retry_attempts: retry_attempts} = state,
          active_states,
          terminal_states
        ) do
@@ -836,6 +940,7 @@ defmodule SymphonyElixir.Orchestrator do
       !MapSet.member?(claimed, issue.id) and
       !Map.has_key?(running, issue.id) and
       !Map.has_key?(blocked, issue.id) and
+      !Map.has_key?(retry_attempts, issue.id) and
       available_slots(state) > 0 and
       state_slots_available?(issue, running) and
       worker_slots_available?(state)
@@ -953,7 +1058,14 @@ defmodule SymphonyElixir.Orchestrator do
 
       {:error, reason} ->
         Logger.warning("Unable to claim issue before dispatch: #{issue_context(issue)} reason=#{inspect(reason)}")
-        state
+        next_attempt = if is_integer(attempt), do: attempt + 1, else: 1
+
+        schedule_issue_retry(state, issue.id, next_attempt, %{
+          identifier: issue.identifier,
+          issue_url: issue.url,
+          error: "claim failed: #{inspect(reason)}",
+          worker_host: preferred_worker_host
+        })
     end
   end
 
@@ -966,8 +1078,8 @@ defmodule SymphonyElixir.Orchestrator do
 
         Logger.info("Dispatching issue to agent: #{issue_context(issue)} pid=#{inspect(pid)} attempt=#{inspect(attempt)} worker_host=#{worker_host || "local"}")
 
-        running =
-          Map.put(state.running, issue.id, %{
+        entry =
+          %{
             pid: pid,
             ref: ref,
             identifier: issue.identifier,
@@ -987,8 +1099,12 @@ defmodule SymphonyElixir.Orchestrator do
             codex_last_reported_total_tokens: 0,
             turn_count: 0,
             retry_attempt: normalize_retry_attempt(attempt),
+            claim_safety_stop_requested?: false,
             started_at: DateTime.utc_now()
-          })
+          }
+          |> renew_claim_guard(:initial)
+
+        running = Map.put(state.running, issue.id, entry)
 
         %{
           state

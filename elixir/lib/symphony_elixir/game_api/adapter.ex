@@ -44,7 +44,13 @@ defmodule SymphonyElixir.GameApi.Adapter do
     with {:ok, result} <- client_module().claim_issue(repository_id, issue_number, existing_run_id),
          "completed" <- result["status"] do
       claim = result["claim"] || %{}
-      native_ref = Map.put(issue.native_ref || %{}, "runId", claim["runId"])
+
+      native_ref =
+        (issue.native_ref || %{})
+        |> Map.put("runId", claim["runId"])
+        |> Map.put("leaseExpiresAt", claim["leaseExpiresAt"])
+        |> Map.put("claimLeaseDurationMs", Client.claim_lease_duration_ms())
+
       labels = result |> Map.get("issue", %{}) |> Map.get("labels", [])
       state = if labels == [], do: "agent:running", else: current_state(labels)
       {:ok, %{issue | native_ref: native_ref, state: state}}
@@ -101,7 +107,9 @@ defmodule SymphonyElixir.GameApi.Adapter do
         "repositoryOwner" => payload["_repositoryOwner"],
         "repositoryName" => payload["_repositoryName"],
         "repositoryCloneUrl" => payload["_repositoryCloneUrl"],
-        "runId" => claim["runId"]
+        "runId" => claim["runId"],
+        "leaseExpiresAt" => claim["leaseExpiresAt"],
+        "claimLeaseDurationMs" => Client.claim_lease_duration_ms()
       },
       identifier: "#{repository_id}-#{issue_number}",
       title: payload["title"],

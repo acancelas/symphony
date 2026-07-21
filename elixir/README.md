@@ -338,8 +338,15 @@ This project is licensed under the [Apache License 2.0](../LICENSE).
 ### Shared `game-api` rate-limit circuit
 
 All durable tracker, heartbeat, lifecycle, and audit-outbox requests share a
-single process-wide circuit breaker. A `429` honors `Retry-After` (or the
+single process-wide OTP circuit breaker. A `429` honors `Retry-After` (or the
 upstream reset timestamp), adds bounded jitter, and suspends every caller until
 the deadline. If the response has no usable deadline, Symphony waits at least
-two minutes. Pending audit events remain in the append-only local outbox and
+two minutes. Remote deadlines are capped at 15 minutes, after which a
+single half-open probe revalidates availability without reopening a request
+storm. Pending audit events remain in the append-only local outbox and
 are retried after the circuit reopens; they are never discarded.
+The cooldown is persisted at `BOS_RATE_LIMIT_STATE_PATH`, defaulting to
+`~/.bos/rate-limit/state.json`; corrupt state restores conservatively closed.
+If that write fails, Symphony durably mirrors the cooldown at
+`BOS_RATE_LIMIT_FALLBACK_STATE_PATH` (default `~/.bos/outbox/rate-limit-state.json`)
+and restores it before permitting another request.

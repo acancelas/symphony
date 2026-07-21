@@ -38,6 +38,7 @@ defmodule SymphonyElixir.Application do
     children = [
       {Phoenix.PubSub, name: SymphonyElixir.PubSub},
       SymphonyElixir.WorkflowStore,
+      SymphonyElixir.GameApi.RateLimit,
       SymphonyElixir.Audit.Outbox,
       SymphonyElixir.AgentRuntimeSupervisor,
       SymphonyElixir.HttpServer,

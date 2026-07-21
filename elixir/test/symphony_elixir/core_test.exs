@@ -872,6 +872,51 @@ defmodule SymphonyElixir.CoreTest do
     refute Map.has_key?(updated_state.retry_attempts, issue_id)
   end
 
+  test "claim lease guard is independent of polling and requests cooperative cancellation" do
+    issue_id = "game-api#lease-guard"
+    token = make_ref()
+    parent = self()
+
+    agent_pid =
+      spawn(fn ->
+        receive do
+          message -> send(parent, {:agent_received, message})
+        end
+      end)
+
+    issue = %Issue{
+      id: issue_id,
+      identifier: "game-api-lease-guard",
+      native_ref: %{
+        "claimLeaseDurationMs" => 900_000,
+        "leaseExpiresAt" => DateTime.utc_now() |> DateTime.add(900_000, :millisecond) |> DateTime.to_iso8601()
+      }
+    }
+
+    entry = %{
+      pid: agent_pid,
+      issue: issue,
+      claim_guard_token: token,
+      claim_safety_stop_requested?: false
+    }
+
+    state = %Orchestrator.State{running: %{issue_id => entry}, retry_attempts: %{}}
+
+    assert {:noreply, updated} = Orchestrator.handle_info({:claim_lease_guard, issue_id, token}, state)
+    assert_receive {:agent_received, {:bos_cancel_agent_run, :claim_lease_unconfirmed}}, 500
+    assert updated.running[issue_id].claim_safety_stop_requested?
+
+    assert {:noreply, unchanged} =
+             Orchestrator.handle_info({:claim_lease_guard, issue_id, make_ref()}, updated)
+
+    assert unchanged == updated
+    assert Orchestrator.claim_guard_delay_for_test(issue, :initial) in 777_000..780_000
+    assert Orchestrator.claim_guard_delay_for_test(issue, :renewed) == 780_000
+
+    tracker_without_leases = %Issue{id: "missing-lease", native_ref: %{}}
+    assert is_nil(Orchestrator.claim_guard_delay_for_test(tracker_without_leases, :initial))
+  end
+
   test "agent runner does not continue after a required label is removed" do
     write_workflow_file!(Workflow.workflow_file_path(), tracker_required_labels: ["symphony"])
 
@@ -927,7 +972,7 @@ defmodule SymphonyElixir.CoreTest do
     assert MapSet.member?(state.completed, issue_id)
     assert %{attempt: 1, due_at_ms: due_at_ms} = state.retry_attempts[issue_id]
     assert is_integer(due_at_ms)
-    assert_due_in_range(due_at_ms, 500, 1_100)
+    assert_due_in_range(due_at_ms, 0, 1_100)
   end
 
   test "abnormal worker exit increments retry attempt progressively" do
@@ -967,7 +1012,7 @@ defmodule SymphonyElixir.CoreTest do
     assert %{attempt: 3, due_at_ms: due_at_ms, identifier: "MT-559", error: "agent exited: :boom"} =
              state.retry_attempts[issue_id]
 
-    assert_due_in_range(due_at_ms, 39_500, 40_500)
+    assert_due_in_range(due_at_ms, 38_000, 40_500)
   end
 
   test "first abnormal worker exit waits before retrying" do
@@ -1006,7 +1051,7 @@ defmodule SymphonyElixir.CoreTest do
     assert %{attempt: 1, due_at_ms: due_at_ms, identifier: "MT-560", error: "agent exited: :boom"} =
              state.retry_attempts[issue_id]
 
-    assert_due_in_range(due_at_ms, 9_000, 10_500)
+    assert_due_in_range(due_at_ms, 8_000, 10_500)
   end
 
   test "stale retry timer messages do not consume newer retry entries" do

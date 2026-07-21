@@ -424,6 +424,9 @@ defmodule SymphonyElixir.Codex.AppServer do
 
       {^port, {:exit_status, status}} ->
         {:error, {:port_exit, status}}
+
+      {:bos_cancel_agent_run, reason} ->
+        {:error, {:agent_run_cancelled, reason}}
     after
       timeout_ms ->
         {:error, :turn_timeout}
@@ -1003,6 +1006,9 @@ defmodule SymphonyElixir.Codex.AppServer do
 
       {^port, {:exit_status, status}} ->
         {:error, {:port_exit, status}}
+
+      {:bos_cancel_agent_run, reason} ->
+        {:error, {:agent_run_cancelled, reason}}
     after
       timeout_ms ->
         {:error, :response_timeout}
