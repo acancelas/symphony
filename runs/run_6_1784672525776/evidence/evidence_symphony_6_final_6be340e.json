@@ -1,0 +1,56 @@
+{
+  "evidenceId": "evidence_symphony_6_final_6be340e",
+  "runId": "run_6_1784672525776",
+  "commitSha": "6be340eb3bc11677f24c12b64dbaaa25924bc365",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Reviews start only after exact candidate HEAD is confirmed remotely",
+      "status": "passed",
+      "evidence": "CandidateHead confirms a clean local SHA and the exact non-force remote branch SHA before each review cycle."
+    },
+    {
+      "criterion": "Repairs republish and reconfirm the new HEAD",
+      "status": "passed",
+      "evidence": "Every repair re-enters review_and_repair and executes CandidateHead.confirm before specialist sessions."
+    },
+    {
+      "criterion": "Remote divergence fails closed without force push",
+      "status": "passed",
+      "evidence": "CandidateHead uses guarded push and tests rejection, remote mismatch, lost responses, and recovery without any force option."
+    },
+    {
+      "criterion": "Recovery rejects unavailable evidence commits",
+      "status": "passed",
+      "evidence": "Recovery tests cover published candidate reconstruction and inaccessible historical evidence."
+    },
+    {
+      "criterion": "Complete Symphony quality gates pass",
+      "status": "passed",
+      "evidence": "329 tests, 0 failures, 2 intentional skips, 100% coverage, formatting, Credo and Dialyzer all clean."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 329,
+      "coveragePercent": 100
+    },
+    {
+      "name": "format",
+      "status": "passed"
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [],
+  "summary": "Every implementation and repair candidate is now durably confirmed at an exact remote HEAD before review or final evidence."
+}
