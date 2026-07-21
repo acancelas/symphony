@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8dce26ad-b304-4139-879d-5da13cb289ad",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671438303_22",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:03:58.303Z",
+  "command": "/bin/bash -lc \"sed -n '1,180p' elixir/test/symphony_elixir/audit/outbox_test.exs; sed -n '180,380p' elixir/test/symphony_elixir/audit/outbox_test.exs; sed -n '360,445p' elixir/lib/symphony_elixir/audit/outbox.ex; sed -n '250,295p' elixir/lib/symphony_elixir/game_api/client.ex; git log --oneline -- elixir/lib/symphony_elixir/audit/outbox.ex | head -20\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.Audit.OutboxTest do\n  use ExUnit.Case, async: true\n\n  alias SymphonyElixir.Audit.Outbox\n\n  test \"recovers ordered unconfirmed events and their last hash after restart\" do\n    root = Path.join(System.tmp_dir!(), \"bos-outbox-test-#{System.unique_integer([:positive])}\")\n    path = Path.join([root, \"run_001\", \"events\"])\n    File.mkdir_p!(path)\n\n    issue = %{\n      \"repositoryId\" => \"bos-front\",\n      \"repositoryOwner\" => \"acancelas\",\n      \"repositoryName\" => \"bos-front\",\n      \"issueNumber\" => 42,\n      \"runId\" => \"run_001\",\n      \"branchName\" => \"bos/issue-42\"\n    }\n\n    File.write!(\n      Path.join(path, \"00000002.json\"),\n      Jason.encode!(%{\"issue\" => issue, \"event\" => %{\"eventId\" => \"event_2\", \"runId\" => \"run_001\", \"sequence\" => 2, \"eventHash\" => \"sha256:second\"}})\n    )\n\n    File.write!(\n      Path.join(path, \"00000001.json\"),\n      Jason.encode!(%{\"issue\" => issue, \"event\" => %{\"eventId\" => \"event_1\", \"runId\" => \"run_001\", \"sequence\" => 1, \"eventHash\" => \"sha256:first\"}})\n    )\n\n    recovered = Outbox.recover_pending(root)[\"run_001\"]\n\n    assert Enum.map(recovered.pending, & &1[\"sequence\"]) == [1, 2]\n    assert recovered.sequence == 2\n    assert recovered.previous_hash == \"sha256:second\"\n    assert recovered.issue.branch_name == \"bos/issue-42\"\n\n    File.rm_rf!(root)\n  end\n\n  test \"does not replay event files already covered by a durable receipt\" do\n    root = Path.join(System.tmp_dir!(), \"bos-outbox-receipt-test-#{System.unique_integer([:positive])}\")\n    events_path = Path.join([root, \"run_001\", \"events\"])\n    receipts_path = Path.join([root, \"run_001\", \"receipts\"])\n    File.mkdir_p!(events_path)\n    File.mkdir_p!(receipts_path)\n    issue = %{\"repositoryId\" => \"bos-front\", \"issueNumber\" => 42, \"runId\" => \"run_001\"}\n    event = %{\"eventId\" => \"event_confirmed\", \"runId\" => \"run_001\", \"sequence\" => 1, \"eventHash\" => \"sha256:confirmed\"}\n    File.write!(Path.join(events_path, \"00000001.json\"), Jason.encode!(%{\"issue\" => issue, \"event\" => e",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}

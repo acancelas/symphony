@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-86f08c8a-3549-45e6-9328-3aafcc14a1d1",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_1",
+  "eventId": "event_1784671432269_20",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-21T22:03:52.269Z",
+  "command": "/bin/bash -lc 'git merge-base --is-ancestor 31b224b HEAD; echo ancestor_exit=$?; git log --oneline --all --ancestry-path 31b224b..HEAD | tail -30; git log --oneline --all -- elixir/lib/symphony_elixir/audit/canonical_json.ex | head -20; sed -n '\"'1,140p' elixir/test/symphony_elixir/audit/canonical_json_test.exs; sed -n '500,610p' elixir/test/symphony_elixir/audit/outbox_test.exs; sed -n '180,215p' elixir/test/symphony_elixir/game_api_adapter_test.exs; grep -n \\\"defp response_error_code\\\\|recoverable_audit\\\" elixir/lib/symphony_elixir/game_api/client.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "ancestor_exit=1\n927666a Bound retained Codex event summaries\nbc41574 Harden\n74c799d fix(game-api): share rate-limit circuit\n6dbc744 fix(audit): normalize summary contract bounds\n5a3d555 fix(audit): pace provider backlog draining\nb4b67f0 fix(audit): compact recovered telemetry backlog\n4426cc1 fix(audit): aggregate streaming progress telemetry\n0444da0 Preserve dirty workspaces during recovery (#19)\n21c3b08 Preserve dirty workspaces during recovery\n31b224b fix(audit): canonicalize ANSI events with RFC 8785\ne015dbc Add game-api orchestration and durable audit outbox\ndefmodule SymphonyElixir.Audit.CanonicalJsonTest do\n  use ExUnit.Case, async: true\n\n  alias SymphonyElixir.Audit.CanonicalJson\n\n  test \"sorts object keys recursively and preserves array order\" do\n    value = %{\"z\" => [3, 2, 1], \"a\" => %{\"b\" => true, \"a\" => nil}}\n    assert IO.iodata_to_binary(CanonicalJson.encode(value)) == ~s({\"a\":{\"a\":null,\"b\":true},\"z\":[3,2,1]})\n  end\n\n  test \"matches the cross-runtime RFC 8785 and SHA-256 fixture\" do\n    value = %{\n      \"z\" => [3, 2, 1],\n      \"occurredAt\" => \"2026-07-19T18:42:15.438Z\",\n      \"a\" => %{\"b\" => true, \"a\" => nil}\n    }\n\n    canonical = value |> CanonicalJson.encode() |> IO.iodata_to_binary()\n\n    assert canonical ==\n             ~s({\"a\":{\"a\":null,\"b\":true},\"occurredAt\":\"2026-07-19T18:42:15.438Z\",\"z\":[3,2,1]})\n\n    assert Base.encode16(:crypto.hash(:sha256, canonical), case: :lower) ==\n             \"0fe4d5a111d188b2d2bc833a3fca93ee27617b91cec3eb71d843beeb8b9c88ff\"\n  end\n\n  test \"rejects floating point audit values\" do\n    assert_raise ArgumentError, fn -> CanonicalJson.encode(%{\"value\" => 1.5}) end\n  end\n\n  test \"uses lowercase RFC 8785 escapes for control characters\" do\n    canonical = %{\"output\" => <<27, 0, 31, 8, 9, 10, 12, 13>>} |> CanonicalJson.encode() |> IO.iodata_to_binary()\n\n    assert canonical == ~S({\"output\":\"\\u001b\\u0000\\u001f\\b\\t\\n\\f\\r\"})\n  end\n\n  test \"sorts object properties by UTF-16 code units\" do\n    canonical = %{<<0xE000::utf8>> => 1, \"😀",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-15",
+  "retention": {
+    "category": "permanent"
+  }
+}
