@@ -9,6 +9,7 @@ defmodule SymphonyElixir.GameApi.Client do
   alias SymphonyElixir.Config
   alias SymphonyElixir.GameApi.ProviderCircuit
   alias SymphonyElixir.Tracker.Issue
+  require Logger
 
   @recoverable_audit_error_codes ~w(
     audit_canonicalization_failed
@@ -31,8 +32,20 @@ defmodule SymphonyElixir.GameApi.Client do
 
       case request(:get, "/v1/internal/bos/delivery/issues/by-states", params: params)
            |> response_list("issues") do
-        {:ok, issues} -> {:cont, {:ok, accumulated ++ issues}}
-        {:error, reason} -> {:halt, {:error, reason}}
+        {:ok, issues} ->
+          {:cont, {:ok, accumulated ++ issues}}
+
+        {:error, reason} when accumulated != [] ->
+          Logger.warning(
+            "Returning the confirmed partial ready queue after a repository lookup failed " <>
+              "repository=#{repository["repository_id"]} confirmed_issues=#{length(accumulated)} " <>
+              "reason=#{inspect(reason)}"
+          )
+
+          {:halt, {:ok, accumulated}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
       end
     end)
   end
