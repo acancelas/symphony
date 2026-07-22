@@ -1,0 +1,21 @@
+{
+  "repository": {
+    "repositoryId": "symphony",
+    "owner": "acancelas",
+    "repo": "symphony"
+  },
+  "issueNumber": 44,
+  "operationId": "approve_symphony_44_629d47d_20260722",
+  "approvalId": "approval_symphony_44_629d47d",
+  "runId": "run_symphony_44_20260722",
+  "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed",
+  "actor": {
+    "type": "human",
+    "subjectId": "alejandro-cancelas",
+    "githubLogin": "acancelas",
+    "displayName": "Alejandro Cancelas",
+    "authenticatedBy": "bos_mcp_human_action_token"
+  },
+  "status": "approved",
+  "reason": "Standing owner authorization applies; exact-commit checks and independent specialized reviews passed."
+}
