@@ -1,0 +1,45 @@
+{
+  "reviewId": "review_run-symphony-capacity-wait-reconciliation-20260722_2_functional_40750c297ed4",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "reviewType": "functional",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "passed",
+  "findings": [
+    {
+      "status": "passed",
+      "area": "revision_identity",
+      "finding": "The workspace delivery context and exact-commit repair evidence identify local HEAD as 40750c297ed42435dabe1d4670bfda85ce92af36; a live repository comparison confirms remote bos/issue-51 is identical to that SHA with zero commits ahead or behind."
+    },
+    {
+      "status": "passed",
+      "area": "stale_waiter_release",
+      "finding": "The poll path now reconciles capacity_waiting entries; missing, terminal, inactive, and unroutable waiters invoke the game-api release path and remove local claim, queue, and repository reservation state only after provider release succeeds."
+    },
+    {
+      "status": "passed",
+      "area": "repository_availability",
+      "finding": "Regression coverage proves releasing a missing waiter makes a later Issue in the same repository dispatchable, while provider release failure retains the local reservation and preserves repository serialization."
+    },
+    {
+      "status": "passed",
+      "area": "valid_claim_recovery",
+      "finding": "Valid same-run waiters are refreshed and heartbeated without changing queue Attempt 3 or retry-attempt state; foreign-owned refreshed claims drop only stale local state and do not mutate the remote owner."
+    },
+    {
+      "status": "passed",
+      "area": "validation",
+      "finding": "Exact-commit evidence reports 363 tests with 0 failures, 100.00% coverage, strict Credo/spec checks, Dialyzer, formatting, and diff hygiene all passing; the complete 8-file patch was independently inspected in the prior repair cycle and remains the same exact commit."
+    },
+    {
+      "status": "not_applicable",
+      "area": "deployment",
+      "finding": "Exact merged-artifact installation and service-health verification are post-merge delivery responsibilities and are not required to affirm this pre-merge functional review."
+    }
+  ],
+  "summary": "Passed functional review for exact commit 40750c297ed42435dabe1d4670bfda85ce92af36: stale capacity-waiting claims are safely reconciled and released, valid claims remain recoverable without Attempt or retry consumption, same-repository work is unblocked, and exact-commit validation is affirmative."
+}
