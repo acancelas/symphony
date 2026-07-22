@@ -1,0 +1,63 @@
+{
+  "evidenceId": "evidence_symphony_42_4a50a8c",
+  "runId": "run_symphony_42_retry_after_20260722",
+  "commitSha": "4a50a8c420758a1621e5e02d981636bfc8085579",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "name": "Long provider window controls retry",
+      "status": "passed",
+      "evidence": "core_test.exs verifies Retry-After 60000 exceeds the 10000 ms exponential delay."
+    },
+    {
+      "name": "Short provider window preserves backoff",
+      "status": "passed",
+      "evidence": "core_test.exs verifies the existing 10000 ms delay remains the lower bound."
+    },
+    {
+      "name": "Stale window is cleared",
+      "status": "passed",
+      "evidence": "core_test.exs verifies a non-rate failure removes provider_retry_after_ms."
+    },
+    {
+      "name": "Complete validation suite",
+      "status": "passed",
+      "evidence": "make -C elixir all: 342 tests, 0 failures, 2 skipped, 100% coverage; format, Credo, specs and Dialyzer pass."
+    },
+    {
+      "name": "Exact-head CI",
+      "status": "passed",
+      "evidence": "GitHub jobs 88824884571 and 88824884533 passed for 4a50a8c420758a1621e5e02d981636bfc8085579."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "commitSha": "4a50a8c420758a1621e5e02d981636bfc8085579",
+      "url": "https://github.com/acancelas/symphony/actions/runs/29888790049/job/88824884571"
+    },
+    {
+      "name": "validate-pr-description",
+      "status": "passed",
+      "commitSha": "4a50a8c420758a1621e5e02d981636bfc8085579",
+      "url": "https://github.com/acancelas/symphony/actions/runs/29888790046/job/88824884533"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "url": "https://github.com/acancelas/symphony/pull/43"
+    },
+    {
+      "type": "reviews",
+      "ids": [
+        "review_symphony_42_security_20260722",
+        "review_symphony_42_architecture_20260722",
+        "review_symphony_42_quality_20260722"
+      ]
+    }
+  ],
+  "residualRisk": [],
+  "summary": "The exact candidate commit passes local and remote validation, specialist reviews, and every acceptance criterion. Installation parity will be verified after merge."
+}
