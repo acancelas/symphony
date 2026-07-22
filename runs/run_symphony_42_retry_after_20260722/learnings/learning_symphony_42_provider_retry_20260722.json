@@ -1,0 +1,14 @@
+{
+  "learningId": "learning_symphony_42_provider_retry_20260722",
+  "runId": "run_symphony_42_retry_after_20260722",
+  "category": "operations",
+  "summary": "A global provider circuit prevents network calls but does not stop issue-level wakeups; provider Retry-After must also constrain per-issue scheduling.",
+  "action": "Persist normalized provider_retry_after_ms, apply it as a retry lower bound, clear it after unrelated failures, and keep regression coverage in the scheduler suite.",
+  "references": [
+    {
+      "issueNumber": 42,
+      "pullRequestNumber": 43,
+      "commitSha": "6b3839ca2e5eb84ddda73bc00500c0a4f19f85fd"
+    }
+  ]
+}
