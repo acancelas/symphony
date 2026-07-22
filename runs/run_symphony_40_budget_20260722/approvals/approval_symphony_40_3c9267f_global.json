@@ -1,0 +1,21 @@
+{
+  "repository": {
+    "repositoryId": "symphony",
+    "owner": "acancelas",
+    "repo": "symphony"
+  },
+  "issueNumber": 40,
+  "operationId": "approval_symphony_40_3c9267f_global",
+  "approvalId": "approval_symphony_40_3c9267f_global",
+  "runId": "run_symphony_40_budget_20260722",
+  "commitSha": "3c9267f0c26f93525790a9907f13d4022ca56b2c",
+  "actor": {
+    "type": "human",
+    "subjectId": "alejandro-cancelas",
+    "githubLogin": "acancelas",
+    "displayName": "Alejandro Cancelas",
+    "authenticatedBy": "bos_mcp_human_action_token"
+  },
+  "status": "approved",
+  "reason": "Applied under Alejandro global authorization after exact-head CI, three role-specific reviews, 341 tests with 100 percent coverage, zero Dialyzer findings, and confirmed evidence passed."
+}
