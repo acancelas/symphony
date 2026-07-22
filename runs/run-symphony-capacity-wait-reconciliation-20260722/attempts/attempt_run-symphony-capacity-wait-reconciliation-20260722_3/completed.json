@@ -1,0 +1,19 @@
+{
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "number": 3,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "delivery-coordinator"
+  },
+  "startedAt": "2026-07-22T14:11:39.549000Z",
+  "completedAt": "2026-07-22T15:02:07.770000Z",
+  "reason": "Merged and installed",
+  "summary": "PR #52 merged as 2aba135ce08ba0475105b1ce7337c52750f57a94; exact tree validated and installed; service active with zero restarts.",
+  "metrics": {
+    "tests": 372,
+    "failures": 0,
+    "coveragePercent": 100
+  }
+}
