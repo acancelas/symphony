@@ -16,6 +16,7 @@
   "startedAt": "2026-07-22T12:35:18.265000Z",
   "branch": "bos/repository-capacity",
   "baseCommit": "826a25339b1f3bd56819aedb43b5ab2a4a879a4c",
-  "headCommit": "5b195ec5837f02b99a835c06d743105fece0f625",
+  "headCommit": "0bc979a2d170e176c4db64352ea9423b682b14a4",
+  "pullRequestNumber": 50,
   "currentAttemptId": "attempt-symphony-49-1"
 }

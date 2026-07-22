@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run-symphony-49-repository-capacity",
-  "lastSequence": 4,
-  "lastEventHash": "sha256:bad20bf767b52bd4ede8cdfed94674346ba1d34c798e7b63d5db81d5284cac47",
-  "lastEventId": "event_bed95675d7a2b3e7fe85ce0334",
-  "updatedAt": "2026-07-22T12:39:11.312422Z"
+  "lastSequence": 5,
+  "lastEventHash": "sha256:5d34d36001b6eb6c7dfeb40487f7abdf1b695f4ca3b850b46ce02b8e289af4c5",
+  "lastEventId": "event_9a3d63f845883848ef99fe3821",
+  "updatedAt": "2026-07-22T13:39:39.112604Z"
 }
