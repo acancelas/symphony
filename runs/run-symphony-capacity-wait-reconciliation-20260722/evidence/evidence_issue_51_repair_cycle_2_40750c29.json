@@ -1,0 +1,97 @@
+{
+  "evidenceId": "evidence_issue_51_repair_cycle_2_40750c29",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Current local HEAD and live remote bos/issue-51 equal the reviewed exact commit",
+      "status": "passed",
+      "evidence": "git status --porcelain=v1 was empty; local HEAD, refs/remotes/origin/bos/issue-51, and live git ls-remote refs/heads/bos/issue-51 all returned 40750c297ed42435dabe1d4670bfda85ce92af36; ahead/behind was 0/0."
+    },
+    {
+      "criterion": "All valid durable review findings are corrected",
+      "status": "passed",
+      "evidence": "Functional, security, quality, and visual reviews passed. The sole blocking architecture finding concerned missing current identity evidence; fresh local/tracking/live-remote checks resolve it without a source change."
+    },
+    {
+      "criterion": "Complete capacity-wait reconciliation patch remains correct",
+      "status": "passed",
+      "evidence": "Reviewed all 8 changed files and 311 insertions/2 deletions from base 8c2ec23a4a7873890a81562a1e701efae684be34. Missing, terminal, and unroutable waiters release provider/local reservations; release failure preserves fencing; foreign ownership drops local state only; valid owned claims heartbeat without Attempt/retry consumption."
+    },
+    {
+      "criterion": "Full Elixir gate passes with 100 percent coverage, Credo and Dialyzer",
+      "status": "passed",
+      "evidence": "Fresh cycle-2 validation: 363 tests, 0 failures, 2 skipped; 100.00% coverage; public-spec check and strict Credo found no issues; Dialyzer reported zero errors; formatting and diff hygiene passed."
+    },
+    {
+      "criterion": "Exact merged artifact is installed and service remains healthy",
+      "status": "not_applicable",
+      "evidence": "This is a pre-merge repair cycle. Exact merged-artifact installation and DeploymentVerification remain post-merge delivery responsibilities."
+    },
+    {
+      "criterion": "Visual evidence is required",
+      "status": "not_applicable",
+      "evidence": "The exact patch is backend orchestration, adapter/client, tests, and documentation only, with no visual surface changes."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cd elixir && mise exec -- mix test",
+      "status": "passed",
+      "summary": "363 tests, 0 failures, 2 skipped."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix test --cover",
+      "status": "passed",
+      "summary": "363 tests pass with 100.00% total coverage."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix lint",
+      "status": "passed",
+      "summary": "Public-spec check passed; strict Credo checked 80 files and found no issues."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix dialyzer",
+      "status": "passed",
+      "summary": "Total errors 0, skipped 0, unnecessary skips 0."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix format --check-formatted",
+      "status": "passed",
+      "summary": "All files are correctly formatted."
+    },
+    {
+      "command": "git status --porcelain=v1; git rev-parse HEAD; git rev-parse refs/remotes/origin/bos/issue-51; git ls-remote --heads origin refs/heads/bos/issue-51; git rev-list --left-right --count HEAD...refs/remotes/origin/bos/issue-51",
+      "status": "passed",
+      "summary": "Clean worktree; local HEAD, tracking ref, and live remote all equal 40750c297ed42435dabe1d4670bfda85ce92af36; ahead/behind 0/0."
+    },
+    {
+      "command": "git diff --check 8c2ec23a4a7873890a81562a1e701efae684be34...HEAD",
+      "status": "passed",
+      "summary": "No whitespace errors in the complete issue patch."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+      "branch": "bos/issue-51"
+    },
+    {
+      "type": "diff_review",
+      "baseSha": "8c2ec23a4a7873890a81562a1e701efae684be34",
+      "headSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+      "filesChanged": 8,
+      "insertions": 311,
+      "deletions": 2
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Exact merged-artifact installation and service-health verification remain outstanding until after merge.",
+      "mitigation": "The delivery coordinator must bind deployment verification to the exact merged commit before terminal completion."
+    }
+  ],
+  "summary": "Repair cycle 2 found no valid source correction. It independently re-confirmed clean local, tracking, and live remote branch identity at exact HEAD 40750c297ed42435dabe1d4670bfda85ce92af36, inspected the complete 8-file patch, and reran the full repository validation successfully."
+}
