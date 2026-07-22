@@ -2,7 +2,7 @@
   "runId": "run_symphony_44_20260722",
   "issueNumber": 44,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "runner",
     "runnerId": "x1"
@@ -10,11 +10,14 @@
   "runner": {
     "id": "x1",
     "type": "local",
-    "orchestratorVersion": "symphony-629d47d",
+    "orchestratorVersion": "symphony-208894f",
     "codexVersion": "codex-remote-control"
   },
-  "startedAt": "2026-07-22T06:30:00Z",
+  "startedAt": "2026-07-22T04:30:00Z",
+  "completedAt": "2026-07-22T05:36:00Z",
   "branch": "bos/provider-retry-jitter",
   "baseCommit": "6b3839c",
-  "headCommit": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed"
+  "headCommit": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed",
+  "pullRequestNumber": 45,
+  "currentAttemptId": "attempt_001"
 }
