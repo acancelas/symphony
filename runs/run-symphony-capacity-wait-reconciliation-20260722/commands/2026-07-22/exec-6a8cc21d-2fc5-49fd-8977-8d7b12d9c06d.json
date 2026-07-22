@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-6a8cc21d-2fc5-49fd-8977-8d7b12d9c06d",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730996207_1212",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:36:36.207Z",
+  "command": "/bin/bash -lc \"grep -Rh 'bos_record_evidence' $WORKSPACE/.codex/sessions/2026/07/21/*.jsonl 2>/dev/null | grep -E 'tool_call|arguments' | tail -5 | cut -c1-12000\"",
+  "durationMs": 1051,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "{\"timestamp\":\"2026-07-21T20:54:51.631Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"custom_tool_call_output\",\"call_id\":\"call_fQ9m1oukhtRZpgfOgliJ76QT\",\"output\":[{\"type\":\"input_text\",\"text\":\"Script completed\\nWall time 0.0 seconds\\nOutput:\\n\"},{\"type\":\"input_text\",\"text\":\"mcp__bos_mcp__bos_append_audit_events :: Append an idempotent RFC 8785 audit batch through game-api.\\nmcp__bos_mcp__bos_block_issue :: Transition an active Issue to blocked with a concrete reason.\\nmcp__bos_mcp__bos_claim_issue :: Idempotently claim or resume one BOS Delivery issue.\\nmcp__bos_mcp__bos_complete_attempt :: Persist the immutable completed record for an Attempt.\\nmcp__bos_mcp__bos_create_capability :: Create a Capability linked to its parent Goal.\\nmcp__bos_mcp__bos_create_deployment :: Create a GitHub Deployment or rollback that remains incomplete until verified; game-api generates the durable audit event.\\nmcp__bos_mcp__bos_create_goal :: Create a draft or ready Goal in canonical GitHub storage.\\nmcp__bos_mcp__bos_create_issue :: Create a verifiable executable Issue linked to its Capability or Goal.\\nmcp__bos_mcp__bos_create_pull_request :: Create or recover the AgentRun pull request through game-api; game-api generates the durable audit event.\\nmcp__bos_mcp__bos_create_release :: Create a Release only after exact-commit DeploymentVerification passed; game-api generates the durable audit event.\\nmcp__bos_mcp__bos_finalize_run :: Persist the terminal AgentRun projection.\\nmcp__bos_mcp__bos_get_approvals :: List confirmed Approval records for an AgentRun.\\nmcp__bos_mcp__bos_get_cache_metrics :: Get aggregate cache efficiency metrics without keys or payloads.\\nmcp__bos_mcp__bos_get_current_goal :: Get the current open Goal for this repository from canonical GitHub state.\\nmcp__bos_mcp__bos_get_delivery_context :: Combine project, Issue, and AgentRun context for the current workspace.\\nmcp__bos_mcp__bos_get_delivery_run :: Get the current confirmed projection for an AgentRun.\\nmcp__bos_mcp_",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-7bc1b87f-7174-4232-872d-2dd22dfe335e",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730985283_1207",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:36:25.283Z",
+  "command": "/bin/bash -lc 'grep -RIl \"bos_record_evidence\" $WORKSPACE/.codex $WORKSPACE/.bos 2>/dev/null | head -40'",
+  "durationMs": 106,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
