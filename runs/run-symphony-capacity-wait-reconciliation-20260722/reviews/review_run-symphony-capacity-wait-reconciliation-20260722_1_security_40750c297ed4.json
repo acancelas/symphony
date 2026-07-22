@@ -1,0 +1,27 @@
+{
+  "reviewId": "review_run-symphony-capacity-wait-reconciliation-20260722_1_security_40750c297ed4",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "inconclusive",
+  "findings": [
+    {
+      "severity": "high",
+      "category": "verification",
+      "title": "Current local and remote commit identity could not be independently confirmed",
+      "description": "Existing evidence binds successful validation to 40750c297ed42435dabe1d4670bfda85ce92af36, but the current local HEAD and current remote bos/issue-51 ref could not be read because the read-only command sandbox failed to launch (bubblewrap unavailable). Passing requires affirmative current identity evidence."
+    },
+    {
+      "severity": "medium",
+      "category": "review-coverage",
+      "title": "Current diff could not be independently inspected",
+      "description": "The confirmed EvidenceReport states that the issue diff was reviewed and the full Elixir gate passed at the exact commit, but the reviewer could not inspect the source diff itself in the available read-only interfaces. This is insufficient for an affirmative independent security verdict."
+    }
+  ],
+  "summary": "Inconclusive: exact-commit implementation evidence is present and reports all targeted regression and quality gates passing, but current local/remote SHA equality and independent diff inspection could not be affirmatively established."
+}
