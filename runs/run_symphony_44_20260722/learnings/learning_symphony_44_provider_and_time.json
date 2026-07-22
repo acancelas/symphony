@@ -1,0 +1,25 @@
+{
+  "learningId": "learning_symphony_44_provider_and_time",
+  "runId": "run_symphony_44_20260722",
+  "category": "operations",
+  "summary": "A real GitHub Retry-After exceeded Symphony's internal backoff ceiling; manual audit metadata exposed incorrect UTC handling; and post-merge installation showed that a shell-wrapper timeout can leave its child gate running and that systemd active precedes dashboard readiness.",
+  "action": "Keep provider guidance authoritative with bounded positive jitter; capture timestamps automatically in UTC; reject future/reversed timelines; make Attempt boundaries create-once; supervise complete command process trees; and verify listening port plus HTTP readiness rather than accepting systemd active alone.",
+  "references": [
+    {
+      "repositoryId": "symphony",
+      "issueNumber": 44,
+      "pullRequestNumber": 45,
+      "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed"
+    },
+    {
+      "repositoryId": "symphony",
+      "branch": "main",
+      "commitSha": "208894f3a21797e00699d864eb982c818639328f"
+    },
+    {
+      "repositoryId": "game-api",
+      "branch": "bos/delivery-artifact-immutability",
+      "commitSha": "118a35020"
+    }
+  ]
+}
