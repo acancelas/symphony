@@ -1,0 +1,92 @@
+{
+  "evidenceId": "evidence_issue_51_repair_cycle_1_40750c29",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Current local HEAD and remote bos/issue-51 ref equal the reviewed exact commit",
+      "status": "passed",
+      "evidence": "git rev-parse HEAD, refs/remotes/origin/bos/issue-51, and live git ls-remote refs/heads/bos/issue-51 all returned 40750c297ed42435dabe1d4670bfda85ce92af36; git status --porcelain was empty both before and after validation."
+    },
+    {
+      "criterion": "Current architecture, security, functional, and quality diff is independently inspectable",
+      "status": "passed",
+      "evidence": "Inspected the complete 311-line patch from base 8c2ec23a4a7873890a81562a1e701efae684be34 through exact HEAD. Capacity wait reconciliation refreshes before dispatch, releases provider and local reservations for missing/terminal/unroutable waiters, preserves local fencing on provider release failure, drops only stale local state for foreign ownership, and heartbeats valid owned waiters without mutating Attempt/retry metadata."
+    },
+    {
+      "criterion": "Full Elixir gate passes with 100 percent coverage, Credo and Dialyzer",
+      "status": "passed",
+      "evidence": "Fresh repair-cycle run: 363 tests, 0 failures, 2 skipped; 100.00% coverage; specs check and strict Credo found no issues; Dialyzer reported 0 errors; formatting and diff hygiene passed."
+    },
+    {
+      "criterion": "Visual evidence is required for this patch",
+      "status": "not_applicable",
+      "evidence": "The reviewed patch changes backend orchestration, game-api adapter/client behavior, automated tests, and documentation only; it does not modify UI, rendered assets, templates, styles, or visual behavior."
+    }
+  ],
+  "checks": [
+    {
+      "command": "git status --porcelain=v1; git rev-parse HEAD; git rev-parse refs/remotes/origin/bos/issue-51; git ls-remote --heads origin refs/heads/bos/issue-51",
+      "status": "passed",
+      "summary": "Clean tree and all local/tracking/live remote identities equal 40750c297ed42435dabe1d4670bfda85ce92af36."
+    },
+    {
+      "command": "git diff --stat; git diff --check; git diff --unified=35 8c2ec23a4a7873890a81562a1e701efae684be34...HEAD",
+      "status": "passed",
+      "summary": "Complete 8-file, 311-line issue patch inspected; no whitespace or correctness defect found."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix test",
+      "status": "passed",
+      "summary": "363 tests, 0 failures, 2 skipped."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix test --cover",
+      "status": "passed",
+      "summary": "363 tests pass; 100.00% total coverage."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix lint",
+      "status": "passed",
+      "summary": "Specs check and strict Credo pass with no findings."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix dialyzer",
+      "status": "passed",
+      "summary": "0 errors, 0 skipped, 0 unnecessary skips."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix format --check-formatted",
+      "status": "passed",
+      "summary": "All files formatted."
+    },
+    {
+      "command": "git diff --check 8c2ec23a4a7873890a81562a1e701efae684be34...HEAD",
+      "status": "passed",
+      "summary": "No whitespace errors."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+      "branch": "bos/issue-51"
+    },
+    {
+      "type": "diff_review",
+      "baseSha": "8c2ec23a4a7873890a81562a1e701efae684be34",
+      "headSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+      "filesChanged": 8,
+      "insertions": 311,
+      "deletions": 2
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Exact merged-artifact installation and service-health verification remain post-merge delivery responsibilities.",
+      "mitigation": "DeploymentVerification must bind installation and health probes to the exact merged commit; this pre-merge repair cycle does not request merge or approval."
+    }
+  ],
+  "summary": "Repair cycle 1 independently re-confirmed the clean exact HEAD and live remote branch, inspected the complete issue diff, found no valid source correction, and reran the complete repository validation successfully."
+}
