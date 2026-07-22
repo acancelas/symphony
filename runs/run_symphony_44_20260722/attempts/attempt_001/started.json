@@ -1,0 +1,14 @@
+{
+  "attemptId": "attempt_001",
+  "runId": "run_symphony_44_20260722",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Implementation agent"
+  },
+  "startedAt": "2026-07-22T06:30:00Z",
+  "reason": "Implement and verify provider-aware retry scheduling with bounded positive jitter.",
+  "metrics": {}
+}
