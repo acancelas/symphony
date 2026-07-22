@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run-symphony-capacity-wait-reconciliation-20260722",
-  "lastSequence": 64,
-  "lastEventHash": "sha256:1e065ea5d8af5c39af3eb588ac70e19b37e22ff07876dee2f9dfd68d9f019dcd",
-  "lastEventId": "event_1784730450569_1017",
-  "updatedAt": "2026-07-22T14:27:31.607068Z"
+  "lastSequence": 67,
+  "lastEventHash": "sha256:0794daad0589e769c16d99b7d719d3ed67ff10c9c47881c928afaf9d2aa106d6",
+  "lastEventId": "event_1784730453230_1020",
+  "updatedAt": "2026-07-22T14:27:34.960122Z"
 }

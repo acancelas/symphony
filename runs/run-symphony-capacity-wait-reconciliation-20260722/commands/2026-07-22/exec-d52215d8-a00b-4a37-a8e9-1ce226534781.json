@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d52215d8-a00b-4a37-a8e9-1ce226534781",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730453225_1019",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:27:33.225Z",
+  "command": "/bin/bash -lc \"sed -n '210,265p' elixir/test/symphony_elixir/audit/outbox_test.exs && sed -n '1030,1110p' elixir/lib/symphony_elixir/audit/outbox.ex && grep -n 'defp build\\\\|eventId\\\\|actor' elixir/lib/symphony_elixir/audit/outbox.ex | head -80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\n  test \"audit retry backoff grows per run and remains bounded\" do\n    assert Outbox.backoff_delay_bounds_for_test(1) == {2_000, 2_499}\n    assert Outbox.backoff_delay_bounds_for_test(2) == {4_000, 4_999}\n    assert Outbox.backoff_delay_bounds_for_test(8) == {256_000, 300_000}\n    assert Outbox.backoff_delay_bounds_for_test(30) == {300_000, 300_000}\n  end\n\n  test \"provider rate limits open one global circuit with a longer bounded delay\" do\n    assert Outbox.provider_rate_limited_for_test?({:game_api_http_error, 429})\n    assert Outbox.provider_rate_limited_for_test?({:game_api_http_error, 403, \"provider_rate_limited\"})\n    refute Outbox.provider_rate_limited_for_test?({:game_api_http_error, 422})\n\n    assert Outbox.provider_backoff_delay_bounds_for_test(1) == {60_000, 74_999}\n    assert Outbox.provider_backoff_delay_bounds_for_test(2) == {120_000, 149_999}\n    assert Outbox.provider_backoff_delay_bounds_for_test(5) == {900_000, 900_000}\n    assert Outbox.provider_backoff_delay_bounds_for_test(30) == {900_000, 900_000}\n  end\n\n  test \"compacts only confirmed legacy telemetry while preserving the unconfirmed chain\" do\n    root = Path.join(System.tmp_dir!(), \"bos-outbox-compaction-test-#{System.unique_integer([:positive])}\")\n    events_path = Path.join([root, \"run_legacy\", \"events\"])\n    File.mkdir_p!(events_path)\n\n    issue = %{\"repositoryId\" => \"bos-front\", \"issueNumber\" => 42, \"runId\" => \"run_legacy\"}\n\n    events = [\n      %{\n        \"eventId\" => \"event_turn\",\n        \"runId\" => \"run_legacy\",\n        \"sequence\" => 10,\n        \"eventHash\" => \"sha256:turn\",\n        \"eventType\" => \"agent.progress_recorded\",\n        \"payload\" => %{\"method\" => \"turn/started\"}\n      },\n      %{\n        \"eventId\" => \"event_delta\",\n        \"runId\" => \"run_legacy\",\n        \"sequence\" => 11,\n        \"eventHash\" => \"sha256:delta\",\n        \"eventType\" => \"agent.progress_recorded\",\n        \"occurredAt\" => \"2026-07-20T10:00:00.000Z\",\n        \"payload\" => %{\"method\" => \"item/agentMessage/delta\"}\n  ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
