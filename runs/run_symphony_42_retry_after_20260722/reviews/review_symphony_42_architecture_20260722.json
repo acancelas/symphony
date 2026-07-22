@@ -1,0 +1,14 @@
+{
+  "reviewId": "review_symphony_42_architecture_20260722",
+  "runId": "run_symphony_42_retry_after_20260722",
+  "attemptId": "attempt_run_symphony_42_retry_after_20260722_1",
+  "reviewType": "architecture",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "commitSha": "4a50a8c420758a1621e5e02d981636bfc8085579",
+  "status": "passed",
+  "findings": [],
+  "summary": "Provider cooldown remains owned by the GameApi adapter while the issue scheduler treats its normalized Retry-After as a lower bound. No GitHub or game-api boundary is bypassed."
+}
