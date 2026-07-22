@@ -1,0 +1,21 @@
+{
+  "repository": {
+    "repositoryId": "symphony",
+    "owner": "acancelas",
+    "repo": "symphony"
+  },
+  "issueNumber": 42,
+  "operationId": "approve_symphony_42_global_20260722",
+  "approvalId": "approval_symphony_42_4a50a8c_global",
+  "runId": "run_symphony_42_retry_after_20260722",
+  "commitSha": "4a50a8c420758a1621e5e02d981636bfc8085579",
+  "actor": {
+    "type": "human",
+    "subjectId": "alejandro-cancelas",
+    "githubLogin": "acancelas",
+    "displayName": "Alejandro Cancelas",
+    "authenticatedBy": "bos_mcp_human_action_token"
+  },
+  "status": "approved",
+  "reason": "Standing global authorization applies after exact-head CI, three specialist reviews and confirmed evidence passed."
+}
