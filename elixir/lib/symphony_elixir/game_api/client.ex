@@ -8,6 +8,7 @@ defmodule SymphonyElixir.GameApi.Client do
   alias SymphonyElixir.Audit.CanonicalJson
   alias SymphonyElixir.Config
   alias SymphonyElixir.GameApi.ProviderCircuit
+  alias SymphonyElixir.RunnerIdentity
   alias SymphonyElixir.Tracker.Issue
   require Logger
 
@@ -88,7 +89,7 @@ defmodule SymphonyElixir.GameApi.Client do
   def claim_issue(repository_id, issue_number, existing_run_id)
       when is_binary(repository_id) and is_integer(issue_number) do
     run_id = existing_run_id || new_run_id(issue_number)
-    runner_id = System.get_env("BOS_RUNNER_ID") || "x1"
+    runner_id = RunnerIdentity.id()
     lease_expires_at = DateTime.utc_now() |> DateTime.add(15, :minute) |> DateTime.to_iso8601()
 
     with {:ok, repository} <- find_repository(repository_id) do
@@ -108,7 +109,7 @@ defmodule SymphonyElixir.GameApi.Client do
   @spec heartbeat_issue(String.t(), pos_integer(), String.t()) :: {:ok, map()} | {:error, term()}
   def heartbeat_issue(repository_id, issue_number, run_id)
       when is_binary(repository_id) and is_integer(issue_number) and is_binary(run_id) do
-    runner_id = System.get_env("BOS_RUNNER_ID") || "x1"
+    runner_id = RunnerIdentity.id()
     lease_expires_at = DateTime.utc_now() |> DateTime.add(15, :minute) |> DateTime.to_iso8601()
 
     with {:ok, repository} <- find_repository(repository_id) do
@@ -247,7 +248,7 @@ defmodule SymphonyElixir.GameApi.Client do
     tracker = Config.settings!().tracker
     url = String.trim_trailing(endpoint(tracker), "/") <> path
     token = System.get_env("BOS_API_INTERNAL_TOKEN")
-    runner_id = System.get_env("BOS_RUNNER_ID") || "x1"
+    runner_id = RunnerIdentity.id()
 
     headers =
       [
@@ -271,7 +272,7 @@ defmodule SymphonyElixir.GameApi.Client do
       )
 
     with :ok <- ProviderCircuit.before_request(provider_circuit_scope) do
-      case Req.request(Keyword.merge(options, method: method, url: url)) do
+      case http_client_module().request(Keyword.merge(options, method: method, url: url)) do
         {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
           ProviderCircuit.succeeded(provider_circuit_scope)
           {:ok, body}
@@ -633,7 +634,7 @@ defmodule SymphonyElixir.GameApi.Client do
     }
   end
 
-  defp runner_id, do: System.get_env("BOS_RUNNER_ID") || "x1"
+  defp runner_id, do: RunnerIdentity.id()
 
   defp sha256(value), do: "sha256:" <> (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower))
 
@@ -687,4 +688,8 @@ defmodule SymphonyElixir.GameApi.Client do
   defp maybe_add_header(headers, name, value), do: [{name, value} | headers]
 
   defp blank?(value), do: not is_binary(value) or String.trim(value) == ""
+
+  defp http_client_module do
+    Application.get_env(:symphony_elixir, :game_api_http_client_module, Req)
+  end
 end

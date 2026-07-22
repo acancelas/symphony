@@ -7,7 +7,7 @@ defmodule SymphonyElixir.Orchestrator do
   require Logger
   import Bitwise, only: [<<<: 2]
 
-  alias SymphonyElixir.{AgentRunner, Config, StatusDashboard, Tracker, Workspace}
+  alias SymphonyElixir.{AgentRunner, Config, RunnerIdentity, StatusDashboard, Tracker, Workspace}
   alias SymphonyElixir.Audit.Outbox
   alias SymphonyElixir.Tracker.Issue
 
@@ -128,8 +128,8 @@ defmodule SymphonyElixir.Orchestrator do
 
   def handle_info(:run_poll_cycle, state) do
     state = refresh_runtime_config(state)
-    heartbeat_running(state)
     state = maybe_dispatch(state)
+    heartbeat_running(state)
     state = schedule_tick(state, state.poll_interval_ms)
     state = %{state | poll_check_in_progress: false}
 
@@ -237,13 +237,27 @@ defmodule SymphonyElixir.Orchestrator do
     {:noreply, state}
   end
 
-  defp heartbeat_running(%State{running: running}) do
-    Enum.each(running, fn {_issue_id, entry} ->
+  defp heartbeat_running(%State{running: running, capacity_waiting: waiting, claimed: claimed}) do
+    heartbeat_claim_entries(running, waiting, claimed)
+    |> Enum.each(fn {_issue_id, entry} ->
       case Tracker.heartbeat_issue(entry.issue) do
         :ok -> :ok
         {:error, reason} -> Logger.warning("BOS claim heartbeat deferred: #{inspect(reason)}")
       end
     end)
+  end
+
+  defp heartbeat_claim_entries(running, waiting, claimed) do
+    claimed_waiting =
+      Enum.reduce(waiting, %{}, fn {issue_id, entry}, accumulator ->
+        if MapSet.member?(claimed, issue_id) and !Map.has_key?(running, issue_id) do
+          Map.put(accumulator, issue_id, entry)
+        else
+          accumulator
+        end
+      end)
+
+    Map.merge(running, claimed_waiting)
   end
 
   defp handle_agent_down(:normal, state, issue_id, running_entry, session_id) do
@@ -307,6 +321,7 @@ defmodule SymphonyElixir.Orchestrator do
       state
       |> reconcile_running_issues()
       |> reconcile_blocked_issues()
+      |> reconcile_capacity_waiting_issues()
 
     with :ok <- Config.validate!(),
          {:ok, issues} <- Tracker.fetch_issues_by_states(Config.settings!().tracker.active_states) do
@@ -401,6 +416,30 @@ defmodule SymphonyElixir.Orchestrator do
     end
   end
 
+  defp reconcile_capacity_waiting_issues(%State{} = state) do
+    waiting_ids = Map.keys(state.capacity_waiting)
+
+    if waiting_ids == [] do
+      state
+    else
+      case Tracker.fetch_issues_by_ids(waiting_ids) do
+        {:ok, issues} ->
+          issues
+          |> reconcile_capacity_waiting_issue_states(
+            state,
+            active_state_set(),
+            terminal_state_set()
+          )
+          |> reconcile_missing_capacity_waiting_issue_ids(waiting_ids, issues)
+
+        {:error, reason} ->
+          Logger.debug("Failed to refresh capacity-waiting issue states: #{inspect(reason)}; preserving reservations")
+
+          state
+      end
+    end
+  end
+
   @doc false
   @spec reconcile_issue_states_for_test([Issue.t()], term()) :: term()
   def reconcile_issue_states_for_test(issues, %State{} = state) when is_list(issues) do
@@ -415,6 +454,19 @@ defmodule SymphonyElixir.Orchestrator do
   @spec reconcile_blocked_issue_states_for_test([Issue.t()], term()) :: term()
   def reconcile_blocked_issue_states_for_test(issues, %State{} = state) when is_list(issues) do
     reconcile_blocked_issue_states(issues, state, active_state_set(), terminal_state_set())
+  end
+
+  @doc false
+  @spec reconcile_capacity_waiting_issue_states_for_test([Issue.t()], term()) :: term()
+  def reconcile_capacity_waiting_issue_states_for_test(issues, %State{} = state)
+      when is_list(issues) do
+    issues
+    |> reconcile_capacity_waiting_issue_states(
+      state,
+      active_state_set(),
+      terminal_state_set()
+    )
+    |> reconcile_missing_capacity_waiting_issue_ids(Map.keys(state.capacity_waiting), issues)
   end
 
   @doc false
@@ -457,6 +509,15 @@ defmodule SymphonyElixir.Orchestrator do
   def queue_capacity_wait_for_test(%State{} = state, %Issue{} = issue, attempt, metadata)
       when (is_integer(attempt) or is_nil(attempt)) and is_map(metadata) do
     queue_for_capacity(state, issue, attempt, metadata)
+  end
+
+  @doc false
+  @spec heartbeat_issue_ids_for_test(term()) :: [String.t()]
+  def heartbeat_issue_ids_for_test(%State{} = state) do
+    state.running
+    |> heartbeat_claim_entries(state.capacity_waiting, state.claimed)
+    |> Map.keys()
+    |> Enum.sort()
   end
 
   @doc false
@@ -533,6 +594,64 @@ defmodule SymphonyElixir.Orchestrator do
 
   defp reconcile_blocked_issue_state(_issue, state, _active_states, _terminal_states), do: state
 
+  defp reconcile_capacity_waiting_issue_states([], state, _active_states, _terminal_states),
+    do: state
+
+  defp reconcile_capacity_waiting_issue_states(
+         [issue | rest],
+         state,
+         active_states,
+         terminal_states
+       ) do
+    reconcile_capacity_waiting_issue_states(
+      rest,
+      reconcile_capacity_waiting_issue_state(issue, state, active_states, terminal_states),
+      active_states,
+      terminal_states
+    )
+  end
+
+  defp reconcile_capacity_waiting_issue_state(
+         %Issue{} = issue,
+         state,
+         active_states,
+         terminal_states
+       ) do
+    cond do
+      terminal_issue_state?(issue.state, terminal_states) ->
+        relinquish_capacity_waiting_reservation(
+          state,
+          issue.id,
+          "capacity-waiting Issue moved to terminal state #{issue.state}"
+        )
+
+      !issue_routable?(issue) ->
+        relinquish_capacity_waiting_reservation(
+          state,
+          issue.id,
+          "capacity-waiting Issue is no longer routed to this runner"
+        )
+
+      active_issue_state?(issue.state, active_states) ->
+        refresh_or_relinquish_capacity_waiting_issue(state, issue)
+
+      true ->
+        relinquish_capacity_waiting_reservation(
+          state,
+          issue.id,
+          "capacity-waiting Issue moved to non-active state #{issue.state}"
+        )
+    end
+  end
+
+  defp reconcile_capacity_waiting_issue_state(
+         _issue,
+         state,
+         _active_states,
+         _terminal_states
+       ),
+       do: state
+
   defp reconcile_missing_running_issue_ids(%State{} = state, requested_issue_ids, issues)
        when is_list(requested_issue_ids) and is_list(issues) do
     visible_issue_ids =
@@ -577,6 +696,40 @@ defmodule SymphonyElixir.Orchestrator do
 
   defp reconcile_missing_blocked_issue_ids(state, _requested_issue_ids, _issues), do: state
 
+  defp reconcile_missing_capacity_waiting_issue_ids(
+         %State{} = state,
+         requested_issue_ids,
+         issues
+       )
+       when is_list(requested_issue_ids) and is_list(issues) do
+    visible_issue_ids =
+      issues
+      |> Enum.flat_map(fn
+        %Issue{id: issue_id} when is_binary(issue_id) -> [issue_id]
+        _ -> []
+      end)
+      |> MapSet.new()
+
+    Enum.reduce(requested_issue_ids, state, fn issue_id, state_acc ->
+      if MapSet.member?(visible_issue_ids, issue_id) do
+        state_acc
+      else
+        relinquish_capacity_waiting_reservation(
+          state_acc,
+          issue_id,
+          "capacity-waiting Issue is no longer visible"
+        )
+      end
+    end)
+  end
+
+  defp reconcile_missing_capacity_waiting_issue_ids(
+         state,
+         _requested_issue_ids,
+         _issues
+       ),
+       do: state
+
   defp log_missing_running_issue(%State{} = state, issue_id) when is_binary(issue_id) do
     case Map.get(state.running, issue_id) do
       %{identifier: identifier} ->
@@ -607,6 +760,39 @@ defmodule SymphonyElixir.Orchestrator do
       _ ->
         state
     end
+  end
+
+  defp refresh_or_relinquish_capacity_waiting_issue(%State{} = state, %Issue{} = issue) do
+    case Map.get(state.capacity_waiting, issue.id) do
+      %{issue: %Issue{} = claimed_issue} = waiting_entry ->
+        if same_claim_identity?(claimed_issue, issue) do
+          %{
+            state
+            | capacity_waiting: Map.put(state.capacity_waiting, issue.id, %{waiting_entry | issue: issue})
+          }
+        else
+          relinquish_capacity_waiting_reservation(
+            state,
+            issue.id,
+            "capacity-waiting Issue ownership changed"
+          )
+        end
+
+      _ ->
+        state
+    end
+  end
+
+  defp same_claim_identity?(%Issue{native_ref: expected}, %Issue{native_ref: actual}) do
+    canonical_claim_identity?(expected) and
+      canonical_claim_identity?(actual) and
+      Map.take(expected, ~w(repositoryId issueNumber runId runnerId)) ==
+        Map.take(actual, ~w(repositoryId issueNumber runId runnerId))
+  end
+
+  defp relinquish_capacity_waiting_reservation(%State{} = state, issue_id, reason) do
+    Logger.info("Relinquished stale capacity-waiting reservation: issue_id=#{issue_id} reason=#{reason}")
+    release_issue_claim(state, issue_id)
   end
 
   defp terminate_running_issue(%State{} = state, issue_id, cleanup_workspace) do
@@ -1417,6 +1603,7 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp queue_for_capacity(%State{} = state, %Issue{} = issue, attempt, metadata) do
+    state = maybe_reserve_recovered_claim(state, issue)
     previous = Map.get(state.capacity_waiting, issue.id, %{})
 
     entry = %{
@@ -1452,6 +1639,34 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp reserve_issue_claim(%State{} = state, _issue), do: state
+
+  defp maybe_reserve_recovered_claim(%State{} = state, %Issue{} = issue) do
+    native_ref = issue.native_ref || %{}
+
+    if is_binary(issue.state) and normalize_issue_state(issue.state) == "agent:running" and
+         canonical_claim_identity?(native_ref) and
+         native_ref["repositoryId"] == Issue.repository_id(issue) and
+         issue.id == "#{native_ref["repositoryId"]}##{native_ref["issueNumber"]}" and
+         native_ref["runnerId"] == RunnerIdentity.id() do
+      reserve_issue_claim(state, issue)
+    else
+      state
+    end
+  end
+
+  defp canonical_claim_identity?(native_ref) when is_map(native_ref) do
+    canonical_identity_string?(native_ref["repositoryId"]) and
+      is_integer(native_ref["issueNumber"]) and native_ref["issueNumber"] > 0 and
+      canonical_identity_string?(native_ref["runId"]) and
+      canonical_identity_string?(native_ref["runnerId"])
+  end
+
+  defp canonical_claim_identity?(_native_ref), do: false
+
+  defp canonical_identity_string?(value) when is_binary(value),
+    do: value != "" and value == String.trim(value)
+
+  defp canonical_identity_string?(_value), do: false
 
   defp release_issue_claim(%State{} = state, issue_id) do
     %{

@@ -1,8 +1,18 @@
 defmodule SymphonyElixir.GameApiAdapterTest do
-  use ExUnit.Case, async: false
+  use SymphonyElixir.TestSupport
 
   alias SymphonyElixir.GameApi.Adapter
   alias SymphonyElixir.GameApi.Client
+  alias SymphonyElixir.GameApi.ProviderCircuit
+  alias SymphonyElixir.Workflow
+
+  defmodule FakeHttpClient do
+    @spec request(keyword()) :: {:ok, Req.Response.t()}
+    def request(options) do
+      send(Application.fetch_env!(:symphony_elixir, :game_api_http_test_pid), {:game_api_request, options})
+      {:ok, %Req.Response{status: 200, body: %{"status" => "completed"}}}
+    end
+  end
 
   defmodule FakeClient do
     @spec validate_config(map()) :: :ok
@@ -25,8 +35,10 @@ defmodule SymphonyElixir.GameApiAdapterTest do
        ])}
     end
 
-    @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()}
+    @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}
     def fetch_issue("bos-front", 42), do: fetch_issues_by_states(["agent:ready"]) |> then(fn {:ok, [issue]} -> {:ok, issue} end)
+    def fetch_issue("bos-front", 404), do: {:error, {:game_api_http_error, 404}}
+    def fetch_issue("bos-front", 500), do: {:error, {:game_api_http_error, 500}}
 
     @spec reconcile_terminal_runs() :: {:ok, [map()]}
     def reconcile_terminal_runs, do: {:ok, [%{"action" => "reconciled"}]}
@@ -107,10 +119,12 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert issue.state == "agent:running"
     assert issue.dispatchable
     assert issue.native_ref["runId"] == "run_80_existing"
+    assert issue.native_ref["runnerId"] == "x1"
     assert issue.native_ref["repositoryId"] == "game-api"
 
     assert {:ok, resumed} = Adapter.claim_issue(issue)
     assert resumed.native_ref["runId"] == "run_80_existing"
+    assert resumed.native_ref["runnerId"] == "x1"
     assert resumed.state == "agent:running"
   end
 
@@ -118,7 +132,67 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert {:ok, [issue]} = Adapter.fetch_issues_by_states(["agent:ready"])
     assert {:ok, claimed} = Adapter.claim_issue(issue)
     assert claimed.native_ref["runId"] == "run_42_001"
+    assert claimed.native_ref["runnerId"] == "x1"
     assert claimed.state == "agent:running"
+  end
+
+  test "treats a missing issue as an individual absence without hiding confirmed peers" do
+    assert {:ok, [issue]} = Adapter.fetch_issues_by_ids(["bos-front#404", "bos-front#42"])
+    assert issue.id == "bos-front#42"
+  end
+
+  test "keeps provider failures fatal while resolving issue ids" do
+    assert {:error, {:game_api_http_error, 500}} =
+             Adapter.fetch_issues_by_ids(["bos-front#42", "bos-front#500", "bos-front#404"])
+  end
+
+  test "normalizes a blank runner identity in an actual heartbeat request" do
+    previous_runner_id = System.get_env("BOS_RUNNER_ID")
+    previous_internal_token = System.get_env("BOS_API_INTERNAL_TOKEN")
+    previous_http_client = Application.get_env(:symphony_elixir, :game_api_http_client_module)
+    previous_test_pid = Application.get_env(:symphony_elixir, :game_api_http_test_pid)
+
+    System.put_env("BOS_RUNNER_ID", "   ")
+    System.put_env("BOS_API_INTERNAL_TOKEN", "test-token")
+    Application.put_env(:symphony_elixir, :game_api_http_client_module, FakeHttpClient)
+    Application.put_env(:symphony_elixir, :game_api_http_test_pid, self())
+    ProviderCircuit.reset_for_test()
+
+    on_exit(fn ->
+      restore_env("BOS_RUNNER_ID", previous_runner_id)
+      restore_env("BOS_API_INTERNAL_TOKEN", previous_internal_token)
+      ProviderCircuit.reset_for_test()
+
+      if previous_http_client do
+        Application.put_env(:symphony_elixir, :game_api_http_client_module, previous_http_client)
+      else
+        Application.delete_env(:symphony_elixir, :game_api_http_client_module)
+      end
+
+      if previous_test_pid do
+        Application.put_env(:symphony_elixir, :game_api_http_test_pid, previous_test_pid)
+      else
+        Application.delete_env(:symphony_elixir, :game_api_http_test_pid)
+      end
+    end)
+
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "game_api",
+      tracker_endpoint: "https://game-api.test",
+      tracker_provider: %{
+        "repositories" => [
+          %{"repository_id" => "bos-front", "owner" => "acancelas", "repo" => "bos-front"}
+        ]
+      }
+    )
+
+    assert {:ok, %{"status" => "completed"}} =
+             Client.heartbeat_issue("bos-front", 42, "run-42")
+
+    assert_receive {:game_api_request, options}
+    assert options[:json]["runnerId"] == "x1"
+    assert {"x-bos-runner-id", "x1"} in options[:headers]
+    assert {"x-bos-actor-id", "runner:x1"} in options[:headers]
   end
 
   test "persists the execution identity before Codex starts" do

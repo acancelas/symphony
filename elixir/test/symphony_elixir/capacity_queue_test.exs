@@ -3,6 +3,7 @@ defmodule SymphonyElixir.CapacityQueueTest do
 
   alias SymphonyElixir.Orchestrator
   alias SymphonyElixir.Orchestrator.State
+  alias SymphonyElixir.RunnerIdentity
   alias SymphonyElixir.Tracker.Issue
 
   test "capacity waiting consumes neither an Attempt nor retry budget" do
@@ -33,6 +34,17 @@ defmodule SymphonyElixir.CapacityQueueTest do
 
     assert queued_again.capacity_waiting[issue.id].queued_at ==
              queued.capacity_waiting[issue.id].queued_at
+  end
+
+  test "runner identity defaults when the environment variable is absent" do
+    previous_runner_id = System.get_env("BOS_RUNNER_ID")
+    System.put_env("BOS_RUNNER_ID", " x1 ")
+    assert RunnerIdentity.id() == "x1"
+
+    System.delete_env("BOS_RUNNER_ID")
+    on_exit(fn -> restore_env("BOS_RUNNER_ID", previous_runner_id) end)
+
+    assert RunnerIdentity.id() == "x1"
   end
 
   test "merging and recovered work precede newly ready work" do
@@ -118,6 +130,339 @@ defmodule SymphonyElixir.CapacityQueueTest do
     assert queued.repository_claims[claimed.id] == "bos-mcp"
     assert Orchestrator.should_dispatch_issue_for_test(claimed, queued)
     refute Orchestrator.should_dispatch_issue_for_test(candidate, queued)
+  end
+
+  test "a terminal capacity waiter releases its repository reservation" do
+    waiting =
+      issue("bos-mcp#19", "In Progress", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-19",
+        "runnerId" => "x1"
+      })
+
+    terminal = %{waiting | state: "Done", dispatchable: false}
+
+    candidate =
+      issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{"repositoryId" => "bos-mcp"})
+
+    state = %State{
+      max_concurrent_agents: 2,
+      claimed: MapSet.new([waiting.id]),
+      repository_claims: %{waiting.id => "bos-mcp"}
+    }
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(state, waiting, 2, %{
+        reason: "waiting for execution capacity"
+      })
+
+    reconciled =
+      Orchestrator.reconcile_capacity_waiting_issue_states_for_test([terminal], queued)
+
+    refute MapSet.member?(reconciled.claimed, waiting.id)
+    refute Map.has_key?(reconciled.repository_claims, waiting.id)
+    refute Map.has_key?(reconciled.capacity_waiting, waiting.id)
+    assert Orchestrator.should_dispatch_issue_for_test(candidate, reconciled)
+  end
+
+  test "a missing capacity waiter releases its repository reservation" do
+    waiting =
+      issue("bos-mcp#19", "In Progress", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-19",
+        "runnerId" => "x1"
+      })
+
+    candidate =
+      issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{"repositoryId" => "bos-mcp"})
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{
+          max_concurrent_agents: 2,
+          claimed: MapSet.new([waiting.id]),
+          repository_claims: %{waiting.id => "bos-mcp"}
+        },
+        waiting,
+        2,
+        %{reason: "waiting for execution capacity"}
+      )
+
+    reconciled =
+      Orchestrator.reconcile_capacity_waiting_issue_states_for_test([], queued)
+
+    refute MapSet.member?(reconciled.claimed, waiting.id)
+    refute Map.has_key?(reconciled.capacity_waiting, waiting.id)
+    assert Orchestrator.should_dispatch_issue_for_test(candidate, reconciled)
+  end
+
+  test "an active capacity waiter is refreshed without consuming an Attempt" do
+    waiting =
+      issue("bos-mcp#19", "In Progress", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-19",
+        "runnerId" => "x1"
+      })
+
+    refreshed = %{waiting | title: "refreshed title"}
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{
+          max_concurrent_agents: 2,
+          claimed: MapSet.new([waiting.id]),
+          repository_claims: %{waiting.id => "bos-mcp"}
+        },
+        waiting,
+        2,
+        %{reason: "waiting for execution capacity"}
+      )
+
+    reconciled =
+      Orchestrator.reconcile_capacity_waiting_issue_states_for_test([refreshed], queued)
+
+    assert reconciled.capacity_waiting[waiting.id].issue.title == "refreshed title"
+    assert reconciled.capacity_waiting[waiting.id].attempt == 2
+    assert MapSet.member?(reconciled.claimed, waiting.id)
+  end
+
+  test "a replacement claim is never adopted or heartbeated by the old capacity waiter" do
+    waiting =
+      issue("bos-mcp#19", "In Progress", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-old",
+        "runnerId" => "x1"
+      })
+
+    replacement = %{waiting | native_ref: Map.put(waiting.native_ref, "runId", "run-new")}
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{
+          max_concurrent_agents: 2,
+          claimed: MapSet.new([waiting.id]),
+          repository_claims: %{waiting.id => "bos-mcp"}
+        },
+        waiting,
+        2,
+        %{reason: "waiting for execution capacity"}
+      )
+
+    reconciled =
+      Orchestrator.reconcile_capacity_waiting_issue_states_for_test([replacement], queued)
+
+    refute MapSet.member?(reconciled.claimed, waiting.id)
+    refute Map.has_key?(reconciled.capacity_waiting, waiting.id)
+    refute Map.has_key?(reconciled.repository_claims, waiting.id)
+    assert Orchestrator.heartbeat_issue_ids_for_test(reconciled) == []
+  end
+
+  test "a transferred runner is never adopted when the AgentRun id is unchanged" do
+    waiting =
+      issue("bos-mcp#19", "In Progress", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-19",
+        "runnerId" => "x1"
+      })
+
+    transferred = %{waiting | native_ref: Map.put(waiting.native_ref, "runnerId", "x2")}
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{
+          max_concurrent_agents: 2,
+          claimed: MapSet.new([waiting.id]),
+          repository_claims: %{waiting.id => "bos-mcp"}
+        },
+        waiting,
+        2,
+        %{reason: "waiting for execution capacity"}
+      )
+
+    reconciled =
+      Orchestrator.reconcile_capacity_waiting_issue_states_for_test([transferred], queued)
+
+    refute MapSet.member?(reconciled.claimed, waiting.id)
+    refute Map.has_key?(reconciled.capacity_waiting, waiting.id)
+    refute Map.has_key?(reconciled.repository_claims, waiting.id)
+    assert Orchestrator.heartbeat_issue_ids_for_test(reconciled) == []
+  end
+
+  test "heartbeat covers claimed capacity waiters but not unclaimed candidates" do
+    running = issue("game-api#80", "In Progress", ~U[2026-07-20 08:00:00Z], 1)
+    claimed_waiter = issue("bos-mcp#19", "In Progress", ~U[2026-07-20 09:00:00Z], 1)
+    unclaimed_waiter = issue("tengo-suerte#1", "Todo", ~U[2026-07-20 10:00:00Z], 1)
+
+    state = %State{
+      running: %{running.id => %{issue: running}},
+      claimed: MapSet.new([running.id, claimed_waiter.id]),
+      capacity_waiting: %{
+        claimed_waiter.id => %{issue: claimed_waiter},
+        unclaimed_waiter.id => %{issue: unclaimed_waiter}
+      }
+    }
+
+    assert Orchestrator.heartbeat_issue_ids_for_test(state) == [
+             "bos-mcp#19",
+             "game-api#80"
+           ]
+  end
+
+  test "restart recovery reserves and heartbeats a capacity waiter owned by this runner" do
+    recovered =
+      issue("bos-mcp#19", "agent:running", ~U[2026-07-20 09:00:00Z], 1)
+      |> Map.put(:native_ref, %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-19",
+        "runnerId" => "x1"
+      })
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{max_concurrent_agents: 0},
+        recovered,
+        nil,
+        %{reason: "waiting after restart"}
+      )
+
+    assert MapSet.member?(queued.claimed, recovered.id)
+    assert queued.repository_claims[recovered.id] == "bos-mcp"
+    assert Orchestrator.heartbeat_issue_ids_for_test(queued) == [recovered.id]
+  end
+
+  test "restart recovery never reserves a capacity waiter owned by another runner" do
+    transferred =
+      issue("bos-mcp#19", "agent:running", ~U[2026-07-20 09:00:00Z], 1)
+      |> Map.put(:native_ref, %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-19",
+        "runnerId" => "x2"
+      })
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{max_concurrent_agents: 0},
+        transferred,
+        nil,
+        %{reason: "waiting after restart"}
+      )
+
+    refute MapSet.member?(queued.claimed, transferred.id)
+    refute Map.has_key?(queued.repository_claims, transferred.id)
+    assert Orchestrator.heartbeat_issue_ids_for_test(queued) == []
+  end
+
+  test "restart recovery rejects blank canonical claim identities" do
+    for {run_id, runner_id} <- [{"", "x1"}, {"run-19", ""}, {"   ", "x1"}, {"run-19", "   "}] do
+      malformed =
+        issue("bos-mcp#19", "agent:running", ~U[2026-07-20 09:00:00Z], 1)
+        |> Map.put(:native_ref, %{
+          "repositoryId" => "bos-mcp",
+          "issueNumber" => 19,
+          "runId" => run_id,
+          "runnerId" => runner_id
+        })
+
+      queued =
+        Orchestrator.queue_capacity_wait_for_test(
+          %State{max_concurrent_agents: 0},
+          malformed,
+          nil,
+          %{reason: "waiting after restart"}
+        )
+
+      refute MapSet.member?(queued.claimed, malformed.id)
+      refute Map.has_key?(queued.repository_claims, malformed.id)
+      assert Orchestrator.heartbeat_issue_ids_for_test(queued) == []
+    end
+  end
+
+  test "restart recovery rejects malformed repository and Issue claim identity" do
+    malformed_fields = [
+      {"repositoryId", nil},
+      {"repositoryId", ""},
+      {"repositoryId", "   "},
+      {"repositoryId", "other-repository"},
+      {"issueNumber", nil},
+      {"issueNumber", 0},
+      {"issueNumber", -1},
+      {"issueNumber", "19"},
+      {"issueNumber", 20},
+      {"runId", " run-19 "},
+      {"runnerId", " x1 "}
+    ]
+
+    for {field, value} <- malformed_fields do
+      native_ref = %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-19",
+        "runnerId" => "x1"
+      }
+
+      malformed =
+        issue("bos-mcp#19", "agent:running", ~U[2026-07-20 09:00:00Z], 1)
+        |> Map.put(:native_ref, Map.put(native_ref, field, value))
+
+      queued =
+        Orchestrator.queue_capacity_wait_for_test(
+          %State{max_concurrent_agents: 0},
+          malformed,
+          nil,
+          %{reason: "waiting after restart"}
+        )
+
+      refute MapSet.member?(queued.claimed, malformed.id)
+      refute Map.has_key?(queued.repository_claims, malformed.id)
+      assert Orchestrator.heartbeat_issue_ids_for_test(queued) == []
+    end
+  end
+
+  test "a blank local runner configuration falls back without adopting a blank claim" do
+    previous_runner_id = System.get_env("BOS_RUNNER_ID")
+    System.put_env("BOS_RUNNER_ID", "")
+
+    on_exit(fn ->
+      if previous_runner_id do
+        System.put_env("BOS_RUNNER_ID", previous_runner_id)
+      else
+        System.delete_env("BOS_RUNNER_ID")
+      end
+    end)
+
+    malformed =
+      issue("bos-mcp#19", "agent:running", ~U[2026-07-20 09:00:00Z], 1)
+      |> Map.put(:native_ref, %{
+        "repositoryId" => "bos-mcp",
+        "issueNumber" => 19,
+        "runId" => "run-19",
+        "runnerId" => ""
+      })
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{max_concurrent_agents: 0},
+        malformed,
+        nil,
+        %{reason: "waiting after restart"}
+      )
+
+    refute MapSet.member?(queued.claimed, malformed.id)
+    assert Orchestrator.heartbeat_issue_ids_for_test(queued) == []
   end
 
   test "game_api fails closed when canonical repository identity is missing" do
