@@ -461,6 +461,81 @@ defmodule SymphonyElixir.AppServerTest do
     end
   end
 
+  test "app server auto-accepts trusted BOS MCP tool elicitations when approval policy is never" do
+    test_root =
+      Path.join(
+        System.tmp_dir!(),
+        "symphony-elixir-app-server-bos-mcp-elicitation-#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      workspace_root = Path.join(test_root, "workspaces")
+      workspace = Path.join(workspace_root, "BOS-188")
+      codex_binary = Path.join(test_root, "fake-codex")
+      trace_file = Path.join(test_root, "bos-mcp-elicitation.trace")
+      System.put_env("SYMP_TEST_BOS_MCP_ELICITATION_TRACE", trace_file)
+      File.mkdir_p!(workspace)
+
+      File.write!(codex_binary, """
+      #!/bin/sh
+      count=0
+      while IFS= read -r line; do
+        count=$((count + 1))
+        printf 'JSON:%s\\n' "$line" >> "$SYMP_TEST_BOS_MCP_ELICITATION_TRACE"
+        case "$count" in
+          1) printf '%s\\n' '{"id":1,"result":{}}' ;;
+          2) ;;
+          3) printf '%s\\n' '{"id":2,"result":{"thread":{"id":"thread-bos-188"}}}' ;;
+          4)
+            printf '%s\\n' '{"id":3,"result":{"turn":{"id":"turn-bos-188"}}}'
+            printf '%s\\n' '{"id":188,"method":"mcpServer/elicitation/request","params":{"serverName":"bos-mcp","threadId":"thread-bos-188","turnId":"turn-bos-188","mode":"form","message":"Allow BOS tool?","requestedSchema":{"type":"object","properties":{}},"_meta":{"codex_approval_kind":"mcp_tool_call","persist":["session","always"]}}}'
+            ;;
+          5) printf '%s\\n' '{"method":"turn/completed"}'; exit 0 ;;
+          *) exit 0 ;;
+        esac
+      done
+      """)
+
+      File.chmod!(codex_binary, 0o755)
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        codex_command: "#{codex_binary} app-server",
+        codex_approval_policy: "never"
+      )
+
+      issue = %Issue{
+        id: "issue-bos-mcp-elicitation",
+        identifier: "BOS-188",
+        title: "Auto approve trusted BOS MCP elicitation",
+        description: "Keep autonomous reviews non-interactive",
+        state: "In Progress",
+        url: "https://example.org/issues/BOS-188",
+        labels: ["bos:issue"]
+      }
+
+      assert {:ok, _result} = AppServer.run(workspace, "Handle BOS MCP elicitation", issue)
+
+      assert trace_file
+             |> File.read!()
+             |> String.split("\n", trim: true)
+             |> Enum.any?(fn line ->
+               if String.starts_with?(line, "JSON:") do
+                 payload = line |> String.trim_leading("JSON:") |> Jason.decode!()
+
+                 payload["id"] == 188 and
+                   get_in(payload, ["result", "action"]) == "accept" and
+                   get_in(payload, ["result", "content"]) == %{}
+               else
+                 false
+               end
+             end)
+    after
+      System.delete_env("SYMP_TEST_BOS_MCP_ELICITATION_TRACE")
+      File.rm_rf(test_root)
+    end
+  end
+
   test "app server fails when command execution approval is required under safer defaults" do
     test_root =
       Path.join(
