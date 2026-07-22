@@ -37,6 +37,16 @@ defmodule SymphonyElixir.GameApiProviderCircuitTest do
     assert :ok = ProviderCircuit.before_request()
   end
 
+  test "a tracker poll receives one scoped probe after audit traffic opens the circuit" do
+    ProviderCircuit.rate_limited_for_test(300_000, 0)
+
+    assert :ok = ProviderCircuit.allow_tracker_read_probe()
+    assert :ok = ProviderCircuit.before_request()
+
+    ProviderCircuit.rate_limited_for_test(300_000, 0)
+    assert {:error, {:game_api_rate_limited, _remaining}} = ProviderCircuit.before_request()
+  end
+
   test "provider retry guidance extends the shared cooldown" do
     delay = ProviderCircuit.rate_limited(300_000)
     assert delay > 300_000

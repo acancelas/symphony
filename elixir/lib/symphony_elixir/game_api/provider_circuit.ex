@@ -100,6 +100,21 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
     end)
   end
 
+  @doc """
+  Allows one scheduler-owned tracker read probe even when another traffic class,
+  such as audit outbox replay, opened the shared circuit.
+
+  A real provider limit immediately opens the circuit again through the normal
+  response path, bounding this escape hatch to the polling cadence.
+  """
+  @spec allow_tracker_read_probe() :: :ok
+  def allow_tracker_read_probe do
+    locked(fn ->
+      :persistent_term.erase(@state_key)
+      :ok
+    end)
+  end
+
   @doc false
   @spec reset_for_test() :: :ok
   def reset_for_test do

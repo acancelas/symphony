@@ -24,6 +24,11 @@ defmodule SymphonyElixir.GameApi.Client do
   def fetch_issues_by_states([]), do: {:ok, []}
 
   def fetch_issues_by_states(state_names) when is_list(state_names) do
+    # Audit outbox replay and tracker reads may use different gateway/provider
+    # buckets. Give the scheduler one bounded probe per poll so delayed audit
+    # traffic cannot freeze an otherwise healthy ready queue.
+    ProviderCircuit.allow_tracker_read_probe()
+
     repositories()
     |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->
       params =
