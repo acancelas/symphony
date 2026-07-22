@@ -1,0 +1,27 @@
+{
+  "reviewId": "review_run-symphony-capacity-wait-reconciliation-20260722_1_functional_40750c297ed4",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "reviewType": "functional",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "inconclusive",
+  "findings": [
+    {
+      "severity": "blocking",
+      "code": "independent_sha_and_diff_verification_unavailable",
+      "summary": "Independent local HEAD, remote bos/issue-51 ref, and source diff inspection could not be completed.",
+      "detail": "Both targeted git invocations failed before Git executed because the command sandbox launcher could not find bubblewrap. The existing exact-commit EvidenceReport states a clean tested HEAD and bos/issue-51 artifact at 40750c297ed42435dabe1d4670bfda85ce92af36, but that prior evidence does not independently confirm both refs still equal the required SHA at review time or substitute for inspecting the current diff."
+    },
+    {
+      "severity": "info",
+      "code": "exact_commit_functional_evidence_present",
+      "summary": "Existing evidence affirmatively covers the requested capacity-wait reconciliation behavior at the exact SHA.",
+      "detail": "Evidence evidence_issue_51_implementation_40750c29 reports passing regression coverage for missing/terminal waiter release, unroutable waiter release with subsequent same-repository dispatch, and valid waiter refresh/heartbeat without consuming attempt or retry budget; it also reports 363 tests, 100.00% coverage, Credo, Dialyzer, formatting, and diff checks passing."
+    }
+  ],
+  "summary": "Inconclusive: exact-commit functional evidence is affirmative, but the reviewer could not independently confirm current local and remote branch SHAs or inspect the diff because the repository command sandbox failed before execution."
+}
