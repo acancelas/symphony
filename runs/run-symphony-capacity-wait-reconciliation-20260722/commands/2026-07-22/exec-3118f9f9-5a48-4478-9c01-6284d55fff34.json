@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3118f9f9-5a48-4478-9c01-6284d55fff34",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730114088_899",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:21:54.079Z",
+  "command": "/bin/bash -lc \"pwd && sed -n '1,240p' AGENTS.md && sed -n '1,220p' README.md && sed -n '1,260p' SPEC.md && sed -n '1,220p' elixir/README.md && sed -n '1,280p' WORKFLOW.md && sed -n '1,240p' .bos/project.yaml && rg --files -g '*HARNESS*' -g '*harness*' -g '.github/pull_request_template*' -g '.github/PULL_REQUEST_TEMPLATE/**'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "$WORKSPACE/.bos/worktrees/symphony-51\n# BOS Symphony Agent Instructions\n\nThis repository is the BOS-maintained Symphony fork used by the X1 delivery orchestrator.\n\n## Read First\n\n1. `README.md`\n2. `SPEC.md`\n3. `elixir/README.md`\n4. `WORKFLOW.md`\n5. `.bos/project.yaml`\n6. Nearby source and tests\n\n## Operating Rules\n\n- Preserve upstream Symphony concepts unless the BOS architecture requires a deliberate specialization.\n- Use `GameApiTrackerAdapter`; Symphony must not call GitHub REST/GraphQL or hold GitHub credentials.\n- Use `bos-mcp` as Codex's exclusive interface for BOS context and durable Delivery operations.\n- Keep runner credentials, tokens, and X1 paths in secure host or service configuration.\n- Preserve outbox durability, idempotent recovery, automatic command auditing, and exact actor identity.\n- Keep confirmed outbox state bounded: GitHub is the ledger, while local receipts collapse into one atomic sequence watermark per AgentRun.\n- On recovery, remove event and batch cache files already covered by the confirmed watermark. A response lost after GitHub acceptance must not leave stale local files looking like pending work indefinitely.\n- Apply retention by value: legacy high-frequency telemetry is aggregated per AgentRun, while lifecycle, commands, tools, checkpoints, evidence and failures remain durable.\n- Never mutate a recovered hash-chained event in place. Never compact an unconfirmed event out of a sequence; confirmed telemetry may be aggregated, while a damaged legacy pending chain must be rebased atomically from the confirmed GitHub projection and carry its aggregate recovery summary.\n- Audit canonicalization must implement RFC 8785 exactly, including lowercase `\\\\u00xx` escapes and UTF-16 property ordering. Generic JSON encoders are not canonicalizers; keep cross-runtime fixtures for control characters and non-BMP keys.\n- Treat provider rate limits as a process-wide circuit across every `game-api` request, not independent per-run or audit-only failures",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "long"
+  }
+}
