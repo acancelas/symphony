@@ -75,9 +75,11 @@ defmodule SymphonyElixir.Orchestrator do
           codex_rate_limits: nil
         }
 
-        run_terminal_run_reconciliation()
+        # Delivery polling is the startup-critical path. Historical reconciliation
+        # and cleanup are maintenance work and must not open the shared provider
+        # circuit before the ready queue has been recovered and dispatched.
         schedule_terminal_run_reconciliation()
-        run_terminal_workspace_cleanup()
+        schedule_terminal_workspace_cleanup(config.polling.interval_ms)
         state = schedule_tick(state, 0)
 
         {:ok, state}
@@ -141,6 +143,15 @@ defmodule SymphonyElixir.Orchestrator do
       end)
 
     schedule_terminal_run_reconciliation()
+    {:noreply, state}
+  end
+
+  def handle_info(:cleanup_terminal_workspaces, state) do
+    _task =
+      Task.Supervisor.start_child(state.task_supervisor, fn ->
+        run_terminal_workspace_cleanup()
+      end)
+
     {:noreply, state}
   end
 
@@ -1290,6 +1301,14 @@ defmodule SymphonyElixir.Orchestrator do
       self(),
       :reconcile_terminal_runs,
       @terminal_run_reconciliation_interval_ms
+    )
+  end
+
+  defp schedule_terminal_workspace_cleanup(poll_interval_ms) do
+    Process.send_after(
+      self(),
+      :cleanup_terminal_workspaces,
+      max(poll_interval_ms + :timer.seconds(5), :timer.seconds(5))
     )
   end
 
