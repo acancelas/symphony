@@ -1,0 +1,14 @@
+{
+  "reviewId": "review-symphony-49-security",
+  "runId": "run-symphony-49-repository-capacity",
+  "attemptId": "attempt-symphony-49-1",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "0bc979a2d170e176c4db64352ea9423b682b14a4",
+  "status": "passed",
+  "findings": [],
+  "summary": "Independent security review passed on the exact PR HEAD after full validation."
+}
