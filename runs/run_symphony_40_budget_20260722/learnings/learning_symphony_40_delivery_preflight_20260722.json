@@ -1,0 +1,23 @@
+{
+  "learningId": "learning_symphony_40_delivery_preflight_20260722",
+  "runId": "run_symphony_40_budget_20260722",
+  "category": "operations",
+  "summary": "Three preventable delivery faults were found: the Symphony clone names upstream as origin and the BOS fork as fork; an untemplated PR body failed CI; and a temporary copied human token became stale while the canonical secure human.env remained valid.",
+  "action": "Resolve worktree bases from the BOS repository clone URL rather than a remote name, run the repository PR-body validator before creating or updating a PR, and make recovery/human-action launchers read the canonical secure human environment directly without temporary token copies.",
+  "references": [
+    {
+      "number": 41,
+      "commitSha": "3c9267f0c26f93525790a9907f13d4022ca56b2c",
+      "type": "pull_request"
+    },
+    {
+      "status": "recovered",
+      "name": "validate-pr-description",
+      "type": "ci"
+    },
+    {
+      "type": "runtime",
+      "path": "$XDG_CONFIG_HOME/bos/human.env"
+    }
+  ]
+}
