@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-ead11f31-b14f-4c48-9ad9-15d395fd313a",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730152487_912",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:22:32.487Z",
+  "command": "/bin/bash -lc \"sed -n '635,870p' SPEC.md && sed -n '1190,1338p' SPEC.md && sed -n '1790,1820p' SPEC.md && sed -n '1820,1925p' SPEC.md && sed -n '2068,2275p' SPEC.md && sed -n '1,220p' elixir/test/symphony_elixir/capacity_queue_test.exs && sed -n '1,180p' elixir/lib/symphony_elixir/orchestrator.ex && sed -n '760,1020p' elixir/lib/symphony_elixir/orchestrator.ex && sed -n '1120,1505p' elixir/lib/symphony_elixir/orchestrator.ex && sed -n '1680,1800p' elixir/lib/symphony_elixir/orchestrator.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## 7. Orchestration State Machine\n\nThe orchestrator is the only component that mutates scheduling state. All worker outcomes are\nreported back to it and converted into explicit state transitions.\n\n### 7.1 Issue Orchestration States\n\nThis is not the same as tracker states (`Todo`, `In Progress`, etc.). This is the service's internal\nclaim state.\n\n1. `Unclaimed`\n   - Issue is not running and has no retry scheduled.\n\n2. `Claimed`\n   - Orchestrator has reserved the issue to prevent duplicate dispatch.\n   - In practice, claimed issues are either `Running` or `RetryQueued`.\n\n3. `Running`\n   - Worker task exists and the issue is tracked in `running` map.\n\n4. `RetryQueued`\n   - Worker is not running, but a retry timer exists in `retry_attempts`.\n\n5. `Released`\n   - Claim removed because issue is terminal, non-active, missing, or retry path completed without\n     re-dispatch.\n\nRepository capacity is an additional scheduling invariant for trackers that expose repository\nidentity:\n\n- At most one claimed Issue per repository may be active locally, including `Running`,\n  `RetryQueued`, and blocked claims.\n- Issues from different repositories may run concurrently up to the global, state, and worker\n  limits.\n- Repository capacity waiting does not create an Attempt or consume retry budget.\n- A restarted orchestrator reconstructs the reservation by dispatching canonical running work\n  before ready work; stable `repositoryId` or the normalized `repository#issue` identity is used.\n- The reservation stores the canonical repository identity independently from the Issue ID and\n  survives worker-capacity waits, spawn failures, retries, and blocked states. An opaque Issue ID\n  must never erase its repository reservation.\n- `game_api` work without a canonical repository identity fails closed and remains undispatched\n  with an observable diagnostic. Other trackers retain their existing compatibility behavior.\n- This serialization prevents concurrent writers in one repository from amplifying",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
