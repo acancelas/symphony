@@ -1,0 +1,15 @@
+{
+  "attemptId": "attempt_run_15_1784671370806_2",
+  "runId": "run_15_1784671370806",
+  "number": 2,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp_internal_token"
+  },
+  "startedAt": "2026-07-22T00:54:19Z",
+  "reason": "Resume exact-head validation after the durable retention proof removed the historical audit-chain blocker.",
+  "metrics": {}
+}
