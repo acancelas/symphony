@@ -1,0 +1,68 @@
+{
+  "evidenceId": "evidence_symphony_44_runtime_208894f",
+  "runId": "run_symphony_44_20260722",
+  "commitSha": "208894f3a21797e00699d864eb982c818639328f",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "The installed runtime is built from the exact integrated main commit.",
+      "status": "passed",
+      "evidence": "Detached clean worktree at 208894f3a21797e00699d864eb982c818639328f; tracked status clean before and after the gate."
+    },
+    {
+      "criterion": "The complete post-merge repository gate passes.",
+      "status": "passed",
+      "evidence": "345 tests, zero failures, two skips, 100 percent coverage; format, Credo and Dialyzer passed."
+    },
+    {
+      "criterion": "The verified artifact is installed atomically.",
+      "status": "passed",
+      "evidence": "Installed escript SHA-256 ae96ac0d024112b400d24e05dc81a2968bba7a6f9c939d528b7024b4c07b33a4."
+    },
+    {
+      "criterion": "The X1 runtime is externally observable on its local control endpoint.",
+      "status": "passed",
+      "evidence": "systemd active/running, PID 1659197, TCP 127.0.0.1:8210 listening and dashboard returned HTML."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make -C elixir all",
+      "status": "passed",
+      "commitSha": "208894f3a21797e00699d864eb982c818639328f"
+    },
+    {
+      "name": "tracked worktree clean after gate",
+      "status": "passed",
+      "commitSha": "208894f3a21797e00699d864eb982c818639328f"
+    },
+    {
+      "name": "systemd active",
+      "status": "passed"
+    },
+    {
+      "name": "dashboard HTTP",
+      "status": "passed"
+    },
+    {
+      "name": "TCP 8210 listening",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "installed_runtime",
+      "sha256": "ae96ac0d024112b400d24e05dc81a2968bba7a6f9c939d528b7024b4c07b33a4"
+    },
+    {
+      "type": "pull_request",
+      "number": 45
+    },
+    {
+      "type": "merge_commit",
+      "sha": "208894f3a21797e00699d864eb982c818639328f"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "The exact integrated Symphony commit passed the full gate, was installed atomically, and is healthy on X1."
+}
