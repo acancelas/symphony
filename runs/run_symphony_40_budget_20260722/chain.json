@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_symphony_40_budget_20260722",
-  "lastSequence": 6,
-  "lastEventHash": "sha256:7c4cf1086a733c0d9c83f036017fa02cc7dabcc1bb3754cc3a5ddaf94e13e2e7",
-  "lastEventId": "event_0b5174761a4952afb2970a0184",
-  "updatedAt": "2026-07-22T02:34:15.781408Z"
+  "lastSequence": 7,
+  "lastEventHash": "sha256:686ebffa2103c3fb99adb96d4b725c8eab00c0c222569a803a6fcbf417d4de04",
+  "lastEventId": "event_7b5b76f7d19278e61bb45b2d00",
+  "updatedAt": "2026-07-22T02:34:58.962239Z"
 }
