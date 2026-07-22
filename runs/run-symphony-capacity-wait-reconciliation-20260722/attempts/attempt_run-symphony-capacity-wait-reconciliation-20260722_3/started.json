@@ -1,0 +1,12 @@
+{
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "number": 3,
+  "status": "running",
+  "actor": {
+    "type": "runner",
+    "subjectId": "x1"
+  },
+  "startedAt": "2026-07-22T14:33:41.863000Z",
+  "metrics": {}
+}
