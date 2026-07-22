@@ -1,0 +1,20 @@
+{
+  "runId": "run_symphony_44_20260722",
+  "issueNumber": 44,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "runner",
+    "runnerId": "x1"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "symphony-629d47d",
+    "codexVersion": "codex-remote-control"
+  },
+  "startedAt": "2026-07-22T06:30:00Z",
+  "branch": "bos/provider-retry-jitter",
+  "baseCommit": "6b3839c",
+  "headCommit": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed"
+}
