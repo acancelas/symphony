@@ -14,12 +14,15 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
   @maximum_provider_retry_ms 86_400_000
   @maximum_jitter_ms 30_000
 
-  @spec before_request() :: :ok | {:error, {:game_api_rate_limited, non_neg_integer()}}
-  def before_request do
+  @type scope :: :delivery | :audit
+
+  @spec before_request(scope()) :: :ok | {:error, {:game_api_rate_limited, non_neg_integer()}}
+  def before_request(scope \\ :delivery) do
     locked(fn ->
       now = monotonic_ms()
+      key = state_key(scope)
 
-      case :persistent_term.get(@state_key, nil) do
+      case :persistent_term.get(key, nil) do
         nil ->
           :ok
 
@@ -27,7 +30,7 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
           {:error, {:game_api_rate_limited, 1_000}}
 
         %{due_at_ms: due_at_ms} = state when now >= due_at_ms ->
-          :persistent_term.put(@state_key, %{state | half_open: true})
+          :persistent_term.put(key, %{state | half_open: true})
           :ok
 
         %{due_at_ms: due_at_ms} ->
@@ -36,23 +39,24 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
     end)
   end
 
-  @spec rate_limited(non_neg_integer() | nil) :: non_neg_integer()
-  def rate_limited(provider_retry_ms \\ nil) do
-    rate_limited_with_jitter(provider_retry_ms, &random_jitter_ms/1)
+  @spec rate_limited(non_neg_integer() | nil, scope()) :: non_neg_integer()
+  def rate_limited(provider_retry_ms \\ nil, scope \\ :delivery) do
+    rate_limited_with_jitter(provider_retry_ms, scope, &random_jitter_ms/1)
   end
 
   @doc false
   @spec rate_limited_for_test(non_neg_integer() | nil, non_neg_integer()) :: non_neg_integer()
   def rate_limited_for_test(provider_retry_ms, jitter_ms) when is_integer(jitter_ms) and jitter_ms >= 0 do
-    rate_limited_with_jitter(provider_retry_ms, fn jitter_window_ms ->
+    rate_limited_with_jitter(provider_retry_ms, :delivery, fn jitter_window_ms ->
       min(jitter_ms, jitter_window_ms)
     end)
   end
 
-  defp rate_limited_with_jitter(provider_retry_ms, jitter_fun) do
+  defp rate_limited_with_jitter(provider_retry_ms, scope, jitter_fun) do
     locked(fn ->
       now = monotonic_ms()
-      state = :persistent_term.get(@state_key, nil)
+      key = state_key(scope)
+      state = :persistent_term.get(key, nil)
 
       if state && state.due_at_ms > now && !state.half_open do
         state.due_at_ms - now
@@ -62,7 +66,7 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
         base_delay_ms = max(backoff_ms(next_attempt), bounded_provider_delay(provider_retry_ms))
         delay_ms = base_delay_ms + jitter_fun.(jitter_window_ms(base_delay_ms))
 
-        :persistent_term.put(@state_key, %{
+        :persistent_term.put(key, %{
           attempt: next_attempt,
           due_at_ms: now + delay_ms,
           half_open: false
@@ -73,11 +77,13 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
     end)
   end
 
-  @spec succeeded() :: :ok
-  def succeeded do
+  @spec succeeded(scope()) :: :ok
+  def succeeded(scope \\ :delivery) do
     locked(fn ->
-      case :persistent_term.get(@state_key, nil) do
-        %{half_open: true} -> :persistent_term.erase(@state_key)
+      key = state_key(scope)
+
+      case :persistent_term.get(key, nil) do
+        %{half_open: true} -> :persistent_term.erase(key)
         _state -> :ok
       end
 
@@ -120,6 +126,7 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
   def reset_for_test do
     locked(fn ->
       :persistent_term.erase(@state_key)
+      :persistent_term.erase(state_key(:audit))
       :ok
     end)
   end
@@ -150,6 +157,9 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
 
   defp jitter_window_ms(delay_ms), do: min(max(div(delay_ms, 10), 1), @maximum_jitter_ms)
   defp random_jitter_ms(jitter_window_ms), do: :rand.uniform(jitter_window_ms)
+
+  defp state_key(:delivery), do: @state_key
+  defp state_key(scope), do: {@state_key, scope}
 
   defp locked(fun), do: :global.trans(@lock_key, fun)
   defp monotonic_ms, do: System.monotonic_time(:millisecond)

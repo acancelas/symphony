@@ -47,6 +47,16 @@ defmodule SymphonyElixir.GameApiProviderCircuitTest do
     assert {:error, {:game_api_rate_limited, _remaining}} = ProviderCircuit.before_request()
   end
 
+  test "audit and delivery cooldowns are isolated" do
+    ProviderCircuit.rate_limited(300_000, :audit)
+
+    assert {:error, {:game_api_rate_limited, _remaining}} =
+             ProviderCircuit.before_request(:audit)
+
+    assert :ok = ProviderCircuit.before_request(:delivery)
+    assert ProviderCircuit.state_for_test() == nil
+  end
+
   test "provider retry guidance extends the shared cooldown" do
     delay = ProviderCircuit.rate_limited(300_000)
     assert delay > 300_000

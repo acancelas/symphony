@@ -127,7 +127,10 @@ defmodule SymphonyElixir.GameApi.Client do
 
   @spec append_audit_batch(map()) :: {:ok, map()} | {:error, term()}
   def append_audit_batch(batch) when is_map(batch) do
-    request(:post, "/v1/internal/bos/delivery/audit/events", json: batch)
+    request(:post, "/v1/internal/bos/delivery/audit/events",
+      json: batch,
+      provider_circuit_scope: :audit
+    )
   end
 
   @spec record_runtime_probe(map()) :: {:ok, map()} | {:error, term()}
@@ -258,6 +261,8 @@ defmodule SymphonyElixir.GameApi.Client do
       ]
       |> maybe_add_header("x-bos-runner-action-token", System.get_env("BOS_RUNNER_ACTION_TOKEN"))
 
+    {provider_circuit_scope, options} = Keyword.pop(options, :provider_circuit_scope, :delivery)
+
     options =
       Keyword.merge(options,
         headers: headers,
@@ -265,14 +270,19 @@ defmodule SymphonyElixir.GameApi.Client do
         retry: false
       )
 
-    with :ok <- ProviderCircuit.before_request() do
+    with :ok <- ProviderCircuit.before_request(provider_circuit_scope) do
       case Req.request(Keyword.merge(options, method: method, url: url)) do
         {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
-          ProviderCircuit.succeeded()
+          ProviderCircuit.succeeded(provider_circuit_scope)
           {:ok, body}
 
         {:ok, %Req.Response{status: status} = response} when status in [403, 429] ->
-          {:error, {:game_api_rate_limited, ProviderCircuit.rate_limited(retry_after_ms(response))}}
+          retry_after_ms =
+            response
+            |> retry_after_ms()
+            |> ProviderCircuit.rate_limited(provider_circuit_scope)
+
+          {:error, {:game_api_rate_limited, retry_after_ms}}
 
         {:ok, %Req.Response{status: status, body: body}} ->
           {:error, http_error(status, body)}
