@@ -98,7 +98,7 @@ defmodule SymphonyElixir.CapacityQueueTest do
 
   test "an opaque claimed issue keeps its explicit repository reservation while queued" do
     claimed =
-      issue("opaque-run-id", "agent:running", ~U[2026-07-20 08:00:00Z], 1)
+      issue("opaque-run-id", "Todo", ~U[2026-07-20 08:00:00Z], 1)
       |> Map.put(:native_ref, %{"repositoryId" => "bos-mcp"})
 
     candidate = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
@@ -116,6 +116,7 @@ defmodule SymphonyElixir.CapacityQueueTest do
 
     assert MapSet.member?(queued.claimed, claimed.id)
     assert queued.repository_claims[claimed.id] == "bos-mcp"
+    assert Orchestrator.should_dispatch_issue_for_test(claimed, queued)
     refute Orchestrator.should_dispatch_issue_for_test(candidate, queued)
   end
 

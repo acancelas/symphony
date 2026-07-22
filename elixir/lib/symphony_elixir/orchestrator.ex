@@ -687,6 +687,7 @@ defmodule SymphonyElixir.Orchestrator do
 
         state
         |> terminate_running_issue(issue_id, false)
+        |> reserve_issue_claim(running_entry.issue)
         |> schedule_issue_retry(issue_id, next_attempt, %{
           identifier: identifier,
           issue_url: running_entry.issue.url,
@@ -928,12 +929,12 @@ defmodule SymphonyElixir.Orchestrator do
 
   defp should_dispatch_issue?(
          %Issue{} = issue,
-         %State{running: running, claimed: claimed, blocked: blocked} = state,
+         %State{running: running, blocked: blocked} = state,
          active_states,
          terminal_states
        ) do
     candidate_issue?(issue, active_states, terminal_states) and
-      !MapSet.member?(claimed, issue.id) and
+      claim_slot_available?(issue, state) and
       !Map.has_key?(running, issue.id) and
       !Map.has_key?(blocked, issue.id) and
       available_slots(state) > 0 and
@@ -943,6 +944,10 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp should_dispatch_issue?(_issue, _state, _active_states, _terminal_states), do: false
+
+  defp claim_slot_available?(%Issue{id: issue_id}, %State{} = state) do
+    !MapSet.member?(state.claimed, issue_id) or Map.has_key?(state.capacity_waiting, issue_id)
+  end
 
   defp state_slots_available?(%Issue{state: issue_state}, running) when is_map(running) do
     limit = Config.max_concurrent_agents_for_state(issue_state)
