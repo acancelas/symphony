@@ -1,0 +1,13 @@
+{
+  "attemptId": "attempt_run_symphony_42_retry_after_20260722_1",
+  "runId": "run_symphony_42_retry_after_20260722",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-22T03:31:04Z",
+  "reason": "Correct provider-aware retry scheduling and verify the installed runtime.",
+  "metrics": {}
+}
