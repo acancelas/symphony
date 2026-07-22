@@ -1,0 +1,14 @@
+{
+  "reviewId": "review_symphony_42_security_20260722",
+  "runId": "run_symphony_42_retry_after_20260722",
+  "attemptId": "attempt_run_symphony_42_retry_after_20260722_1",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "4a50a8c420758a1621e5e02d981636bfc8085579",
+  "status": "passed",
+  "findings": [],
+  "summary": "The change handles only normalized integer retry metadata, introduces no credentials or external input surface, and preserves existing bounded backoff behavior."
+}
