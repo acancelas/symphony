@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-ecfb01ad-473d-46c2-90b2-59d87e3cfc03",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730162179_914",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:22:43.013Z",
+  "command": "/bin/bash -lc \"grep -n 'defp reconcile\\\\|def handle_info(:tick\\\\|fetch_issues_by_ids\\\\|release_remote\\\\|release_issue' elixir/lib/symphony_elixir/orchestrator.ex | head -120 && sed -n '220,520p' elixir/lib/symphony_elixir/orchestrator.ex && sed -n '520,780p' elixir/lib/symphony_elixir/orchestrator.ex && sed -n '1,240p' elixir/test/symphony_elixir/capacity_queue_test.exs && grep -RIn --exclude-dir=_build --exclude-dir=deps 'release_issue\\\\|heartbeat_issue\\\\|claim_issue' elixir/lib/symphony_elixir | head -160\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "113:  def handle_info(:tick, state) do\n355:  defp reconcile_running_issues(%State{} = state) do\n362:      case Tracker.fetch_issues_by_ids(running_ids) do\n380:  defp reconcile_blocked_issues(%State{} = state) do\n386:      case Tracker.fetch_issues_by_ids(blocked_ids) do\n468:  defp reconcile_running_issue_states([], state, _active_states, _terminal_states), do: state\n470:  defp reconcile_running_issue_states([issue | rest], state, active_states, terminal_states) do\n479:  defp reconcile_issue_state(%Issue{} = issue, state, active_states, terminal_states) do\n501:  defp reconcile_issue_state(_issue, state, _active_states, _terminal_states), do: state\n503:  defp reconcile_blocked_issue_states([], state, _active_states, _terminal_states), do: state\n505:  defp reconcile_blocked_issue_states([issue | rest], state, active_states, terminal_states) do\n514:  defp reconcile_blocked_issue_state(%Issue{} = issue, state, active_states, terminal_states) do\n519:        release_issue_claim(state, issue.id)\n523:        release_issue_claim(state, issue.id)\n530:        release_issue_claim(state, issue.id)\n534:  defp reconcile_blocked_issue_state(_issue, state, _active_states, _terminal_states), do: state\n536:  defp reconcile_missing_running_issue_ids(%State{} = state, requested_issue_ids, issues)\n556:  defp reconcile_missing_running_issue_ids(state, _requested_issue_ids, _issues), do: state\n558:  defp reconcile_missing_blocked_issue_ids(%State{} = state, requested_issue_ids, issues)\n573:        release_issue_claim(state_acc, issue_id)\n578:  defp reconcile_missing_blocked_issue_ids(state, _requested_issue_ids, _issues), do: state\n615:        release_issue_claim(state, issue_id)\n637:        release_issue_claim(state, issue_id)\n641:  defp reconcile_stalled_running_issues(%State{} = state) do\n1098:    case revalidate_issue_for_dispatch(issue, &Tracker.fetch_issues_by_ids/1, terminal_state_set()) do\n1294:    case Tracker.fetch_issues_by_ids([issue_id]) do\n1324:        {:noreply, release_issue",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}

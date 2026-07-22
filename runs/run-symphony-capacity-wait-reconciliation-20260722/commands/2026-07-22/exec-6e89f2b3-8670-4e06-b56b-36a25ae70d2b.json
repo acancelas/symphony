@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-6e89f2b3-8670-4e06-b56b-36a25ae70d2b",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730167792_916",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:22:48.626Z",
+  "command": "/bin/bash -lc \"sed -n '1,130p' elixir/lib/symphony_elixir/tracker.ex && sed -n '1,130p' elixir/lib/symphony_elixir/game_api/adapter.ex && sed -n '1,155p' elixir/lib/symphony_elixir/game_api/client.ex && grep -RIn --exclude-dir=_build --exclude-dir=deps 'issues/release\\\\|release.*claim\\\\|release_issue' elixir/test elixir/lib | head -200 && sed -n '90,145p' elixir/lib/symphony_elixir/orchestrator.ex && grep -RIn --exclude-dir=_build --exclude-dir=deps 'reconcile_blocked_issue_states_for_test\\\\|reconcile_missing_blocked' elixir/test | head -80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.Tracker do\n  @moduledoc \"\"\"\n  Adapter boundary for issue tracker reads and provider-native agent tools.\n\n  The orchestrator only depends on the read callbacks. Agent-side mutations stay\n  behind optional provider-native tools so tracker-specific capabilities do not\n  leak into scheduler policy.\n  \"\"\"\n\n  alias SymphonyElixir.Config\n  alias SymphonyElixir.Tracker.Issue\n\n  @adapters %{\n    \"game_api\" => SymphonyElixir.GameApi.Adapter,\n    \"linear\" => SymphonyElixir.Linear.Adapter,\n    \"memory\" => SymphonyElixir.Tracker.Memory\n  }\n\n  @callback fetch_issues_by_states([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}\n  @callback fetch_issues_by_ids([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}\n  @callback agent_tool_specs() :: [map()]\n  @callback execute_agent_tool(String.t(), term(), keyword()) :: map()\n  @callback secret_environment_names(map()) :: [String.t()]\n  @callback validate_config(map()) :: :ok | {:error, term()}\n  @callback claim_issue(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}\n  @callback heartbeat_issue(Issue.t()) :: :ok | {:error, term()}\n  @callback start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}\n  @callback reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}\n\n  @optional_callbacks agent_tool_specs: 0,\n                      execute_agent_tool: 3,\n                      validate_config: 1,\n                      claim_issue: 1,\n                      heartbeat_issue: 1,\n                      start_execution: 2,\n                      reconcile_terminal_runs: 0\n\n  @spec fetch_issues_by_states([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}\n  def fetch_issues_by_states(states) do\n    adapter().fetch_issues_by_states(states)\n  end\n\n  @spec fetch_issues_by_ids([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}\n  def fetch_issues_by_ids(issue_ids) do\n    adapter().fetch_issues_by_ids(issue_ids)\n  end\n\n  @spec reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
