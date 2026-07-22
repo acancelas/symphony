@@ -1,0 +1,60 @@
+{
+  "evidenceId": "evidence-symphony-49-repository-capacity",
+  "runId": "run-symphony-49-repository-capacity",
+  "commitSha": "0bc979a2d170e176c4db64352ea9423b682b14a4",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Only one active delivery worker per repository while different repositories remain parallel.",
+      "status": "passed"
+    },
+    {
+      "criterion": "Opaque repository identities are preserved and missing identity fails closed.",
+      "status": "passed"
+    },
+    {
+      "criterion": "The capacity owner can resume after retry without deadlock.",
+      "status": "passed"
+    },
+    {
+      "criterion": "Complete local and GitHub validation passes at the exact PR HEAD.",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "name": "make all",
+      "status": "passed",
+      "tests": 357,
+      "coveragePercent": 100
+    },
+    {
+      "name": "validate-pr-description",
+      "status": "passed",
+      "checkRunId": 88927815510
+    },
+    {
+      "name": "make-all CI",
+      "status": "passed",
+      "checkRunId": 88927813604
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "number": 50,
+      "headSha": "0bc979a2d170e176c4db64352ea9423b682b14a4"
+    },
+    {
+      "type": "binary",
+      "sha256": "998d298c683b3bc59470e22884e659e4b6c18b39c3688c6b0f77ea1ab8de2005"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Distributed fencing across multiple independent runners is not required for the single-X1 topology and remains documented.",
+      "severity": "low"
+    }
+  ],
+  "summary": "Exact HEAD satisfies repository capacity, recovery, quality, security and CI acceptance."
+}
