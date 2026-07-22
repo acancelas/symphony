@@ -192,6 +192,10 @@ defmodule SymphonyElixir.GameApiAdapterTest do
              "detail" => %{"error" => "audit_event_hash_invalid", "message" => "stale payload"}
            }) == {:game_api_http_error, 422, "audit_event_hash_invalid"}
 
+    assert Client.http_error(422, %{
+             "detail" => %{"error" => "audit_canonicalization_failed", "message" => "invalid bytes"}
+           }) == {:game_api_http_error, 422, "audit_canonicalization_failed"}
+
     assert Client.http_error(
              422,
              ~s({"detail":{"error":"audit_event_hash_invalid","message":"stale payload"}})

@@ -34,6 +34,18 @@ defmodule SymphonyElixir.Audit.CanonicalJsonTest do
     assert canonical == ~S({"output":"\u001b\u0000\u001f\b\t\n\f\r"})
   end
 
+  test "matches the Python rfc8785 ANSI fixture hash" do
+    canonical =
+      %{"outputSummary" => "\e[0;32mpassed\e[0m"}
+      |> CanonicalJson.encode()
+      |> IO.iodata_to_binary()
+
+    assert canonical == ~S({"outputSummary":"\u001b[0;32mpassed\u001b[0m"})
+
+    assert Base.encode16(:crypto.hash(:sha256, canonical), case: :lower) ==
+             "09fe4ade10659bdf95036a8ccab87866e39ec58c8d00e628d3a6ecadf2e67d8e"
+  end
+
   test "sorts object properties by UTF-16 code units" do
     canonical = %{<<0xE000::utf8>> => 1, "😀" => 2} |> CanonicalJson.encode() |> IO.iodata_to_binary()
     assert canonical == ~s({"😀":2,"":1})
