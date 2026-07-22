@@ -1,0 +1,15 @@
+{
+  "attemptId": "attempt-symphony-49-1",
+  "runId": "run-symphony-49-repository-capacity",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp"
+  },
+  "startedAt": "2026-07-22T12:35:18.265000Z",
+  "reason": "Manual recovery and delivery hardening after measured provider contention.",
+  "metrics": {}
+}
