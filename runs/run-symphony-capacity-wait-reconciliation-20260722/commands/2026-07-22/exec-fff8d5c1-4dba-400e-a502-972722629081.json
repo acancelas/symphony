@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-fff8d5c1-4dba-400e-a502-972722629081",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730902353_1180",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:35:02.374Z",
+  "command": "/bin/bash -lc 'mise exec -- mix lint'",
+  "durationMs": 3732,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "specs.check: all public functions have @spec or exemption\nChecking 80 source files (this might take a while) ...\n\nPlease report incorrect results: https://github.com/rrrene/credo/issues\n\nAnalysis took 2.0 seconds (0.08s to load, 1.9s running 69 checks on 80 files)\n1878 mods/funs, found no issues.\n\nUse `mix credo explain` to explain issues, `mix credo --help` for options.\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
