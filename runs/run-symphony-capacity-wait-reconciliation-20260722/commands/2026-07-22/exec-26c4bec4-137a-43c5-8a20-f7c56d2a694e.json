@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-26c4bec4-137a-43c5-8a20-f7c56d2a694e",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730394084_991",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:26:34.084Z",
+  "command": "/bin/bash -lc \"sed -n '1,220p' Makefile && git diff --check && git diff --stat && git diff -- elixir/lib/symphony_elixir/orchestrator.ex elixir/lib/symphony_elixir/tracker.ex elixir/lib/symphony_elixir/game_api/adapter.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/test/symphony_elixir/capacity_queue_test.exs elixir/test/symphony_elixir/game_api_adapter_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": ".PHONY: help all setup deps build fmt fmt-check lint test coverage ci dialyzer e2e\n\nMIX ?= mix\n\nhelp:\n\t@echo \"Targets: setup, deps, fmt, fmt-check, lint, test, coverage, dialyzer, e2e, ci\"\n\nsetup:\n\t$(MIX) setup\n\ndeps:\n\t$(MIX) deps.get\n\nbuild:\n\t$(MIX) build\n\nfmt:\n\t$(MIX) format\n\nfmt-check:\n\t$(MIX) format --check-formatted\n\nlint:\n\t$(MIX) lint\n\ncoverage:\n\t$(MIX) test --cover\n\ntest:\n\t$(MIX) test\n\ndialyzer:\n\t$(MIX) deps.get\n\t$(MIX) dialyzer --format short\n\ne2e:\n\tSYMPHONY_RUN_LIVE_E2E=1 $(MIX) test test/symphony_elixir/live_e2e_test.exs\n\nci:\n\t$(MAKE) setup\n\t$(MAKE) build\n\t$(MAKE) fmt-check\n\t$(MAKE) lint\n\t$(MAKE) coverage\n\t$(MAKE) dialyzer\n\nall: ci\n elixir/lib/symphony_elixir/game_api/adapter.ex     |  19 ++++\n elixir/lib/symphony_elixir/game_api/client.ex      |  21 ++++\n elixir/lib/symphony_elixir/orchestrator.ex         | 104 +++++++++++++++++++\n elixir/lib/symphony_elixir/tracker.ex              |  13 +++\n .../test/symphony_elixir/capacity_queue_test.exs   | 111 +++++++++++++++++++++\n .../test/symphony_elixir/game_api_adapter_test.exs |  19 ++++\n 6 files changed, 287 insertions(+)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
