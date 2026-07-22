@@ -837,9 +837,9 @@ Note:
   retry refreshes that observe a terminal transition.
 - ID refresh avoids treating a terminal, non-active, or newly unroutable issue as merely absent.
 
-### 8.5 Active Run Reconciliation
+### 8.5 Active Run and Capacity-Wait Reconciliation
 
-Reconciliation runs every tick and has two parts.
+Reconciliation runs every tick and has three parts.
 
 Part A: Stall detection
 
@@ -858,6 +858,18 @@ Part B: Tracker state refresh
   - If tracker state is active but no longer routable: terminate worker without workspace cleanup.
   - If tracker state is neither active nor terminal: terminate worker without workspace cleanup.
 - If state refresh fails, keep workers running and try again on the next tick.
+
+Part C: Capacity-waiting claim refresh
+
+- Fetch current snapshots for every claimed issue waiting for execution or repository capacity.
+- If a waiting issue is terminal, missing, no longer active, or no longer routable, release its
+  provider claim and local repository reservation. A provider release failure keeps the local
+  reservation so a later poll can retry without allowing two claims in one repository.
+- If the refreshed claim belongs to another run, release only the stale local reservation and do
+  not mutate the other run's provider claim.
+- If a waiting issue remains active, routable, and owned by the same run, renew its provider lease
+  and retain its queue position, Attempt identity, and retry count unchanged.
+- If refresh or heartbeat fails, retain the waiting claim and try again on the next tick.
 
 ### 8.6 Startup Terminal Workspace Cleanup
 

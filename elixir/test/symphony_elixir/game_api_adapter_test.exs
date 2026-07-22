@@ -27,6 +27,7 @@ defmodule SymphonyElixir.GameApiAdapterTest do
 
     @spec fetch_issue(String.t(), pos_integer()) :: {:ok, map()}
     def fetch_issue("bos-front", 42), do: fetch_issues_by_states(["agent:ready"]) |> then(fn {:ok, [issue]} -> {:ok, issue} end)
+    def fetch_issue("bos-front", 43), do: {:error, {:game_api_http_error, 404}}
 
     @spec reconcile_terminal_runs() :: {:ok, [map()]}
     def reconcile_terminal_runs, do: {:ok, [%{"action" => "reconciled"}]}
@@ -50,6 +51,13 @@ defmodule SymphonyElixir.GameApiAdapterTest do
          "issue" => %{"labels" => ["bos:issue", "agent:running"]}
        }}
     end
+
+    @spec heartbeat_issue(String.t(), pos_integer(), String.t()) :: {:ok, map()}
+    def heartbeat_issue("bos-front", 42, "run_42_001"), do: {:ok, %{"status" => "completed"}}
+
+    @spec release_issue(String.t(), pos_integer(), String.t(), String.t()) :: {:ok, map()}
+    def release_issue("bos-front", 42, "run_42_001", "stale waiter"),
+      do: {:ok, %{"status" => "completed"}}
 
     @spec start_execution(SymphonyElixir.Tracker.Issue.t(), pos_integer()) ::
             {:ok, String.t()}
@@ -81,6 +89,10 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert issue.identifier == "bos-front-42"
     assert issue.state == "agent:ready"
     assert issue.dispatchable
+  end
+
+  test "omits issues that disappeared during an id refresh" do
+    assert {:ok, []} = Adapter.fetch_issues_by_ids(["bos-front#43"])
   end
 
   test "preserves the exact run identity for an expired running claim" do
@@ -119,6 +131,13 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert {:ok, claimed} = Adapter.claim_issue(issue)
     assert claimed.native_ref["runId"] == "run_42_001"
     assert claimed.state == "agent:running"
+  end
+
+  test "heartbeats and releases claims through game-api" do
+    assert {:ok, [issue]} = Adapter.fetch_issues_by_states(["agent:ready"])
+    assert {:ok, claimed} = Adapter.claim_issue(issue)
+    assert :ok = Adapter.heartbeat_issue(claimed)
+    assert :ok = Adapter.release_issue(claimed, "stale waiter")
   end
 
   test "persists the execution identity before Codex starts" do

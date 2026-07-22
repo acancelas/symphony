@@ -125,6 +125,27 @@ defmodule SymphonyElixir.GameApi.Client do
     end
   end
 
+  @spec release_issue(String.t(), pos_integer(), String.t(), String.t()) ::
+          {:ok, map()} | {:error, term()}
+  def release_issue(repository_id, issue_number, run_id, reason)
+      when is_binary(repository_id) and is_integer(issue_number) and is_binary(run_id) and
+             is_binary(reason) do
+    runner_id = System.get_env("BOS_RUNNER_ID") || "x1"
+
+    with {:ok, repository} <- find_repository(repository_id) do
+      request(:post, "/v1/internal/bos/delivery/issues/release",
+        json: %{
+          "repository" => repository_body(repository),
+          "issueNumber" => issue_number,
+          "operationId" => "release_capacity_waiting_#{run_id}",
+          "runId" => run_id,
+          "runnerId" => runner_id,
+          "reason" => reason
+        }
+      )
+    end
+  end
+
   @spec append_audit_batch(map()) :: {:ok, map()} | {:error, term()}
   def append_audit_batch(batch) when is_map(batch) do
     request(:post, "/v1/internal/bos/delivery/audit/events",

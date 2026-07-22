@@ -24,6 +24,7 @@ defmodule SymphonyElixir.Tracker do
   @callback validate_config(map()) :: :ok | {:error, term()}
   @callback claim_issue(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}
   @callback heartbeat_issue(Issue.t()) :: :ok | {:error, term()}
+  @callback release_issue(Issue.t(), String.t()) :: :ok | {:error, term()}
   @callback start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}
   @callback reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}
 
@@ -32,6 +33,7 @@ defmodule SymphonyElixir.Tracker do
                       validate_config: 1,
                       claim_issue: 1,
                       heartbeat_issue: 1,
+                      release_issue: 2,
                       start_execution: 2,
                       reconcile_terminal_runs: 0
 
@@ -73,6 +75,17 @@ defmodule SymphonyElixir.Tracker do
 
     if Code.ensure_loaded?(adapter) and function_exported?(adapter, :heartbeat_issue, 1) do
       adapter.heartbeat_issue(issue)
+    else
+      :ok
+    end
+  end
+
+  @spec release_issue(Issue.t(), String.t()) :: :ok | {:error, term()}
+  def release_issue(%Issue{} = issue, reason) when is_binary(reason) do
+    adapter = adapter()
+
+    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :release_issue, 2) do
+      adapter.release_issue(issue, reason)
     else
       :ok
     end

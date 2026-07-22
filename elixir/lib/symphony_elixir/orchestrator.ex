@@ -307,6 +307,7 @@ defmodule SymphonyElixir.Orchestrator do
       state
       |> reconcile_running_issues()
       |> reconcile_blocked_issues()
+      |> reconcile_capacity_waiting()
 
     with :ok <- Config.validate!(),
          {:ok, issues} <- Tracker.fetch_issues_by_states(Config.settings!().tracker.active_states) do
@@ -398,6 +399,115 @@ defmodule SymphonyElixir.Orchestrator do
 
           state
       end
+    end
+  end
+
+  defp reconcile_capacity_waiting(%State{} = state) do
+    waiting_ids = Map.keys(state.capacity_waiting)
+
+    if waiting_ids == [] do
+      state
+    else
+      case Tracker.fetch_issues_by_ids(waiting_ids) do
+        {:ok, issues} ->
+          reconcile_capacity_waiting_entries(
+            state,
+            waiting_ids,
+            issues,
+            &Tracker.heartbeat_issue/1,
+            &Tracker.release_issue/2
+          )
+
+        {:error, reason} ->
+          Logger.debug("Failed to refresh capacity-waiting issue states: #{inspect(reason)}; keeping claims")
+          state
+      end
+    end
+  end
+
+  @doc false
+  @spec reconcile_capacity_waiting_for_test(
+          term(),
+          [Issue.t()],
+          (Issue.t() -> :ok | {:error, term()}),
+          (Issue.t(), String.t() -> :ok | {:error, term()})
+        ) :: term()
+  def reconcile_capacity_waiting_for_test(
+        %State{} = state,
+        issues,
+        heartbeat \\ fn _issue -> :ok end,
+        release \\ fn _issue, _reason -> :ok end
+      )
+      when is_list(issues) and is_function(heartbeat, 1) and is_function(release, 2) do
+    reconcile_capacity_waiting_entries(
+      state,
+      Map.keys(state.capacity_waiting),
+      issues,
+      heartbeat,
+      release
+    )
+  end
+
+  defp reconcile_capacity_waiting_entries(state, waiting_ids, issues, heartbeat, release) do
+    refreshed = Map.new(issues, fn %Issue{id: issue_id} = issue -> {issue_id, issue} end)
+
+    Enum.reduce(waiting_ids, state, fn issue_id, state_acc ->
+      waiting_entry = Map.get(state_acc.capacity_waiting, issue_id)
+      reconcile_capacity_waiting_entry(state_acc, waiting_entry, refreshed[issue_id], heartbeat, release)
+    end)
+  end
+
+  defp reconcile_capacity_waiting_entry(state, %{issue: queued_issue}, nil, _heartbeat, release) do
+    release_capacity_waiting_claim(state, queued_issue, "capacity-waiting issue is no longer visible", release)
+  end
+
+  defp reconcile_capacity_waiting_entry(
+         state,
+         %{issue: queued_issue} = entry,
+         %Issue{} = issue,
+         heartbeat,
+         release
+       ) do
+    cond do
+      !same_claim_owner?(queued_issue, issue) ->
+        Logger.info("Capacity-waiting claim is no longer owned locally: #{issue_context(issue)}; releasing reservation")
+        release_issue_claim(state, issue.id)
+
+      terminal_issue_state?(issue.state, terminal_state_set()) ->
+        cleanup_issue_workspace(issue, entry.worker_host)
+        release_capacity_waiting_claim(state, queued_issue, "capacity-waiting issue became terminal", release)
+
+      !active_issue_state?(issue.state, active_state_set()) or !issue_routable?(issue) ->
+        release_capacity_waiting_claim(state, queued_issue, "capacity-waiting issue is no longer routable", release)
+
+      true ->
+        case heartbeat.(issue) do
+          :ok ->
+            refreshed_entry = %{entry | issue: issue, identifier: issue.identifier, issue_url: issue.url}
+            %{state | capacity_waiting: Map.put(state.capacity_waiting, issue.id, refreshed_entry)}
+
+          {:error, reason} ->
+            Logger.warning("Capacity-waiting claim heartbeat deferred for #{issue_context(issue)}: #{inspect(reason)}")
+            state
+        end
+    end
+  end
+
+  defp same_claim_owner?(%Issue{} = queued_issue, %Issue{} = refreshed_issue) do
+    queued_run_id = get_in(queued_issue.native_ref || %{}, ["runId"])
+    refreshed_run_id = get_in(refreshed_issue.native_ref || %{}, ["runId"])
+    is_nil(queued_run_id) or queued_run_id == refreshed_run_id
+  end
+
+  defp release_capacity_waiting_claim(state, issue, reason, release) do
+    case release.(issue, reason) do
+      :ok ->
+        Logger.info("Released stale capacity-waiting claim: #{issue_context(issue)} reason=#{reason}")
+        release_issue_claim(state, issue.id)
+
+      {:error, release_reason} ->
+        Logger.warning("Unable to release stale capacity-waiting claim for #{issue_context(issue)}: #{inspect(release_reason)}")
+        state
     end
   end
 

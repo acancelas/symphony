@@ -91,6 +91,10 @@ separate capacity queue without incrementing retry/backoff state. `agent:merging
 recovered running work sort ahead of newly ready work; creation time provides deterministic FIFO
 ordering that can be reconstructed from the canonical tracker after a restart. The terminal and
 web dashboards expose queue position and reason separately from genuine retry failures.
+Every poll also refreshes capacity-waiting claims. Valid owned claims are heartbeated without
+changing their Attempt or retry budget; terminal, missing, or unroutable waiters release their
+remote claim and local repository reservation. A waiter now owned by another run releases only the
+stale local reservation.
 
 Before auto-approving a Codex command request, Symphony enforces the BOS integration boundary.
 Direct `gh` invocations—including absolute paths, `env`/`command` prefixes and nested shell

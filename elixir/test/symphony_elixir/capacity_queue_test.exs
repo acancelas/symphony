@@ -35,6 +35,92 @@ defmodule SymphonyElixir.CapacityQueueTest do
              queued.capacity_waiting[issue.id].queued_at
   end
 
+  test "missing capacity waiter releases its remote and local repository claim" do
+    waiting = claimed_issue("opaque-waiter", "In Progress", "run-waiter")
+    state = waiting_state(waiting)
+    parent = self()
+
+    reconciled =
+      Orchestrator.reconcile_capacity_waiting_for_test(
+        state,
+        [],
+        fn _ -> flunk("missing waiter must not heartbeat") end,
+        fn issue, reason ->
+          send(parent, {:released, issue.id, reason})
+          :ok
+        end
+      )
+
+    assert_received {:released, "opaque-waiter", "capacity-waiting issue is no longer visible"}
+    refute MapSet.member?(reconciled.claimed, waiting.id)
+    refute Map.has_key?(reconciled.repository_claims, waiting.id)
+    refute Map.has_key?(reconciled.capacity_waiting, waiting.id)
+
+    candidate =
+      issue("repo#52", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{"repositoryId" => "repo"})
+
+    assert Orchestrator.should_dispatch_issue_for_test(candidate, reconciled)
+  end
+
+  test "terminal and unroutable capacity waiters release their claims" do
+    waiting = claimed_issue("repo#51", "In Progress", "run-waiter")
+
+    for refreshed <- [
+          %{waiting | state: "Done"},
+          %{waiting | dispatchable: false}
+        ] do
+      reconciled =
+        Orchestrator.reconcile_capacity_waiting_for_test(
+          waiting_state(waiting),
+          [refreshed],
+          fn _ -> flunk("stale waiter must not heartbeat") end,
+          fn _, _ -> :ok end
+        )
+
+      refute MapSet.member?(reconciled.claimed, waiting.id)
+      refute Map.has_key?(reconciled.capacity_waiting, waiting.id)
+    end
+  end
+
+  test "valid capacity waiter is refreshed and heartbeated without retry or Attempt consumption" do
+    waiting = claimed_issue("repo#51", "In Progress", "run-waiter")
+    refreshed = %{waiting | title: "Latest tracker snapshot"}
+    parent = self()
+
+    reconciled =
+      Orchestrator.reconcile_capacity_waiting_for_test(
+        waiting_state(waiting),
+        [refreshed],
+        fn issue ->
+          send(parent, {:heartbeat, issue.id})
+          :ok
+        end
+      )
+
+    assert_received {:heartbeat, "repo#51"}
+    assert reconciled.capacity_waiting[waiting.id].issue.title == "Latest tracker snapshot"
+    assert reconciled.capacity_waiting[waiting.id].attempt == 3
+    assert reconciled.retry_attempts == %{}
+    assert MapSet.member?(reconciled.claimed, waiting.id)
+  end
+
+  test "capacity waiter owned by another run releases only its local reservation" do
+    waiting = claimed_issue("repo#51", "In Progress", "run-old")
+    refreshed = claimed_issue("repo#51", "In Progress", "run-new")
+
+    reconciled =
+      Orchestrator.reconcile_capacity_waiting_for_test(
+        waiting_state(waiting),
+        [refreshed],
+        fn _ -> flunk("foreign claim must not heartbeat") end,
+        fn _, _ -> flunk("foreign claim must not be released remotely") end
+      )
+
+    refute MapSet.member?(reconciled.claimed, waiting.id)
+    refute Map.has_key?(reconciled.capacity_waiting, waiting.id)
+  end
+
   test "merging and recovered work precede newly ready work" do
     ready = issue("new-ready", "agent:ready", ~U[2026-07-21 10:00:00Z], 1)
     recovered = issue("old-running", "agent:running", ~U[2026-07-20 08:00:00Z], 4)
@@ -191,6 +277,31 @@ defmodule SymphonyElixir.CapacityQueueTest do
       priority: priority,
       labels: ["bos:issue"],
       dispatchable: true
+    }
+  end
+
+  defp claimed_issue(id, state, run_id) do
+    issue(id, state, ~U[2026-07-20 08:00:00Z], 1)
+    |> Map.put(:native_ref, %{"repositoryId" => "repo", "issueNumber" => 51, "runId" => run_id})
+  end
+
+  defp waiting_state(issue) do
+    %State{
+      max_concurrent_agents: 2,
+      claimed: MapSet.new([issue.id]),
+      repository_claims: %{issue.id => "repo"},
+      capacity_waiting: %{
+        issue.id => %{
+          issue: issue,
+          identifier: issue.identifier,
+          issue_url: issue.url,
+          attempt: 3,
+          worker_host: nil,
+          workspace_path: nil,
+          queued_at: ~U[2026-07-20 08:00:00Z],
+          reason: "waiting for execution capacity"
+        }
+      }
     }
   end
 end

@@ -29,6 +29,7 @@ defmodule SymphonyElixir.GameApi.Adapter do
            {:ok, payload} <- client_module().fetch_issue(repository_id, issue_number) do
         {:cont, {:ok, [normalize_issue(payload) | issues]}}
       else
+        {:error, {:game_api_http_error, 404}} -> {:cont, {:ok, issues}}
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
@@ -67,6 +68,24 @@ defmodule SymphonyElixir.GameApi.Adapter do
       nil -> {:error, :missing_run_id}
       {:error, reason} -> {:error, reason}
       other -> {:error, {:game_api_heartbeat_rejected, other}}
+    end
+  end
+
+  @spec release_issue(Issue.t(), String.t()) :: :ok | {:error, term()}
+  def release_issue(%Issue{native_ref: native_ref}, reason) when is_binary(reason) do
+    with run_id when is_binary(run_id) <- native_ref["runId"],
+         {:ok, %{"status" => "completed"}} <-
+           client_module().release_issue(
+             native_ref["repositoryId"],
+             native_ref["issueNumber"],
+             run_id,
+             reason
+           ) do
+      :ok
+    else
+      nil -> {:error, :missing_run_id}
+      {:error, reason} -> {:error, reason}
+      other -> {:error, {:game_api_release_rejected, other}}
     end
   end
 
