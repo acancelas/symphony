@@ -85,6 +85,21 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
     end)
   end
 
+  @doc """
+  Reopens the circuit after a multi-repository read recovered a non-empty,
+  last-confirmed queue before a later repository failed.
+
+  The caller must only use this narrow escape hatch to let atomic operations on
+  those already confirmed Issues probe their own provider path.
+  """
+  @spec allow_confirmed_partial_progress() :: :ok
+  def allow_confirmed_partial_progress do
+    locked(fn ->
+      :persistent_term.erase(@state_key)
+      :ok
+    end)
+  end
+
   @doc false
   @spec reset_for_test() :: :ok
   def reset_for_test do

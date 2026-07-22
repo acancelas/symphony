@@ -40,7 +40,7 @@ defmodule SymphonyElixir.GameApi.Client do
           # rate-limit bucket. Preserve the confirmed queue and allow the
           # atomic claim operation to probe its own path instead of letting a
           # later repository freeze already recovered work.
-          ProviderCircuit.succeeded()
+          ProviderCircuit.allow_confirmed_partial_progress()
 
           Logger.warning(
             "Returning the confirmed partial ready queue after a repository lookup failed " <>

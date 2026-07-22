@@ -28,6 +28,15 @@ defmodule SymphonyElixir.GameApiProviderCircuitTest do
     assert %{attempt: 1, half_open: false} = ProviderCircuit.state_for_test()
   end
 
+  test "confirmed partial progress reopens the circuit for atomic issue operations" do
+    ProviderCircuit.rate_limited_for_test(300_000, 0)
+    assert {:error, {:game_api_rate_limited, _remaining}} = ProviderCircuit.before_request()
+
+    assert :ok = ProviderCircuit.allow_confirmed_partial_progress()
+    assert ProviderCircuit.state_for_test() == nil
+    assert :ok = ProviderCircuit.before_request()
+  end
+
   test "provider retry guidance extends the shared cooldown" do
     delay = ProviderCircuit.rate_limited(300_000)
     assert delay > 300_000
