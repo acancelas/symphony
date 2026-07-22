@@ -8,7 +8,7 @@
     "subjectId": "implementation-agent",
     "displayName": "Implementation agent"
   },
-  "startedAt": "2026-07-22T06:30:00Z",
+  "startedAt": "2026-07-22T04:30:00Z",
   "reason": "Implement and verify provider-aware retry scheduling with bounded positive jitter.",
   "metrics": {}
 }
