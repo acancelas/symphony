@@ -1,0 +1,15 @@
+{
+  "reviewId": "review_symphony_44_architecture",
+  "runId": "run_symphony_44_20260722",
+  "attemptId": "attempt_001",
+  "reviewType": "architecture",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer",
+    "displayName": "Architecture reviewer"
+  },
+  "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed",
+  "status": "passed",
+  "findings": [],
+  "summary": "The change preserves a single process-wide provider circuit. Jitter is applied only when opening or reopening that shared circuit, provider guidance remains authoritative, and concurrent runs cannot establish independent retry windows."
+}
