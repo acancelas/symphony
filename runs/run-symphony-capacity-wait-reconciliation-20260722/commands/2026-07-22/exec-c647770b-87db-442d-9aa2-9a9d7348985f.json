@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c647770b-87db-442d-9aa2-9a9d7348985f",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730125121_901",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:22:05.112Z",
+  "command": "/bin/bash -lc \"wc -l README.md SPEC.md elixir/README.md WORKFLOW.md .bos/project.yaml && sed -n '221,520p' SPEC.md && sed -n '521,900p' SPEC.md && sed -n '221,520p' elixir/README.md && find . -maxdepth 3 -type f \\\\( -iname '*harness*' -o -path './.github/pull_request_template*' -o -path './.github/PULL_REQUEST_TEMPLATE/*' \\\\) -print\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "    52 README.md\n  2331 SPEC.md\n   422 elixir/README.md\n    11 WORKFLOW.md\n    25 .bos/project.yaml\n  2841 total\n#### 4.1.4 Workspace\n\nFilesystem workspace assigned to one issue identifier.\n\nFields (logical):\n\n- `path` (absolute workspace path)\n- `workspace_key` (collision-resistant sanitized issue identifier)\n- `created_now` (boolean, used to gate `after_create` hook)\n\n#### 4.1.5 Run Attempt\n\nOne execution attempt for one issue.\n\nFields (logical):\n\n- `issue_id`\n- `issue_identifier`\n- `attempt` (integer or null, `null` for first run, `>=1` for retries/continuation)\n- `workspace_path`\n- `started_at`\n- `status`\n- `error` (OPTIONAL)\n\n#### 4.1.6 Live Session (Agent Session Metadata)\n\nState tracked while a coding-agent subprocess is running.\n\nFields:\n\n- `session_id` (string, `<thread_id>-<turn_id>`)\n- `thread_id` (string)\n- `turn_id` (string)\n- `codex_app_server_pid` (string or null)\n- `last_codex_event` (string/enum or null)\n- `last_codex_timestamp` (timestamp or null)\n- `last_codex_message` (summarized payload)\n- `codex_input_tokens` (integer)\n- `codex_output_tokens` (integer)\n- `codex_total_tokens` (integer)\n- `last_reported_input_tokens` (integer)\n- `last_reported_output_tokens` (integer)\n- `last_reported_total_tokens` (integer)\n- `turn_count` (integer)\n  - Number of coding-agent turns started within the current worker lifetime.\n\n#### 4.1.7 Retry Entry\n\nScheduled retry state for an issue.\n\nFields:\n\n- `issue_id`\n- `identifier` (best-effort human ID for status surfaces/logs)\n- `attempt` (integer, 1-based for retry queue)\n- `due_at_ms` (monotonic clock timestamp)\n- `timer_handle` (runtime-specific timer reference)\n- `error` (string or null)\n\n#### 4.1.8 Orchestrator Runtime State\n\nSingle authoritative in-memory state owned by the orchestrator.\n\nFields:\n\n- `poll_interval_ms` (current effective poll interval)\n- `max_concurrent_agents` (current effective global concurrency limit)\n- `running` (map `issue_id -> running entry`)\n- `claimed` (set of issue IDs reserved/running/re",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
