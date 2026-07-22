@@ -1,0 +1,15 @@
+{
+  "reviewId": "review_symphony_44_security",
+  "runId": "run_symphony_44_20260722",
+  "attemptId": "attempt_001",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer",
+    "displayName": "Security reviewer"
+  },
+  "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed",
+  "status": "passed",
+  "findings": [],
+  "summary": "The defensive 24-hour ceiling prevents erroneous provider values from pausing the runner indefinitely. The change adds no credential, response-body, or secret logging, and non-cryptographic jitter is appropriate for load desynchronization."
+}
