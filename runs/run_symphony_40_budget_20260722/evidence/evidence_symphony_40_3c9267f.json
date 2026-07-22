@@ -1,0 +1,65 @@
+{
+  "evidenceId": "evidence_symphony_40_3c9267f",
+  "runId": "run_symphony_40_budget_20260722",
+  "commitSha": "3c9267f0c26f93525790a9907f13d4022ca56b2c",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "status": "passed",
+      "evidence": "App Server protocol test emitted exactly one turn/steer at 100 uncached tokens and one turn/interrupt at 200, returning budget_paused.",
+      "criterion": "A synthetic over-budget turn checkpoints and stops within the configured bound"
+    },
+    {
+      "status": "passed",
+      "evidence": "Paused implementation bypasses DeliveryCoordinator, and the scheduler reuses the existing retry ordinal so GameApi start_execution resolves the same AgentRun and Attempt.",
+      "criterion": "The same AgentRun resumes without duplicate PR, Evidence or Review artifacts"
+    },
+    {
+      "status": "passed",
+      "evidence": "Runtime snapshots expose soft_limit and hard_limit from budget events and provider_rate_limit from normalized retry errors.",
+      "criterion": "Status distinguishes soft-limit, hard-limit and provider-rate-limit pauses"
+    },
+    {
+      "status": "passed",
+      "evidence": "Soft completion returns a pause and hard budget uses official turn/interrupt; no continuation or review turn is launched by the paused worker.",
+      "criterion": "A stable implementation does not continue consuming tokens after all required gates complete"
+    },
+    {
+      "status": "passed",
+      "evidence": "Local gate: 341 tests, 100 percent coverage, Credo/specs clean, Dialyzer zero. Exact-head GitHub checks make-all and validate-pr-description succeeded.",
+      "criterion": "The full Symphony gate passes with 100 percent coverage and zero Dialyzer findings"
+    }
+  ],
+  "checks": [
+    {
+      "status": "passed",
+      "name": "make-all-local",
+      "tests": 341,
+      "coverage": "100%",
+      "failures": 0
+    },
+    {
+      "status": "passed",
+      "name": "dialyzer",
+      "errors": 0
+    },
+    {
+      "status": "passed",
+      "url": "https://github.com/acancelas/symphony/actions/runs/29886086578/job/88816805754",
+      "name": "github-make-all"
+    },
+    {
+      "status": "passed",
+      "url": "https://github.com/acancelas/symphony/actions/runs/29886201872/job/88817148563",
+      "name": "github-pr-description"
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [
+    {
+      "risk": "Intermediate token enforcement depends on usage notifications.",
+      "mitigation": "The independent wall-clock hard limit remains authoritative when usage telemetry is delayed."
+    }
+  ],
+  "summary": "Symphony now checkpoints and bounds Codex turns by role and uncached context while preserving durable run identity and preventing duplicate delivery work."
+}
