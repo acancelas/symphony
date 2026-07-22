@@ -1,0 +1,75 @@
+{
+  "evidenceId": "evidence_symphony_44_629d47d",
+  "runId": "run_symphony_44_20260722",
+  "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Provider Retry-After longer than 15 minutes is preserved.",
+      "status": "passed",
+      "evidence": "Regression covers the observed 2,123-second cooldown."
+    },
+    {
+      "criterion": "Positive jitter never shortens provider guidance.",
+      "status": "passed",
+      "evidence": "Jitter is added after the normalized provider lower bound."
+    },
+    {
+      "criterion": "Jitter is bounded to 10 percent and 30 seconds.",
+      "status": "passed",
+      "evidence": "Deterministic boundary tests pass."
+    },
+    {
+      "criterion": "One process-wide circuit prevents concurrent probe multiplication.",
+      "status": "passed",
+      "evidence": "Shared-state regression tests pass."
+    },
+    {
+      "criterion": "Repository quality gate passes.",
+      "status": "passed",
+      "evidence": "345 tests, zero failures, two skips, 100 percent coverage; format, Credo, and Dialyzer clean."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make -C elixir all",
+      "status": "passed",
+      "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed"
+    },
+    {
+      "name": "GitHub make-all",
+      "status": "passed",
+      "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed"
+    },
+    {
+      "name": "GitHub validate-pr-description",
+      "status": "passed",
+      "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed"
+    },
+    {
+      "name": "Installed candidate checksum",
+      "status": "passed",
+      "sha256": "a41e59a78bbcbc809338ebfc68754e8334c8b53fd13a2d3d631395a82182f3c9"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "number": 45
+    },
+    {
+      "type": "review",
+      "id": "review_symphony_44_architecture"
+    },
+    {
+      "type": "review",
+      "id": "review_symphony_44_security"
+    },
+    {
+      "type": "review",
+      "id": "review_symphony_44_quality"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Provider cooldown scheduling is verified at the exact PR HEAD by local and GitHub gates, three specialized reviews, and an installed candidate checksum."
+}
