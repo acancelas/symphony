@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0",
+  "scopeType": "run",
+  "scopeId": "run_symphony_42_retry_after_20260722",
+  "lastSequence": 1,
+  "lastEventHash": "sha256:fc13edf8ec18e32c3d13697324fb4371acab740fd8fe660ee08b7057331c41a4",
+  "lastEventId": "event_e827fc8c217fbefda2606f292e",
+  "updatedAt": "2026-07-22T03:31:53.253765Z"
+}
