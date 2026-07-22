@@ -22,7 +22,7 @@ defmodule SymphonyElixir.CapacityQueueTest do
       })
 
     refute Map.has_key?(queued.retry_attempts, issue.id)
-    refute MapSet.member?(queued.claimed, issue.id)
+    assert MapSet.member?(queued.claimed, issue.id)
     assert queued.capacity_waiting[issue.id].attempt == 3
     assert queued.capacity_waiting[issue.id].reason == "waiting for execution capacity"
 
@@ -61,6 +61,124 @@ defmodule SymphonyElixir.CapacityQueueTest do
              [newer_ready, older_ready, recovered]
              |> Orchestrator.sort_issues_for_dispatch_for_test(%State{})
              |> Enum.map(& &1.id)
+  end
+
+  test "an active run reserves repository capacity without consuming global capacity" do
+    running = issue("bos-mcp#19", "In Progress", ~U[2026-07-20 08:00:00Z], 1)
+    same_repository = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+    other_repository = issue("game-api#84", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+
+    state = %State{
+      max_concurrent_agents: 2,
+      running: %{
+        running.id => %{issue: running}
+      }
+    }
+
+    refute Orchestrator.should_dispatch_issue_for_test(same_repository, state)
+    assert Orchestrator.should_dispatch_issue_for_test(other_repository, state)
+  end
+
+  test "repository capacity is released when the active run leaves running state" do
+    candidate = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+
+    assert Orchestrator.should_dispatch_issue_for_test(candidate, %State{max_concurrent_agents: 2})
+  end
+
+  test "a retrying or blocked claim keeps repository capacity reserved" do
+    candidate = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+
+    state = %State{
+      max_concurrent_agents: 2,
+      claimed: MapSet.new(["bos-mcp#19"])
+    }
+
+    refute Orchestrator.should_dispatch_issue_for_test(candidate, state)
+  end
+
+  test "an opaque claimed issue keeps its explicit repository reservation while queued" do
+    claimed =
+      issue("opaque-run-id", "Todo", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{"repositoryId" => "bos-mcp"})
+
+    candidate = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+
+    state = %State{
+      max_concurrent_agents: 2,
+      claimed: MapSet.new([claimed.id]),
+      repository_claims: %{claimed.id => "bos-mcp"}
+    }
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(state, claimed, 2, %{
+        reason: "waiting for execution capacity"
+      })
+
+    assert MapSet.member?(queued.claimed, claimed.id)
+    assert queued.repository_claims[claimed.id] == "bos-mcp"
+    assert Orchestrator.should_dispatch_issue_for_test(claimed, queued)
+    refute Orchestrator.should_dispatch_issue_for_test(candidate, queued)
+  end
+
+  test "game_api fails closed when canonical repository identity is missing" do
+    previous_token = System.get_env("BOS_API_INTERNAL_TOKEN")
+    System.put_env("BOS_API_INTERNAL_TOKEN", "test-token")
+    on_exit(fn -> restore_env("BOS_API_INTERNAL_TOKEN", previous_token) end)
+
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "game_api",
+      tracker_provider: %{
+        "repositories" => [
+          %{"repository_id" => "bos-mcp", "owner" => "acancelas", "repo" => "bos-mcp"}
+        ]
+      }
+    )
+
+    assert Config.settings!().tracker.kind == "game_api"
+
+    missing_repository =
+      issue("opaque-run-id", "agent:ready", ~U[2026-07-21 08:00:00Z], 1)
+
+    refute Orchestrator.should_dispatch_issue_for_test(
+             missing_repository,
+             %State{max_concurrent_agents: 2}
+           )
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{max_concurrent_agents: 2},
+        missing_repository,
+        nil,
+        %{}
+      )
+
+    assert queued.capacity_waiting[missing_repository.id].reason ==
+             "missing canonical repository identity"
+  end
+
+  test "repository identity survives older recovered projections" do
+    explicit =
+      issue("opaque", "agent:running", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{"repositoryId" => "tengo-suerte"})
+
+    recovered = issue("tengo-suerte#1", "agent:running", ~U[2026-07-20 08:00:00Z], 1)
+
+    assert Issue.repository_id(explicit) == "tengo-suerte"
+    assert Issue.repository_id(recovered) == "tengo-suerte"
+    assert Issue.repository_id(%Issue{id: nil}) == nil
+    assert Issue.repository_id(%Issue{id: ""}) == nil
+    assert Issue.repository_id(%Issue{id: "#1"}) == nil
+    assert Issue.repository_id(%Issue{id: "bos-mcp#"}) == nil
+
+    assert Issue.repository_id(%Issue{
+             id: "fallback#1",
+             native_ref: %{"repositoryId" => "  "}
+           }) == "fallback"
+
+    assert Issue.repository_id(%Issue{
+             id: "ignored#1",
+             native_ref: %{repository_id: " explicit "}
+           }) == "explicit"
   end
 
   defp issue(id, state, created_at, priority) do

@@ -42,6 +42,7 @@ defmodule SymphonyElixir.Orchestrator do
       running: %{},
       completed: MapSet.new(),
       claimed: MapSet.new(),
+      repository_claims: %{},
       blocked: %{},
       capacity_waiting: %{},
       retry_attempts: %{},
@@ -627,6 +628,7 @@ defmodule SymphonyElixir.Orchestrator do
           state
           | running: Map.delete(state.running, issue_id),
             claimed: MapSet.delete(state.claimed, issue_id),
+            repository_claims: Map.delete(state.repository_claims, issue_id),
             blocked: Map.delete(state.blocked, issue_id),
             retry_attempts: Map.delete(state.retry_attempts, issue_id)
         }
@@ -685,6 +687,7 @@ defmodule SymphonyElixir.Orchestrator do
 
         state
         |> terminate_running_issue(issue_id, false)
+        |> reserve_issue_claim(running_entry.issue)
         |> schedule_issue_retry(issue_id, next_attempt, %{
           identifier: identifier,
           issue_url: running_entry.issue.url,
@@ -827,11 +830,12 @@ defmodule SymphonyElixir.Orchestrator do
       last_codex_timestamp: Map.get(running_entry, :last_codex_timestamp)
     }
 
+    state = reserve_issue_claim(state, Map.get(running_entry, :issue))
+
     %{
       state
       | running: Map.delete(state.running, issue_id),
         retry_attempts: Map.delete(state.retry_attempts, issue_id),
-        claimed: MapSet.put(state.claimed, issue_id),
         blocked: Map.put(state.blocked, issue_id, blocked_entry)
     }
   end
@@ -854,7 +858,7 @@ defmodule SymphonyElixir.Orchestrator do
   defp maybe_queue_capacity_candidate(state, issue, active_states, terminal_states) do
     if capacity_candidate_issue?(issue, state, active_states, terminal_states) and
          capacity_blocked?(issue, state) do
-      queue_for_capacity(state, issue, nil, %{})
+      queue_for_capacity(state, issue, nil, %{reason: capacity_wait_reason(issue, state)})
     else
       state
     end
@@ -877,6 +881,7 @@ defmodule SymphonyElixir.Orchestrator do
   defp capacity_blocked?(issue, state) do
     available_slots(state) <= 0 or
       !state_slots_available?(issue, state.running) or
+      !repository_slot_available?(issue, state) or
       !worker_slots_available?(state)
   end
 
@@ -924,20 +929,25 @@ defmodule SymphonyElixir.Orchestrator do
 
   defp should_dispatch_issue?(
          %Issue{} = issue,
-         %State{running: running, claimed: claimed, blocked: blocked} = state,
+         %State{running: running, blocked: blocked} = state,
          active_states,
          terminal_states
        ) do
     candidate_issue?(issue, active_states, terminal_states) and
-      !MapSet.member?(claimed, issue.id) and
+      claim_slot_available?(issue, state) and
       !Map.has_key?(running, issue.id) and
       !Map.has_key?(blocked, issue.id) and
       available_slots(state) > 0 and
       state_slots_available?(issue, running) and
+      repository_slot_available?(issue, state) and
       worker_slots_available?(state)
   end
 
   defp should_dispatch_issue?(_issue, _state, _active_states, _terminal_states), do: false
+
+  defp claim_slot_available?(%Issue{id: issue_id}, %State{} = state) do
+    !MapSet.member?(state.claimed, issue_id) or Map.has_key?(state.capacity_waiting, issue_id)
+  end
 
   defp state_slots_available?(%Issue{state: issue_state}, running) when is_map(running) do
     limit = Config.max_concurrent_agents_for_state(issue_state)
@@ -957,6 +967,66 @@ defmodule SymphonyElixir.Orchestrator do
       _ ->
         false
     end)
+  end
+
+  defp repository_slot_available?(
+         %Issue{} = issue,
+         %State{running: running, claimed: claimed, repository_claims: repository_claims}
+       )
+       when is_map(running) do
+    case Issue.repository_id(issue) do
+      nil ->
+        !repository_identity_required?()
+
+      repository_id ->
+        no_running_issue_in_repository?(running, issue.id, repository_id) and
+          no_claimed_issue_in_repository?(
+            claimed,
+            repository_claims,
+            issue.id,
+            repository_id
+          )
+    end
+  end
+
+  defp repository_slot_available?(_issue, _state), do: false
+
+  defp no_running_issue_in_repository?(running, candidate_id, repository_id) do
+    Enum.all?(running, fn
+      {issue_id, %{issue: %Issue{} = running_issue}} ->
+        issue_id == candidate_id or Issue.repository_id(running_issue) != repository_id
+
+      _ ->
+        true
+    end)
+  end
+
+  defp no_claimed_issue_in_repository?(
+         claimed,
+         repository_claims,
+         candidate_id,
+         repository_id
+       ) do
+    Enum.all?(claimed, fn issue_id ->
+      issue_id == candidate_id or
+        claimed_repository_id(repository_claims, issue_id) != repository_id
+    end)
+  end
+
+  defp claimed_repository_id(repository_claims, issue_id) do
+    Map.get(repository_claims, issue_id) || Issue.repository_id(%Issue{id: issue_id})
+  end
+
+  defp repository_identity_required? do
+    Config.settings!().tracker.kind == "game_api"
+  end
+
+  defp capacity_wait_reason(%Issue{} = issue, %State{} = state) do
+    case {Issue.repository_id(issue), repository_slot_available?(issue, state)} do
+      {nil, false} -> "missing canonical repository identity"
+      {_repository_id, true} -> "waiting for execution capacity"
+      {_repository_id, false} -> "waiting for repository capacity"
+    end
   end
 
   defp candidate_issue?(
@@ -1047,6 +1117,7 @@ defmodule SymphonyElixir.Orchestrator do
   defp do_dispatch_issue(%State{} = state, issue, attempt, preferred_worker_host) do
     case Tracker.claim_issue(issue) do
       {:ok, claimed_issue} ->
+        state = reserve_issue_claim(state, claimed_issue)
         recipient = self()
 
         case select_worker_host(state, preferred_worker_host) do
@@ -1109,7 +1180,6 @@ defmodule SymphonyElixir.Orchestrator do
           state
           | running: running,
             capacity_waiting: Map.delete(state.capacity_waiting, issue.id),
-            claimed: MapSet.put(state.claimed, issue.id),
             retry_attempts: Map.delete(state.retry_attempts, issue.id)
         }
 
@@ -1117,7 +1187,9 @@ defmodule SymphonyElixir.Orchestrator do
         Logger.error("Unable to spawn agent for #{issue_context(issue)}: #{inspect(reason)}")
         next_attempt = if is_integer(attempt), do: attempt + 1, else: nil
 
-        schedule_issue_retry(state, issue.id, next_attempt, %{
+        state
+        |> reserve_issue_claim(issue)
+        |> schedule_issue_retry(issue.id, next_attempt, %{
           identifier: issue.identifier,
           issue_url: issue.url,
           error: "failed to spawn agent: #{inspect(reason)}",
@@ -1355,21 +1427,37 @@ defmodule SymphonyElixir.Orchestrator do
       worker_host: metadata[:worker_host] || Map.get(previous, :worker_host),
       workspace_path: metadata[:workspace_path] || Map.get(previous, :workspace_path),
       queued_at: Map.get(previous, :queued_at, DateTime.utc_now()),
-      reason: "waiting for execution capacity"
+      reason: metadata[:reason] || capacity_wait_reason(issue, state)
     }
 
     %{
       state
       | capacity_waiting: Map.put(state.capacity_waiting, issue.id, entry),
-        retry_attempts: Map.delete(state.retry_attempts, issue.id),
-        claimed: MapSet.delete(state.claimed, issue.id)
+        retry_attempts: Map.delete(state.retry_attempts, issue.id)
     }
   end
+
+  defp reserve_issue_claim(%State{} = state, %Issue{id: issue_id} = issue)
+       when is_binary(issue_id) do
+    repository_claims =
+      case Issue.repository_id(issue) do
+        repository_id when is_binary(repository_id) ->
+          Map.put(state.repository_claims, issue_id, repository_id)
+
+        _ ->
+          state.repository_claims
+      end
+
+    %{state | claimed: MapSet.put(state.claimed, issue_id), repository_claims: repository_claims}
+  end
+
+  defp reserve_issue_claim(%State{} = state, _issue), do: state
 
   defp release_issue_claim(%State{} = state, issue_id) do
     %{
       state
       | claimed: MapSet.delete(state.claimed, issue_id),
+        repository_claims: Map.delete(state.repository_claims, issue_id),
         blocked: Map.delete(state.blocked, issue_id),
         capacity_waiting: Map.delete(state.capacity_waiting, issue_id),
         retry_attempts: Map.delete(state.retry_attempts, issue_id)
@@ -1911,7 +1999,8 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp dispatch_slots_available?(%Issue{} = issue, %State{} = state) do
-    available_slots(state) > 0 and state_slots_available?(issue, state.running)
+    available_slots(state) > 0 and state_slots_available?(issue, state.running) and
+      repository_slot_available?(issue, state)
   end
 
   defp apply_codex_token_delta(

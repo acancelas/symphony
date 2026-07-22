@@ -659,6 +659,27 @@ claim state.
    - Claim removed because issue is terminal, non-active, missing, or retry path completed without
      re-dispatch.
 
+Repository capacity is an additional scheduling invariant for trackers that expose repository
+identity:
+
+- At most one claimed Issue per repository may be active locally, including `Running`,
+  `RetryQueued`, and blocked claims.
+- Issues from different repositories may run concurrently up to the global, state, and worker
+  limits.
+- Repository capacity waiting does not create an Attempt or consume retry budget.
+- A restarted orchestrator reconstructs the reservation by dispatching canonical running work
+  before ready work; stable `repositoryId` or the normalized `repository#issue` identity is used.
+- The reservation stores the canonical repository identity independently from the Issue ID and
+  survives worker-capacity waits, spawn failures, retries, and blocked states. An opaque Issue ID
+  must never erase its repository reservation.
+- `game_api` work without a canonical repository identity fails closed and remains undispatched
+  with an observable diagnostic. Other trackers retain their existing compatibility behavior.
+- This serialization prevents concurrent writers in one repository from amplifying optimistic
+  compare-and-swap retries on the shared `bos/audit` ref.
+- This is a single-orchestrator scheduling guarantee. The current X1 deployment runs one
+  orchestrator; adding multiple independent runners requires a distributed repository fence in
+  `game-api` in addition to the existing Issue-level lease.
+
 Important nuance:
 
 - A successful worker exit does not mean the issue is done forever.

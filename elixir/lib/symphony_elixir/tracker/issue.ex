@@ -59,6 +59,45 @@ defmodule SymphonyElixir.Tracker.Issue do
 
   def routable?(%__MODULE__{}, _required_labels), do: false
 
+  @doc """
+  Returns the canonical repository identity carried by a work item.
+
+  BOS issues expose it explicitly through `native_ref`. The stable dispatch ID
+  remains a safe fallback for recovered projections created by older runtimes.
+  Tracker types without repository ownership return `nil` and are therefore not
+  subject to repository-scoped serialization.
+  """
+  @spec repository_id(t()) :: String.t() | nil
+  def repository_id(%__MODULE__{native_ref: native_ref, id: id}) do
+    explicit =
+      if is_map(native_ref) do
+        Map.get(native_ref, "repositoryId") || Map.get(native_ref, :repository_id)
+      end
+
+    normalize_repository_id(explicit) || repository_id_from_dispatch_id(id)
+  end
+
+  defp repository_id_from_dispatch_id(id) when is_binary(id) do
+    case String.split(id, "#", parts: 2) do
+      [repository_id, issue_number] when repository_id != "" and issue_number != "" ->
+        normalize_repository_id(repository_id)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp repository_id_from_dispatch_id(_id), do: nil
+
+  defp normalize_repository_id(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      normalized -> normalized
+    end
+  end
+
+  defp normalize_repository_id(_value), do: nil
+
   defp normalize_label(label) when is_binary(label) do
     label
     |> String.trim()

@@ -963,7 +963,8 @@ defmodule SymphonyElixir.OrchestratorStatusTest do
         id: issue_id,
         identifier: "MT-STALL",
         state: "In Progress",
-        url: "https://example.org/issues/MT-STALL"
+        url: "https://example.org/issues/MT-STALL",
+        native_ref: %{"repositoryId" => "opaque-repository"}
       },
       session_id: "thread-stall-turn-stall",
       last_codex_message: nil,
@@ -986,6 +987,8 @@ defmodule SymphonyElixir.OrchestratorStatusTest do
 
     refute Process.alive?(worker_pid)
     refute Map.has_key?(state.running, issue_id)
+    assert MapSet.member?(state.claimed, issue_id)
+    assert state.repository_claims[issue_id] == "opaque-repository"
 
     assert %{
              attempt: 1,
