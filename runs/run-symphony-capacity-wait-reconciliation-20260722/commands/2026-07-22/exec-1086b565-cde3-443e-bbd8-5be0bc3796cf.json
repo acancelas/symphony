@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-1086b565-cde3-443e-bbd8-5be0bc3796cf",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730791661_1103",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:33:11.644Z",
+  "command": "/bin/bash -lc \"grep -n 'defp event_status' elixir/lib/symphony_elixir/audit/outbox.ex | head -20\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "1110:  defp event_status(%{event: :turn_failed}), do: \"failed\"\n1111:  defp event_status(%{event: :turn_cancelled}), do: \"cancelled\"\n1112:  defp event_status(_update), do: \"completed\"\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
