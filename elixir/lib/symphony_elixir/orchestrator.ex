@@ -1201,12 +1201,15 @@ defmodule SymphonyElixir.Orchestrator do
       {:error, reason} ->
         Logger.warning("Retry poll failed for issue_id=#{issue_id} issue_identifier=#{metadata[:identifier] || issue_id}: #{inspect(reason)}")
 
+        retry_metadata =
+          retry_metadata(metadata, reason)
+
         {:noreply,
          schedule_issue_retry(
            state,
            issue_id,
            attempt + 1,
-           Map.merge(metadata, %{error: "retry poll failed: #{inspect(reason)}"})
+           retry_metadata
          )}
     end
   end
@@ -1339,16 +1342,42 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp retry_delay(attempt, metadata) when is_integer(attempt) and attempt > 0 and is_map(metadata) do
-    if metadata[:delay_type] == :continuation and attempt == 1 do
-      @continuation_retry_delay_ms
-    else
-      failure_retry_delay(attempt)
-    end
+    base_delay =
+      if metadata[:delay_type] == :continuation and attempt == 1 do
+        @continuation_retry_delay_ms
+      else
+        failure_retry_delay(attempt)
+      end
+
+    max(base_delay, provider_retry_after_ms(metadata))
   end
 
   @doc false
   @spec retry_delay_for_test(pos_integer(), map()) :: pos_integer()
   def retry_delay_for_test(attempt, metadata), do: retry_delay(attempt, metadata)
+
+  @doc false
+  @spec retry_metadata_for_test(map(), term()) :: map()
+  def retry_metadata_for_test(metadata, reason), do: retry_metadata(metadata, reason)
+
+  defp retry_metadata(metadata, reason) do
+    metadata
+    |> Map.put(:error, "retry poll failed: #{inspect(reason)}")
+    |> put_provider_retry_after(reason)
+  end
+
+  defp put_provider_retry_after(metadata, {:game_api_rate_limited, retry_after_ms})
+       when is_integer(retry_after_ms) and retry_after_ms >= 0 do
+    Map.put(metadata, :provider_retry_after_ms, retry_after_ms)
+  end
+
+  defp put_provider_retry_after(metadata, _reason), do: Map.delete(metadata, :provider_retry_after_ms)
+
+  defp provider_retry_after_ms(%{provider_retry_after_ms: retry_after_ms})
+       when is_integer(retry_after_ms) and retry_after_ms >= 0,
+       do: retry_after_ms
+
+  defp provider_retry_after_ms(_metadata), do: 0
 
   defp failure_retry_delay(attempt) do
     max_delay_power = min(attempt - 1, 10)
