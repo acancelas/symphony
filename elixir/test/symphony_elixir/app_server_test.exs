@@ -1,6 +1,113 @@
 defmodule SymphonyElixir.AppServerTest do
   use SymphonyElixir.TestSupport
 
+  test "app server checkpoints and interrupts a turn that crosses uncached token budgets" do
+    test_root =
+      Path.join(System.tmp_dir!(), "symphony-elixir-turn-budget-#{System.unique_integer([:positive])}")
+
+    try do
+      workspace_root = Path.join(test_root, "workspaces")
+      workspace = Path.join(workspace_root, "BOS-40")
+      codex_binary = Path.join(test_root, "fake-codex")
+      trace_file = Path.join(test_root, "codex-budget.trace")
+      File.mkdir_p!(workspace)
+      System.put_env("SYMP_TEST_BUDGET_TRACE", trace_file)
+      on_exit(fn -> System.delete_env("SYMP_TEST_BUDGET_TRACE") end)
+
+      File.write!(codex_binary, """
+      #!/bin/sh
+      count=0
+      while IFS= read -r line; do
+        count=$((count + 1))
+        printf '%s\n' "$line" >> "$SYMP_TEST_BUDGET_TRACE"
+        case "$count" in
+          1) printf '%s\n' '{"id":1,"result":{}}' ;;
+          2) ;;
+          3) printf '%s\n' '{"id":2,"result":{"thread":{"id":"thread-budget"}}}' ;;
+          4)
+            printf '%s\n' '{"id":3,"result":{"turn":{"id":"turn-budget"}}}'
+            printf '%s\n' '{"method":"thread/tokenUsage/updated","params":{"tokenUsage":{"total":{"inputTokens":110,"cachedInputTokens":0}}}}'
+            ;;
+          5)
+            printf '%s\n' '{"id":4,"result":{"turnId":"turn-budget"}}'
+            printf '%s\n' '{"method":"thread/tokenUsage/updated","params":{"tokenUsage":{"total":{"inputTokens":210,"cachedInputTokens":0}}}}'
+            ;;
+          6)
+            printf '%s\n' '{"id":5,"result":{}}'
+            printf '%s\n' '{"method":"turn/completed","params":{"turn":{"status":"interrupted"}}}'
+            exit 0
+            ;;
+        esac
+      done
+      """)
+
+      File.chmod!(codex_binary, 0o755)
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        codex_command: "#{codex_binary} app-server",
+        codex_turn_budgets: %{
+          "implementation-agent" => %{
+            "soft_wall_clock_ms" => 60_000,
+            "hard_wall_clock_ms" => 120_000,
+            "soft_uncached_input_tokens" => 100,
+            "hard_uncached_input_tokens" => 200
+          }
+        }
+      )
+
+      issue = %Issue{
+        id: "issue-budget",
+        identifier: "BOS-40",
+        title: "Bound long turns",
+        state: "In Progress",
+        url: "https://example.org/issues/BOS-40",
+        labels: ["agent:ready"]
+      }
+
+      parent = self()
+      on_message = fn message -> send(parent, {:budget_message, message}) end
+
+      assert {:ok, %{result: %{status: :budget_paused, budget: budget}}} =
+               AppServer.run(workspace, "Use a bounded turn", issue, on_message: on_message)
+
+      assert budget.pause_reason == :hard_uncached_input
+      assert budget.uncached_input_tokens == 210
+      assert_receive {:budget_message, %{event: :turn_budget_soft_limit}}
+      assert_receive {:budget_message, %{event: :turn_budget_hard_limit}}
+
+      trace = wait_for_trace_method(trace_file, "turn/interrupt")
+      assert Enum.count(trace, &(&1["method"] == "turn/steer")) == 1
+      assert Enum.count(trace, &(&1["method"] == "turn/interrupt")) == 1
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
+  defp wait_for_trace_method(trace_file, method, attempts \\ 20)
+
+  defp wait_for_trace_method(trace_file, method, attempts) when attempts > 0 do
+    trace =
+      trace_file
+      |> File.read!()
+      |> String.split("\n", trim: true)
+      |> Enum.map(&Jason.decode!/1)
+
+    if Enum.any?(trace, &(&1["method"] == method)) do
+      trace
+    else
+      Process.sleep(5)
+      wait_for_trace_method(trace_file, method, attempts - 1)
+    end
+  end
+
+  defp wait_for_trace_method(trace_file, _method, 0) do
+    trace_file
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.map(&Jason.decode!/1)
+  end
+
   test "app server rejects the workspace root and paths outside workspace root" do
     test_root =
       Path.join(

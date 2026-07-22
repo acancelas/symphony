@@ -240,9 +240,11 @@ defmodule SymphonyElixir.Orchestrator do
     else
       Logger.info("Agent task completed for issue_id=#{issue_id} session_id=#{session_id}; scheduling active-state continuation check")
 
+      continuation_attempt = continuation_attempt(running_entry)
+
       state
       |> complete_issue(issue_id)
-      |> schedule_issue_retry(issue_id, 1, %{
+      |> schedule_issue_retry(issue_id, continuation_attempt, %{
         identifier: running_entry.identifier,
         issue_url: running_entry.issue.url,
         delay_type: :continuation,
@@ -259,6 +261,12 @@ defmodule SymphonyElixir.Orchestrator do
       retry_agent_down(state, issue_id, running_entry, session_id, reason)
     end
   end
+
+  defp continuation_attempt(%{pause_status: status} = running_entry)
+       when status in ["soft_limit", "hard_limit"],
+       do: Map.get(running_entry, :retry_attempt, 0)
+
+  defp continuation_attempt(_running_entry), do: 1
 
   defp block_input_required_agent_down(state, issue_id, running_entry, session_id, reason) do
     error = blocker_error(running_entry, "agent exited: #{inspect(reason)}")
@@ -1539,6 +1547,7 @@ defmodule SymphonyElixir.Orchestrator do
           last_codex_timestamp: metadata.last_codex_timestamp,
           last_codex_message: metadata.last_codex_message,
           last_codex_event: metadata.last_codex_event,
+          pause_status: Map.get(metadata, :pause_status),
           runtime_seconds: running_seconds(metadata.started_at, now)
         }
       end)
@@ -1553,6 +1562,7 @@ defmodule SymphonyElixir.Orchestrator do
           identifier: Map.get(retry, :identifier),
           issue_url: Map.get(retry, :issue_url),
           error: Map.get(retry, :error),
+          pause_status: retry_pause_status(Map.get(retry, :error)),
           worker_host: Map.get(retry, :worker_host),
           workspace_path: Map.get(retry, :workspace_path)
         }
@@ -1673,6 +1683,7 @@ defmodule SymphonyElixir.Orchestrator do
         last_codex_message: summarize_codex_update(update),
         session_id: session_id_for_update(running_entry.session_id, update),
         last_codex_event: event,
+        pause_status: pause_status_for_event(event, Map.get(running_entry, :pause_status)),
         codex_app_server_pid: codex_app_server_pid_for_update(codex_app_server_pid, update),
         codex_input_tokens: next_input_tokens,
         codex_cached_input_tokens: next_cached_input_tokens,
@@ -1690,6 +1701,20 @@ defmodule SymphonyElixir.Orchestrator do
       token_delta
     }
   end
+
+  defp pause_status_for_event(:turn_budget_soft_limit, _current), do: "soft_limit"
+  defp pause_status_for_event(:turn_budget_hard_limit, _current), do: "hard_limit"
+  defp pause_status_for_event(_event, current), do: current
+
+  defp retry_pause_status(error) when is_binary(error) do
+    normalized = String.downcase(error)
+
+    if String.contains?(normalized, ["rate_limit", "rate limit", "http_error, 429", "http 429"]),
+      do: "provider_rate_limit",
+      else: nil
+  end
+
+  defp retry_pause_status(_error), do: nil
 
   defp codex_app_server_pid_for_update(_existing, %{codex_app_server_pid: pid})
        when is_binary(pid),

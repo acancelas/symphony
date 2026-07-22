@@ -353,7 +353,7 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
       try do
         callback = fn message -> send_update(recipient, issue, actor, message) end
 
-        case app_server.run_turn(session, prompt, issue, on_message: callback) do
+        case app_server.run_turn(session, prompt, issue, on_message: callback, role: actor) do
           {:ok, _turn} -> :ok
           {:error, reason} -> {:error, reason}
         end

@@ -178,6 +178,27 @@ defmodule SymphonyElixir.Config.Schema do
     import Ecto.Changeset
 
     @primary_key false
+    @default_turn_budgets %{
+      "default" => %{
+        "soft_wall_clock_ms" => 600_000,
+        "hard_wall_clock_ms" => 900_000,
+        "soft_uncached_input_tokens" => 100_000,
+        "hard_uncached_input_tokens" => 150_000
+      },
+      "implementation-agent" => %{
+        "soft_wall_clock_ms" => 900_000,
+        "hard_wall_clock_ms" => 1_200_000,
+        "soft_uncached_input_tokens" => 200_000,
+        "hard_uncached_input_tokens" => 300_000
+      },
+      "delivery-coordinator" => %{
+        "soft_wall_clock_ms" => 300_000,
+        "hard_wall_clock_ms" => 480_000,
+        "soft_uncached_input_tokens" => 75_000,
+        "hard_uncached_input_tokens" => 120_000
+      }
+    }
+
     embedded_schema do
       field(:command, :string, default: "codex app-server")
 
@@ -196,6 +217,7 @@ defmodule SymphonyElixir.Config.Schema do
       field(:turn_timeout_ms, :integer, default: 3_600_000)
       field(:read_timeout_ms, :integer, default: 5_000)
       field(:stall_timeout_ms, :integer, default: 300_000)
+      field(:turn_budgets, :map, default: @default_turn_budgets)
     end
 
     @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
@@ -210,7 +232,8 @@ defmodule SymphonyElixir.Config.Schema do
           :turn_sandbox_policy,
           :turn_timeout_ms,
           :read_timeout_ms,
-          :stall_timeout_ms
+          :stall_timeout_ms,
+          :turn_budgets
         ],
         empty_values: []
       )
@@ -225,6 +248,66 @@ defmodule SymphonyElixir.Config.Schema do
       |> validate_number(:turn_timeout_ms, greater_than: 0)
       |> validate_number(:read_timeout_ms, greater_than: 0)
       |> validate_number(:stall_timeout_ms, greater_than_or_equal_to: 0)
+      |> validate_turn_budgets()
+    end
+
+    defp validate_turn_budgets(changeset) do
+      validate_change(changeset, :turn_budgets, fn :turn_budgets, budgets ->
+        errors =
+          Enum.flat_map(budgets, &validate_budget_entry/1)
+
+        Enum.map(errors, &{:turn_budgets, &1})
+      end)
+    end
+
+    defp validate_budget_entry({role, _limits}) when not is_binary(role),
+      do: ["role names must be non-empty strings"]
+
+    defp validate_budget_entry({role, limits}) do
+      if String.trim(role) == "",
+        do: ["role names must be non-empty strings"],
+        else: validate_budget_entry_limits(role, limits)
+    end
+
+    defp validate_budget_entry_limits(role, limits) when not is_map(limits),
+      do: ["#{role} must be a map"]
+
+    defp validate_budget_entry_limits(role, limits), do: validate_budget_limits(role, limits)
+
+    defp validate_budget_limits(role, limits) do
+      pairs = [
+        {"soft_wall_clock_ms", "hard_wall_clock_ms"},
+        {"soft_uncached_input_tokens", "hard_uncached_input_tokens"}
+      ]
+
+      values =
+        Enum.flat_map(pairs, fn {soft, hard} -> [soft, hard] end)
+        |> Enum.uniq()
+
+      value_errors =
+        Enum.flat_map(values, &budget_value_error(role, limits, &1))
+
+      ordering_errors =
+        Enum.flat_map(pairs, &budget_ordering_error(role, limits, &1))
+
+      value_errors ++ ordering_errors
+    end
+
+    defp budget_value_error(role, limits, key) do
+      case limits[key] || limits[String.to_atom(key)] do
+        nil -> []
+        value when is_integer(value) and value > 0 -> []
+        _ -> ["#{role}.#{key} must be a positive integer"]
+      end
+    end
+
+    defp budget_ordering_error(role, limits, {soft_key, hard_key}) do
+      soft = limits[soft_key] || limits[String.to_atom(soft_key)]
+      hard = limits[hard_key] || limits[String.to_atom(hard_key)]
+
+      if is_integer(soft) and is_integer(hard) and soft >= hard,
+        do: ["#{role}.#{soft_key} must be less than #{hard_key}"],
+        else: []
     end
   end
 
