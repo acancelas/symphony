@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-697fea48-f6c9-4ed0-9be7-c613c22b2096",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730368999_984",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:26:08.987Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format && mise exec -- mix test test/symphony_elixir/capacity_queue_test.exs test/symphony_elixir/game_api_adapter_test.exs'",
+  "durationMs": 2359,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Running ExUnit with seed: 578124, max_cases: 20\n\n.......................\nFinished in 0.2 seconds (0.00s async, 0.2s sync)\n23 tests, 0 failures\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-0e3cf9c2-e12a-4658-aaf1-7e0f70da718a",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730365900_979",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:26:05.895Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format --check-formatted && mise exec -- mix test test/symphony_elixir/capacity_queue_test.exs test/symphony_elixir/game_api_adapter_test.exs'",
+  "durationMs": 601,
+  "environmentPolicy": "restricted",
+  "exitCode": 1,
+  "outputSummary": "** (Mix) mix format failed due to --check-formatted.\nThe following files are not formatted:\n\n\u001b[1m\u001b[31m$WORKSPACE/.bos/worktrees/symphony-51/elixir/test/symphony_elixir/capacity_queue_test.exs\n\u001b[0m\n         |\n 60  60  |      issue(\"repo#52\", \"Todo\", ~U[2026-07-21 08:00:00Z], 1)\n 61  61  |      |> Map.put(:native_ref, %{\"repositoryId\" => \"repo\"})\n     62 +|\n 62  63  |    assert Orchestrator.should_dispatch_issue_for_test(candidate, reconciled)\n 63  64  |  end\n         |\n\n\n\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
