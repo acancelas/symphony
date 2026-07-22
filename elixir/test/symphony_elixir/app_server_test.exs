@@ -461,7 +461,7 @@ defmodule SymphonyElixir.AppServerTest do
     end
   end
 
-  test "app server auto-accepts trusted BOS MCP tool elicitations when approval policy is never" do
+  test "app server auto-accepts trusted local MCP tool elicitations when approval policy is never" do
     test_root =
       Path.join(
         System.tmp_dir!(),
@@ -490,7 +490,10 @@ defmodule SymphonyElixir.AppServerTest do
             printf '%s\\n' '{"id":3,"result":{"turn":{"id":"turn-bos-188"}}}'
             printf '%s\\n' '{"id":188,"method":"mcpServer/elicitation/request","params":{"serverName":"bos-mcp","threadId":"thread-bos-188","turnId":"turn-bos-188","mode":"form","message":"Allow BOS tool?","requestedSchema":{"type":"object","properties":{}},"_meta":{"codex_approval_kind":"mcp_tool_call","persist":["session","always"]}}}'
             ;;
-          5) printf '%s\\n' '{"method":"turn/completed"}'; exit 0 ;;
+          5)
+            printf '%s\\n' '{"id":189,"method":"mcpServer/elicitation/request","params":{"serverName":"codebase-memory","threadId":"thread-bos-188","turnId":"turn-bos-188","mode":"form","message":"Allow local code search?","requestedSchema":{"type":"object","properties":{}},"_meta":{"codex_approval_kind":"mcp_tool_call","persist":["session","always"]}}}'
+            ;;
+          6) printf '%s\\n' '{"method":"turn/completed"}'; exit 0 ;;
           *) exit 0 ;;
         esac
       done
@@ -516,20 +519,23 @@ defmodule SymphonyElixir.AppServerTest do
 
       assert {:ok, _result} = AppServer.run(workspace, "Handle BOS MCP elicitation", issue)
 
-      assert trace_file
-             |> File.read!()
-             |> String.split("\n", trim: true)
-             |> Enum.any?(fn line ->
-               if String.starts_with?(line, "JSON:") do
-                 payload = line |> String.trim_leading("JSON:") |> Jason.decode!()
+      responses =
+        trace_file
+        |> File.read!()
+        |> String.split("\n", trim: true)
+        |> Enum.filter(fn line ->
+          if String.starts_with?(line, "JSON:") do
+            payload = line |> String.trim_leading("JSON:") |> Jason.decode!()
 
-                 payload["id"] == 188 and
-                   get_in(payload, ["result", "action"]) == "accept" and
-                   get_in(payload, ["result", "content"]) == %{}
-               else
-                 false
-               end
-             end)
+            payload["id"] in [188, 189] and
+              get_in(payload, ["result", "action"]) == "accept" and
+              get_in(payload, ["result", "content"]) == %{}
+          else
+            false
+          end
+        end)
+
+      assert length(responses) == 2
     after
       System.delete_env("SYMP_TEST_BOS_MCP_ELICITATION_TRACE")
       File.rm_rf(test_root)

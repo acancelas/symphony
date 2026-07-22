@@ -8,10 +8,11 @@ non-forced remote issue branch before independent reviews or final evidence can 
 restart recovery depend on durable Git state rather than an X1 filesystem surviving intact.
 
 Non-interactive BOS runs use the `never` approval policy. Symphony automatically accepts only
-Codex's structured `mcp_tool_call` elicitations from the trusted `bos-mcp` server; unknown MCP
-elicitations still stop for operator input, and local shell commands remain subject to the command
-policy and sandbox. This keeps evidence queries and durable review recording autonomous without
-turning arbitrary external MCP prompts into an approval bypass.
+Codex's structured `mcp_tool_call` elicitations from the trusted local `bos-mcp` and
+`codebase-memory` servers; unknown MCP elicitations still stop for operator input, and local shell
+commands remain subject to the command policy and sandbox. This keeps evidence queries, indexed
+code searches and durable review recording autonomous without turning arbitrary external MCP
+prompts into an approval bypass.
 
 [![Symphony demo video preview](.github/media/symphony-demo-poster.jpg)](https://player.vimeo.com/video/1186371009?h=5626e4b899)
 
