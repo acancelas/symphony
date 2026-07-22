@@ -1,0 +1,14 @@
+{
+  "reviewId": "review_symphony_40_architecture_3c9267f",
+  "runId": "run_symphony_40_budget_20260722",
+  "attemptId": "attempt_run_symphony_40_budget_20260722_1",
+  "reviewType": "architecture",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "commitSha": "3c9267f0c26f93525790a9907f13d4022ca56b2c",
+  "status": "passed",
+  "findings": [],
+  "summary": "The control belongs at the App Server stream boundary, with a pure budget state machine and role selection passed by existing coordinators. Soft completion and hard interruption both return a pause; the scheduler preserves the retry ordinal, so start_execution resolves the same durable Attempt and Delivery review coordination cannot duplicate PR, Evidence, or Review artifacts."
+}
