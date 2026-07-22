@@ -4,11 +4,13 @@ defmodule SymphonyElixir.Codex.AppServer do
   """
 
   require Logger
-  alias SymphonyElixir.{Codex.CommandPolicy, Codex.DynamicTool, Config, PathSafety, SSH}
+  alias SymphonyElixir.{Codex.CommandPolicy, Codex.DynamicTool, Codex.TurnBudget, Config, PathSafety, SSH}
 
   @initialize_id 1
   @thread_start_id 2
   @turn_start_id 3
+  @turn_steer_id 4
+  @turn_interrupt_id 5
   @port_line_bytes 1_048_576
   @max_stream_log_bytes 1_000
   @non_interactive_tool_input_answer "This is a non-interactive session. Operator input is unavailable."
@@ -110,7 +112,18 @@ defmodule SymphonyElixir.Codex.AppServer do
           metadata
         )
 
-        case await_turn_completion(port, on_message, tool_executor, auto_approve_requests) do
+        role = Keyword.get(opts, :role, "implementation-agent")
+
+        case await_turn_completion(
+               port,
+               on_message,
+               tool_executor,
+               auto_approve_requests,
+               thread_id,
+               turn_id,
+               role,
+               metadata
+             ) do
           {:ok, result} ->
             Logger.info("Codex session completed for #{issue_context(issue)} session_id=#{session_id}")
 
@@ -395,48 +408,74 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp await_turn_completion(port, on_message, tool_executor, auto_approve_requests) do
-    receive_loop(
-      port,
-      on_message,
-      Config.settings!().codex.turn_timeout_ms,
-      "",
-      tool_executor,
-      auto_approve_requests
-    )
+  defp await_turn_completion(
+         port,
+         on_message,
+         tool_executor,
+         auto_approve_requests,
+         thread_id,
+         turn_id,
+         role,
+         metadata
+       ) do
+    budget = TurnBudget.new(role, Config.codex_turn_budget(role))
+
+    context = %{
+      port: port,
+      on_message: on_message,
+      timeout_ms: Config.settings!().codex.turn_timeout_ms,
+      tool_executor: tool_executor,
+      auto_approve_requests: auto_approve_requests,
+      thread_id: thread_id,
+      turn_id: turn_id,
+      metadata: metadata
+    }
+
+    receive_loop(context, "", budget)
   end
 
-  defp receive_loop(port, on_message, timeout_ms, pending_line, tool_executor, auto_approve_requests) do
+  defp receive_loop(%{port: port} = context, pending_line, budget) do
+    {actions, budget} = TurnBudget.actions(budget)
+    budget = enforce_budget_actions(context, actions, budget)
+    wait_ms = next_receive_timeout(context.timeout_ms, budget)
+
     receive do
       {^port, {:data, {:eol, chunk}}} ->
         complete_line = pending_line <> to_string(chunk)
-        handle_incoming(port, on_message, complete_line, timeout_ms, tool_executor, auto_approve_requests)
+
+        handle_incoming(context, complete_line, budget)
 
       {^port, {:data, {:noeol, chunk}}} ->
-        receive_loop(
-          port,
-          on_message,
-          timeout_ms,
-          pending_line <> to_string(chunk),
-          tool_executor,
-          auto_approve_requests
-        )
+        receive_loop(context, pending_line <> to_string(chunk), budget)
 
       {^port, {:exit_status, status}} ->
         {:error, {:port_exit, status}}
     after
-      timeout_ms ->
-        {:error, :turn_timeout}
+      wait_ms ->
+        {actions, budget} = TurnBudget.actions(budget)
+
+        if actions == [] do
+          {:error, :turn_timeout}
+        else
+          budget = enforce_budget_actions(context, actions, budget)
+          receive_loop(context, pending_line, budget)
+        end
     end
   end
 
-  defp handle_incoming(port, on_message, data, timeout_ms, tool_executor, auto_approve_requests) do
+  defp handle_incoming(%{port: port, on_message: on_message} = context, data, budget) do
     payload_string = to_string(data)
 
     case Jason.decode(payload_string) do
       {:ok, %{"method" => "turn/completed"} = payload} ->
+        budget = TurnBudget.observe(budget, payload)
         emit_turn_event(on_message, :turn_completed, payload, payload_string, port, payload)
-        {:ok, :turn_completed}
+
+        if budget.soft_triggered do
+          {:ok, %{status: :budget_paused, budget: TurnBudget.snapshot(budget)}}
+        else
+          {:ok, :turn_completed}
+        end
 
       {:ok, %{"method" => "turn/failed", "params" => _} = payload} ->
         emit_turn_event(
@@ -464,16 +503,9 @@ defmodule SymphonyElixir.Codex.AppServer do
 
       {:ok, %{"method" => method} = payload}
       when is_binary(method) ->
-        handle_turn_method(
-          port,
-          on_message,
-          payload,
-          payload_string,
-          method,
-          timeout_ms,
-          tool_executor,
-          auto_approve_requests
-        )
+        budget = TurnBudget.observe(budget, payload)
+
+        handle_turn_method(context, payload, payload_string, method, budget)
 
       {:ok, payload} ->
         emit_message(
@@ -486,7 +518,7 @@ defmodule SymphonyElixir.Codex.AppServer do
           metadata_from_message(port, payload)
         )
 
-        receive_loop(port, on_message, timeout_ms, "", tool_executor, auto_approve_requests)
+        receive_loop(context, "", budget)
 
       {:error, _reason} ->
         log_non_json_stream_line(payload_string, "turn stream")
@@ -503,7 +535,7 @@ defmodule SymphonyElixir.Codex.AppServer do
           )
         end
 
-        receive_loop(port, on_message, timeout_ms, "", tool_executor, auto_approve_requests)
+        receive_loop(context, "", budget)
     end
   end
 
@@ -521,14 +553,11 @@ defmodule SymphonyElixir.Codex.AppServer do
   end
 
   defp handle_turn_method(
-         port,
-         on_message,
+         %{port: port, on_message: on_message} = context,
          payload,
          payload_string,
          method,
-         timeout_ms,
-         tool_executor,
-         auto_approve_requests
+         budget
        ) do
     metadata = metadata_from_message(port, payload)
 
@@ -539,8 +568,8 @@ defmodule SymphonyElixir.Codex.AppServer do
            payload_string,
            on_message,
            metadata,
-           tool_executor,
-           auto_approve_requests
+           context.tool_executor,
+           context.auto_approve_requests
          ) do
       :input_required ->
         emit_message(
@@ -553,7 +582,7 @@ defmodule SymphonyElixir.Codex.AppServer do
         {:error, {:turn_input_required, payload}}
 
       :approved ->
-        receive_loop(port, on_message, timeout_ms, "", tool_executor, auto_approve_requests)
+        receive_loop(context, "", budget)
 
       :approval_required ->
         emit_message(
@@ -587,9 +616,77 @@ defmodule SymphonyElixir.Codex.AppServer do
           )
 
           Logger.debug("Codex notification: #{inspect(method)}")
-          receive_loop(port, on_message, timeout_ms, "", tool_executor, auto_approve_requests)
+          receive_loop(context, "", budget)
         end
     end
+  end
+
+  defp enforce_budget_actions(context, actions, budget) do
+    Enum.each(actions, fn
+      :checkpoint ->
+        send_message(context.port, %{
+          "method" => "turn/steer",
+          "id" => @turn_steer_id,
+          "params" => %{
+            "threadId" => context.thread_id,
+            "expectedTurnId" => context.turn_id,
+            "clientUserMessageId" => "bos-checkpoint-#{context.turn_id}",
+            "input" => [
+              %{
+                "type" => "text",
+                "text" => checkpoint_instruction()
+              }
+            ]
+          }
+        })
+
+        emit_message(
+          context.on_message,
+          :turn_budget_soft_limit,
+          TurnBudget.snapshot(budget),
+          context.metadata
+        )
+
+      :interrupt ->
+        send_message(context.port, %{
+          "method" => "turn/interrupt",
+          "id" => @turn_interrupt_id,
+          "params" => %{"threadId" => context.thread_id, "turnId" => context.turn_id}
+        })
+
+        emit_message(
+          context.on_message,
+          :turn_budget_hard_limit,
+          TurnBudget.snapshot(budget),
+          context.metadata
+        )
+    end)
+
+    budget
+  end
+
+  defp checkpoint_instruction do
+    """
+    BOS turn budget reached its soft limit. Stop broad exploration now. Finish
+    only the current safe operation, preserve the existing workspace and exact
+    AgentRun/Attempt, record a concise durable checkpoint through bos-mcp, and
+    end this turn. Reuse existing PRs, Reviews and EvidenceReports; do not create
+    duplicates. Do not start another validation cycle or unrelated work.
+    """
+  end
+
+  defp next_receive_timeout(timeout_ms, budget) do
+    elapsed = System.monotonic_time(:millisecond) - budget.started_at_ms
+
+    candidates =
+      [
+        unless(budget.soft_triggered, do: budget.soft_wall_clock_ms),
+        unless(budget.hard_triggered, do: budget.hard_wall_clock_ms)
+      ]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(&max(&1 - elapsed, 1))
+
+    Enum.min([timeout_ms | candidates])
   end
 
   defp maybe_handle_approval_request(

@@ -149,7 +149,10 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
           send_update(context.recipient, context.issue, actor, message)
         end
 
-        case context.app_server.run_turn(session, prompt, context.issue, on_message: callback) do
+        case context.app_server.run_turn(session, prompt, context.issue,
+               on_message: callback,
+               role: actor
+             ) do
           {:ok, _turn} -> :ok
           {:error, reason} -> {:error, reason}
         end

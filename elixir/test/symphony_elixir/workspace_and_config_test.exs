@@ -1225,6 +1225,43 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
     assert config.codex.stall_timeout_ms == 300_000
 
     write_workflow_file!(Workflow.workflow_file_path(),
+      codex_turn_budgets: %{
+        "default" => %{
+          "soft_wall_clock_ms" => 1_000,
+          "hard_wall_clock_ms" => 2_000,
+          "soft_uncached_input_tokens" => 100,
+          "hard_uncached_input_tokens" => 200
+        }
+      }
+    )
+
+    assert Config.codex_turn_budget("security-reviewer")["hard_uncached_input_tokens"] == 200
+
+    write_workflow_file!(Workflow.workflow_file_path(),
+      codex_turn_budgets: %{
+        "default" => %{
+          "soft_wall_clock_ms" => 2_000,
+          "hard_wall_clock_ms" => 1_000
+        }
+      }
+    )
+
+    assert {:error, {:invalid_workflow_config, message}} = Config.validate!()
+    assert message =~ "soft_wall_clock_ms must be less than hard_wall_clock_ms"
+
+    invalid_budget_shapes = [
+      %{1 => %{}},
+      %{"default" => "not-a-map"},
+      %{"default" => %{"soft_wall_clock_ms" => 0}}
+    ]
+
+    Enum.each(invalid_budget_shapes, fn budgets ->
+      changeset = Codex.changeset(%Codex{}, %{turn_budgets: budgets})
+      refute changeset.valid?
+      assert Changeset.traverse_errors(changeset, fn {message, _opts} -> message end).turn_budgets
+    end)
+
+    write_workflow_file!(Workflow.workflow_file_path(),
       tracker_required_labels: [" Symphony ", "SYMPHONY", "JavaScript"]
     )
 

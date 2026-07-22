@@ -211,6 +211,17 @@ agent:
   max_turns: 20
 codex:
   command: codex app-server
+  turn_budgets:
+    default:
+      soft_wall_clock_ms: 600000
+      hard_wall_clock_ms: 900000
+      soft_uncached_input_tokens: 100000
+      hard_uncached_input_tokens: 150000
+    implementation-agent:
+      soft_wall_clock_ms: 900000
+      hard_wall_clock_ms: 1200000
+      soft_uncached_input_tokens: 200000
+      hard_uncached_input_tokens: 300000
 ---
 
 You are working on an issue from the configured tracker {{ issue.identifier }}.
@@ -241,6 +252,17 @@ Notes:
   by the Codex turn sandbox.
 - `agent.max_turns` caps how many back-to-back Codex turns Symphony will run in a single agent
   invocation when a turn completes normally but the issue is still in an active state. Default: `20`.
+- `codex.turn_budgets` bounds each individual app-server turn by actor role. The `default` entry
+  covers reviewers and any role without an explicit override. `implementation-agent` and
+  `delivery-coordinator` have tuned defaults. Soft limits send a single `turn/steer` checkpoint
+  instruction; hard limits send `turn/interrupt` and return control to the scheduler without
+  opening reviews, creating another PR, or changing the durable AgentRun/Attempt. Token limits use
+  uncached input (`input_tokens - cached_input_tokens`), so effective cache reuse is observable but
+  is not penalized as new context. Every configured limit must be positive and each soft limit must
+  be lower than its corresponding hard limit.
+- The runtime exposes `soft_limit`, `hard_limit`, and `provider_rate_limit` as distinct pause
+  statuses. Budget events flow through the normal BOS audit outbox, preserving the role, elapsed
+  time, input, cached input, uncached input, and reason needed for safe recovery.
 - If the Markdown body is blank, Symphony uses a default prompt template that includes the issue
   identifier, title, and body.
 - Use `hooks.after_create` to bootstrap a fresh workspace. For a Git-backed repo, you can run

@@ -100,13 +100,34 @@ defmodule SymphonyElixir.AgentRunner do
   end
 
   defp run_bos_delivery_stage({:ok, false}, workspace, issue, recipient, opts, worker_host) do
-    with :ok <- run_codex_turns(workspace, issue, recipient, opts, worker_host) do
+    implementation_result = run_codex_turns(workspace, issue, recipient, opts, worker_host)
+
+    continue_after_implementation(implementation_result, issue, fn ->
       DeliveryCoordinator.run(workspace, issue, recipient, delivery_context_opts(opts), worker_host)
-    end
+    end)
   end
 
   defp run_bos_delivery_stage({:error, reason}, _workspace, _issue, _recipient, _opts, _worker_host) do
     {:error, {:review_stage_lookup_failed, reason}}
+  end
+
+  @doc false
+  @spec continue_after_implementation_for_test(term(), Issue.t(), (-> term())) :: term()
+  def continue_after_implementation_for_test(result, issue, coordinator)
+      when is_function(coordinator, 0) do
+    continue_after_implementation(result, issue, coordinator)
+  end
+
+  defp continue_after_implementation(result, issue, coordinator) do
+    case result do
+      :ok ->
+        coordinator.()
+
+      {:paused, budget} ->
+        Logger.info("Paused bounded implementation turn for #{issue_context(issue)} reason=#{budget.pause_reason}")
+
+        :ok
+    end
   end
 
   defp codex_message_handler(recipient, issue) do
@@ -184,41 +205,48 @@ defmodule SymphonyElixir.AgentRunner do
   defp do_run_codex_turns(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
     prompt = build_turn_prompt(issue, opts, turn_number, max_turns)
 
-    with {:ok, turn_session} <-
-           AppServer.run_turn(
-             app_session,
-             prompt,
-             issue,
-             on_message: codex_message_handler(codex_update_recipient, issue)
-           ) do
-      Logger.info("Completed agent run for #{issue_context(issue)} session_id=#{turn_session[:session_id]} workspace=#{workspace} turn=#{turn_number}/#{max_turns}")
+    case AppServer.run_turn(
+           app_session,
+           prompt,
+           issue,
+           on_message: codex_message_handler(codex_update_recipient, issue),
+           role: "implementation-agent"
+         ) do
+      {:ok, %{result: %{status: :budget_paused, budget: budget}}} ->
+        {:paused, budget}
 
-      case continue_with_issue?(issue, issue_state_fetcher) do
-        {:continue, refreshed_issue} when turn_number < max_turns ->
-          Logger.info("Continuing agent run for #{issue_context(refreshed_issue)} after normal turn completion turn=#{turn_number}/#{max_turns}")
+      {:ok, turn_session} ->
+        Logger.info("Completed agent run for #{issue_context(issue)} session_id=#{turn_session[:session_id]} workspace=#{workspace} turn=#{turn_number}/#{max_turns}")
 
-          do_run_codex_turns(
-            app_session,
-            workspace,
-            refreshed_issue,
-            codex_update_recipient,
-            opts,
-            issue_state_fetcher,
-            turn_number + 1,
-            max_turns
-          )
+        case continue_with_issue?(issue, issue_state_fetcher) do
+          {:continue, refreshed_issue} when turn_number < max_turns ->
+            Logger.info("Continuing agent run for #{issue_context(refreshed_issue)} after normal turn completion turn=#{turn_number}/#{max_turns}")
 
-        {:continue, refreshed_issue} ->
-          Logger.info("Reached agent.max_turns for #{issue_context(refreshed_issue)} with issue still active; returning control to orchestrator")
+            do_run_codex_turns(
+              app_session,
+              workspace,
+              refreshed_issue,
+              codex_update_recipient,
+              opts,
+              issue_state_fetcher,
+              turn_number + 1,
+              max_turns
+            )
 
-          :ok
+          {:continue, refreshed_issue} ->
+            Logger.info("Reached agent.max_turns for #{issue_context(refreshed_issue)} with issue still active; returning control to orchestrator")
 
-        {:done, _refreshed_issue} ->
-          :ok
+            :ok
 
-        {:error, reason} ->
-          {:error, reason}
-      end
+          {:done, _refreshed_issue} ->
+            :ok
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
