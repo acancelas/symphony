@@ -1,0 +1,20 @@
+{
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "issueNumber": 51,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "alejandro-cancelas"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "8c2ec23a",
+    "codexVersion": "codex-desktop"
+  },
+  "startedAt": "2026-07-22T14:11:39.549000Z",
+  "branch": "bos/capacity-wait-reconciliation",
+  "baseCommit": "8c2ec23a4a7873890a81562a1e701efae684be34",
+  "currentAttemptId": "attempt-symphony-capacity-wait-reconciliation-1"
+}
