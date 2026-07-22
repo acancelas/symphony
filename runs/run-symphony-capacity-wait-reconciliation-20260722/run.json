@@ -2,7 +2,7 @@
   "runId": "run-symphony-capacity-wait-reconciliation-20260722",
   "issueNumber": 51,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "runner",
     "runnerId": "x1"
@@ -13,7 +13,10 @@
     "orchestratorVersion": "0.0.1"
   },
   "startedAt": "2026-07-22T14:11:39.549000Z",
-  "branch": "bos/issue-51",
+  "completedAt": "2026-07-22T15:03:05.685000Z",
+  "branch": "bos/capacity-wait-reconciliation",
   "baseCommit": "8c2ec23a4a7873890a81562a1e701efae684be34",
+  "headCommit": "2be943c98f4a7eedfcc9b69896ac35f058bd1970",
+  "pullRequestNumber": 52,
   "currentAttemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3"
 }
