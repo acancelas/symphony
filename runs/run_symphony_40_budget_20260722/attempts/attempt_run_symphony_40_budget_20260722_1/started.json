@@ -1,0 +1,15 @@
+{
+  "attemptId": "attempt_run_symphony_40_budget_20260722_1",
+  "runId": "run_symphony_40_budget_20260722",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Codex implementation agent",
+    "authenticatedBy": "bos_mcp_internal_token"
+  },
+  "startedAt": "2026-07-22T02:15:00Z",
+  "reason": "Implement role-specific turn budgets, durable checkpoints, hard interruption, safe resumption, and token/cache observability.",
+  "metrics": {}
+}
