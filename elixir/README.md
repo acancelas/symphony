@@ -51,11 +51,14 @@ instead of forcing one remote commit per diff notification. Terminal turn comple
 cancellation events still flush immediately. This preserves the filesystem recovery fast-path and
 the replacement-X1 ledger while avoiding unnecessary GitHub ref/tree/commit pressure.
 Ordinary flush failures use bounded exponential backoff with jitter per AgentRun. A `game-api` or
-GitHub provider rate limit opens one process-wide audit circuit for 1 to 15 minutes: hundreds of
-pending runs cannot take turns bypassing the same integration cooldown. Critical events continue
-to be written locally, but no pending run flushes until the shared circuit permits a probe. An
-expired retry keeps its attempt counter until a batch succeeds, so repeated failures actually
-progress through the exponential schedule instead of restarting at the shortest delay.
+GitHub provider rate limit opens one process-wide audit circuit: the internal exponential backoff
+is capped at 15 minutes, while an explicit provider `Retry-After` remains authoritative up to a
+defensive 24-hour ceiling. Symphony adds a positive jitter of at most 10% and 30 seconds without
+ever shortening that provider window, so concurrent X1 workers do not probe in lockstep when the
+circuit reopens. Critical events continue to be written locally, but no pending run flushes until
+the shared circuit permits a probe. An expired retry keeps its attempt counter until a batch
+succeeds, so repeated failures actually progress through the exponential schedule instead of
+restarting at the shortest delay.
 After a batch is confirmed, Symphony atomically advances a single local sequence watermark for
 the AgentRun before removing the corresponding event files. Legacy per-batch receipts are
 compacted into that watermark at startup. GitHub remains the permanent receipt and ledger; local

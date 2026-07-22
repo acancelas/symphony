@@ -11,6 +11,8 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
   @lock_key {__MODULE__, :lock}
   @initial_backoff_ms 60_000
   @maximum_backoff_ms 900_000
+  @maximum_provider_retry_ms 86_400_000
+  @maximum_jitter_ms 30_000
 
   @spec before_request() :: :ok | {:error, {:game_api_rate_limited, non_neg_integer()}}
   def before_request do
@@ -36,6 +38,18 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
 
   @spec rate_limited(non_neg_integer() | nil) :: non_neg_integer()
   def rate_limited(provider_retry_ms \\ nil) do
+    rate_limited_with_jitter(provider_retry_ms, &random_jitter_ms/1)
+  end
+
+  @doc false
+  @spec rate_limited_for_test(non_neg_integer() | nil, non_neg_integer()) :: non_neg_integer()
+  def rate_limited_for_test(provider_retry_ms, jitter_ms) when is_integer(jitter_ms) and jitter_ms >= 0 do
+    rate_limited_with_jitter(provider_retry_ms, fn jitter_window_ms ->
+      min(jitter_ms, jitter_window_ms)
+    end)
+  end
+
+  defp rate_limited_with_jitter(provider_retry_ms, jitter_fun) do
     locked(fn ->
       now = monotonic_ms()
       state = :persistent_term.get(@state_key, nil)
@@ -45,7 +59,8 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
       else
         attempt = (state && state.attempt) || 0
         next_attempt = attempt + 1
-        delay_ms = max(backoff_ms(next_attempt), bounded_provider_delay(provider_retry_ms))
+        base_delay_ms = max(backoff_ms(next_attempt), bounded_provider_delay(provider_retry_ms))
+        delay_ms = base_delay_ms + jitter_fun.(jitter_window_ms(base_delay_ms))
 
         :persistent_term.put(@state_key, %{
           attempt: next_attempt,
@@ -99,9 +114,12 @@ defmodule SymphonyElixir.GameApi.ProviderCircuit do
   end
 
   defp bounded_provider_delay(delay_ms) when is_integer(delay_ms) and delay_ms > 0,
-    do: min(delay_ms, @maximum_backoff_ms)
+    do: min(delay_ms, @maximum_provider_retry_ms)
 
   defp bounded_provider_delay(_delay_ms), do: 0
+
+  defp jitter_window_ms(delay_ms), do: min(max(div(delay_ms, 10), 1), @maximum_jitter_ms)
+  defp random_jitter_ms(jitter_window_ms), do: :rand.uniform(jitter_window_ms)
 
   defp locked(fun), do: :global.trans(@lock_key, fun)
   defp monotonic_ms, do: System.monotonic_time(:millisecond)
