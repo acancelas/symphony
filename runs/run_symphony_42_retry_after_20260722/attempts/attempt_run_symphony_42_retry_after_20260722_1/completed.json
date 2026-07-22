@@ -1,0 +1,21 @@
+{
+  "attemptId": "attempt_run_symphony_42_retry_after_20260722_1",
+  "runId": "run_symphony_42_retry_after_20260722",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-22T03:31:04Z",
+  "completedAt": "2026-07-22T03:35:18Z",
+  "reason": "Provider-aware retry scheduling implemented and verified.",
+  "summary": "Full validation passed: 342 tests, 0 failures, 2 skipped, 100% coverage, formatting, Credo, specs, Dialyzer and both exact-head GitHub checks.",
+  "metrics": {
+    "tests": 342,
+    "failures": 0,
+    "skipped": 2,
+    "coveragePercent": 100,
+    "checkRuns": 2
+  }
+}
