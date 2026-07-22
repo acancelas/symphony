@@ -1,0 +1,22 @@
+{
+  "attemptId": "attempt_001",
+  "runId": "run_symphony_44_20260722",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent",
+    "displayName": "Implementation agent"
+  },
+  "startedAt": "2026-07-22T04:30:00Z",
+  "completedAt": "2026-07-22T05:35:21Z",
+  "reason": "Implement and verify provider-aware retry scheduling with bounded positive jitter.",
+  "summary": "Implementation, exact-PR checks, three specialized reviews, policy merge, clean post-merge gate, atomic installation, systemd health, dashboard HTTP and listening-port verification passed.",
+  "metrics": {
+    "testsPassed": 345,
+    "testsFailed": 0,
+    "testsSkipped": 2,
+    "coveragePercent": 100,
+    "reviewCount": 3
+  }
+}
