@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3a156ac1-b554-41f3-90ba-543ed865ed71",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730457992_1022",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:27:37.982Z",
+  "command": "/bin/bash -lc \"sed -n '100,160p' elixir/lib/symphony_elixir/audit/outbox.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "    next = Enum.reduce(Map.keys(state.runs), state, &flush_run(&2, &1))\n    {:reply, :ok, next}\n  end\n\n  @impl true\n  def handle_info(:flush, state) do\n    next = Enum.reduce(Map.keys(state.runs), state, &flush_run(&2, &1))\n    Process.send_after(self(), :flush, @flush_interval_ms)\n    {:noreply, next}\n  end\n\n  defp build_event(%Issue{native_ref: native_ref} = issue, update, state) do\n    run_id = native_ref[\"runId\"]\n    repository_id = native_ref[\"repositoryId\"]\n\n    if blank?(run_id) or blank?(repository_id) do\n      {:error, :missing_run_identity}\n    else\n      current = Map.get_lazy(state.runs, run_id, fn -> recover_remote_state(issue) end)\n      sequence = current.sequence + 1\n      now = DateTime.utc_now() |> DateTime.truncate(:millisecond)\n      unique = System.unique_integer([:positive, :monotonic])\n      event_id = \"event_#{System.system_time(:millisecond)}_#{unique}\"\n      method = get_in(update, [:payload, \"method\"]) || Atom.to_string(update.event)\n      occurred_at = timestamp(now)\n      normalized_payload = normalize_codex_payload(method, update.payload || %{}, occurred_at)\n\n      event = %{\n        \"schemaVersion\" => \"1.0\",\n        \"eventId\" => event_id,\n        \"occurredAt\" => occurred_at,\n        \"scopeType\" => \"run\",\n        \"scopeId\" => run_id,\n        \"sequence\" => sequence,\n        \"previousEventHash\" => current.previous_hash,\n        \"correlationId\" => run_id,\n        \"operationId\" => \"op_#{event_id}\",\n        \"repositoryId\" => repository_id,\n        \"issueNumber\" => native_ref[\"issueNumber\"],\n        \"runId\" => run_id,\n        \"attemptId\" => attempt_id(issue, current),\n        \"actor\" => actor_for_update(update, method),\n        \"runner\" => %{\"id\" => runner_id(), \"type\" => \"local\"},\n        \"eventType\" => event_type(method, update.payload || %{}),\n        \"status\" => event_status(update),\n        \"summary\" => summary(method, normalized_payload),\n        \"references\" => %{\"branch\" => issue.branch_name},\n        \"evidence\" => [],\n        \"redact",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
