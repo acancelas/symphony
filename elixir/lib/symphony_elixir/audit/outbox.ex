@@ -1338,7 +1338,7 @@ defmodule SymphonyElixir.Audit.Outbox do
       Path.expand("~/.bos/outbox")
   end
 
-  defp runner_id, do: System.get_env("BOS_RUNNER_ID") || "x1"
+  defp runner_id, do: SymphonyElixir.RunnerIdentity.id()
   defp implementation_agent_id, do: System.get_env("BOS_IMPLEMENTATION_AGENT_ID") || "implementation-agent"
 
   defp normalize_paths(value) do
