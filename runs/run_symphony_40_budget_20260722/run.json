@@ -1,0 +1,20 @@
+{
+  "runId": "run_symphony_40_budget_20260722",
+  "issueNumber": 40,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "github:acancelas"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "manual-recovery",
+    "codexVersion": "codex-desktop"
+  },
+  "startedAt": "2026-07-22T02:15:00Z",
+  "branch": "bos/issue-40",
+  "baseCommit": "04c9c5e86d00e704acb63938dd35efc53ff2c8dd",
+  "currentAttemptId": "attempt_run_symphony_40_budget_20260722_1"
+}
