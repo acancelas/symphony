@@ -1,0 +1,72 @@
+{
+  "evidenceId": "evidence_symphony_15_final_ab077d1",
+  "runId": "run_15_1784671370806",
+  "commitSha": "ab077d1d68168c1758eec66826635f579343bc42",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "ANSI bytes match Python rfc8785",
+      "status": "passed",
+      "evidence": "The Elixir canonical payload and SHA-256 match the Python RFC 8785 fixture exactly."
+    },
+    {
+      "criterion": "422 audit integrity failures trigger bounded recovery",
+      "status": "passed",
+      "evidence": "Canonicalization and event-hash errors share the existing remote-watermark recovery and pending-only rebase path."
+    },
+    {
+      "criterion": "Pending events retain stable identity",
+      "status": "passed",
+      "evidence": "Recovery recalculates sequence and hashes only; eventId values are preserved and confirmed files are not rewritten."
+    },
+    {
+      "criterion": "Remote chain verifies through the live tail",
+      "status": "passed",
+      "evidence": "bos-front run verification is valid through sequence 12614 with 12531 retained events and an immutable proof for 83 retained omissions."
+    },
+    {
+      "criterion": "Complete Symphony validation gate",
+      "status": "passed",
+      "evidence": "make -C elixir all: 336 tests, 0 failures, 2 skipped, 100% coverage, Credo clean, Dialyzer clean."
+    },
+    {
+      "criterion": "Independent exact-head reviews",
+      "status": "passed",
+      "evidence": "Architecture, security and quality reviews passed for ab077d1d68168c1758eec66826635f579343bc42."
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed",
+      "tests": 336,
+      "coverage": "100%"
+    },
+    {
+      "name": "credo",
+      "status": "passed"
+    },
+    {
+      "name": "dialyzer",
+      "status": "passed"
+    },
+    {
+      "name": "live-audit-chain",
+      "status": "passed",
+      "lastSequence": 12614,
+      "retainedOmissionCount": 83
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "number": 35
+    },
+    {
+      "type": "commit",
+      "sha": "ab077d1d68168c1758eec66826635f579343bc42"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Canonicalization compatibility, bounded outbox recovery, full repository validation, exact-head reviews and live durable-chain verification all pass."
+}
