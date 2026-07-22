@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-30c572f6-bb00-4251-b55f-5708eade55c1",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730188516_924",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:23:09.369Z",
+  "command": "/bin/bash -lc \"grep -RIn --exclude-dir=.git --exclude-dir=_build --exclude-dir=deps 'delivery/issues/release\\\\|operationId.*release_\\\\|bos_release_issue' . | head -120 && grep -RIn --exclude-dir=_build --exclude-dir=deps 'GameApi.*Client\\\\|heartbeat_issue' elixir/test/symphony_elixir | head -100 && find elixir/test -type f -maxdepth 3 | sort | grep -E 'game_api|orchestrator|capacity' | head -100\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/test/symphony_elixir/extensions_test.exs:213:    assert :ok = SymphonyElixir.Tracker.heartbeat_issue(issue)\nelixir/test/symphony_elixir/game_api_adapter_test.exs:5:  alias SymphonyElixir.GameApi.Client\nelixir/test/symphony_elixir/capacity_queue_test.exs\nelixir/test/symphony_elixir/game_api_adapter_test.exs\nelixir/test/symphony_elixir/game_api_provider_circuit_test.exs\nelixir/test/symphony_elixir/orchestrator_status_test.exs\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
