@@ -7,7 +7,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
   defmodule FakeAppServer do
     def start_session(_workspace, opts) do
       actor = opts |> Keyword.fetch!(:environment_overrides) |> Map.new() |> Map.fetch!("BOS_MCP_ACTOR")
-      send(Application.fetch_env!(:symphony_elixir, :delivery_test_pid), {:session_started, actor})
+      send(Application.fetch_env!(:symphony_elixir, :delivery_test_pid), {:session_started, actor, opts})
       {:ok, %{actor: actor}}
     end
 
@@ -17,6 +17,8 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
       if String.ends_with?(session.actor, "-reviewer") do
         role = String.trim_trailing(session.actor, "-reviewer")
         [_, cycle] = Regex.run(~r/, cycle (\d+)\./, prompt)
+        [_, review_id] = Regex.run(~r/reviewId `([^`]+)`/, prompt)
+        [_, commit_sha] = Regex.run(~r/exact confirmed git HEAD `([0-9a-f]{40})`/, prompt)
         statuses = Application.get_env(:symphony_elixir, :delivery_review_statuses, %{})
         status = Map.get(statuses, role, "passed")
         reviews = Application.get_env(:symphony_elixir, :delivery_test_reviews, [])
@@ -24,7 +26,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
         Application.put_env(
           :symphony_elixir,
           :delivery_test_reviews,
-          [review_artifact(role, status, String.to_integer(cycle)) | reviews]
+          [review_artifact(role, status, String.to_integer(cycle), review_id, commit_sha) | reviews]
         )
       end
 
@@ -33,10 +35,11 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
 
     def stop_session(_session), do: :ok
 
-    defp review_artifact(role, status, cycle) do
+    defp review_artifact(role, status, _cycle, review_id, commit_sha) do
       %{
-        "reviewId" => "review_run_001_#{cycle}_#{role}",
+        "reviewId" => review_id,
         "reviewType" => role,
+        "commitSha" => commit_sha,
         "status" => status,
         "summary" => "#{role} result",
         "findings" => []
@@ -60,10 +63,14 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
       Application.put_env(:symphony_elixir, :delivery_review_record_attempt, attempt)
 
       if attempt == 2 do
+        [_, review_id] = Regex.run(~r/reviewId `([^`]+)`/, prompt)
+        [_, commit_sha] = Regex.run(~r/exact confirmed git HEAD `([0-9a-f]{40})`/, prompt)
+
         Application.put_env(:symphony_elixir, :delivery_test_reviews, [
           %{
-            "reviewId" => "review_run_001_1_functional",
+            "reviewId" => review_id,
             "reviewType" => "functional",
+            "commitSha" => commit_sha,
             "status" => "passed",
             "summary" => "functional result",
             "findings" => []
@@ -121,6 +128,15 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     end
   end
 
+  defmodule MutatingCandidateHead do
+    def confirm(_workspace, issue, _worker_host) do
+      attempt = Application.get_env(:symphony_elixir, :delivery_candidate_confirmations, 0) + 1
+      Application.put_env(:symphony_elixir, :delivery_candidate_confirmations, attempt)
+      head_sha = if attempt == 1, do: String.duplicate("a", 40), else: String.duplicate("b", 40)
+      {:ok, %{branch: issue.branch_name, head_sha: head_sha, remote_sha: head_sha}}
+    end
+  end
+
   setup do
     Application.put_env(:symphony_elixir, :delivery_test_pid, self())
 
@@ -131,6 +147,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
       Application.delete_env(:symphony_elixir, :delivery_review_lookup_attempt)
       Application.delete_env(:symphony_elixir, :delivery_review_statuses)
       Application.delete_env(:symphony_elixir, :delivery_candidate_results)
+      Application.delete_env(:symphony_elixir, :delivery_candidate_confirmations)
     end)
 
     :ok
@@ -155,9 +172,17 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
                nil
              )
 
-    actors = collect_actors(length(roles) + 1, [])
+    sessions = collect_sessions(length(roles) + 1, [])
+    actors = Enum.map(sessions, &elem(&1, 0))
     assert actors == Enum.map(roles, &"#{&1}-reviewer") ++ ["delivery-coordinator"]
     refute "repair-agent" in actors
+
+    Enum.each(Enum.take(sessions, length(roles)), fn {_actor, opts} ->
+      assert opts[:turn_sandbox_policy] == %{"type" => "readOnly", "networkAccess" => true}
+    end)
+
+    {_actor, finalizer_opts} = List.last(sessions)
+    refute Keyword.has_key?(finalizer_opts, :turn_sandbox_policy)
     assert_received {:candidate_confirmed, "/tmp/workspace", "bos/issue-42", nil}
     assert_received {:candidate_confirmed, "/tmp/workspace", "bos/issue-42", nil}
   end
@@ -259,6 +284,61 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
              DeliveryCoordinator.review_stage_started?(issue(), game_api_client_module: FakeClient)
   end
 
+  test "fails closed immediately when a reviewer changes the exact candidate HEAD" do
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
+
+    expected = String.duplicate("a", 40)
+    actual = String.duplicate("b", 40)
+
+    assert {:error, {:reviewer_mutated_candidate, "functional", ^expected, ^actual}} =
+             DeliveryCoordinator.run(
+               "/tmp/workspace",
+               issue(),
+               nil,
+               [
+                 app_server_module: FakeAppServer,
+                 candidate_head_module: MutatingCandidateHead,
+                 game_api_client_module: FakeClient,
+                 review_roles: ["functional"]
+               ],
+               nil
+             )
+
+    assert collect_actors(1, []) == ["functional-reviewer"]
+    refute_received {:session_started, "delivery-coordinator", _opts}
+  end
+
+  test "does not reuse a durable review recorded for a different candidate SHA" do
+    current_head = String.duplicate("0", 40)
+
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [
+      %{
+        "reviewId" => "review_run_001_1_functional_#{String.slice(current_head, 0, 12)}",
+        "reviewType" => "functional",
+        "commitSha" => String.duplicate("f", 40),
+        "status" => "passed",
+        "summary" => "stale",
+        "findings" => []
+      }
+    ])
+
+    assert :ok =
+             DeliveryCoordinator.run(
+               "/tmp/workspace",
+               issue(),
+               nil,
+               [
+                 app_server_module: FakeAppServer,
+                 candidate_head_module: FakeCandidateHead,
+                 game_api_client_module: FakeClient,
+                 review_roles: ["functional"]
+               ],
+               nil
+             )
+
+    assert collect_actors(2, []) == ["functional-reviewer", "delivery-coordinator"]
+  end
+
   test "routes a generated lockfile into one repair turn before fresh exact-head reviews" do
     new_head = String.duplicate("b", 40)
     fingerprint = String.duplicate("c", 64)
@@ -266,6 +346,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
 
     Application.put_env(:symphony_elixir, :delivery_candidate_results, [
       {:dirty, " M uv.lock", ["uv.lock"], fingerprint},
+      {:clean, new_head},
       {:clean, new_head},
       {:clean, new_head},
       {:clean, new_head}
@@ -323,24 +404,41 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     assert prompt =~ "config/runtime.secret"
     assert unresolved.paths == ["config/runtime.secret"]
     assert collect_actors(2, []) == ["dirty-candidate-repair-agent", "delivery-coordinator"]
-    refute_received {:session_started, "functional-reviewer"}
+    refute_received {:session_started, "functional-reviewer", _opts}
   end
 
   defp collect_actors(0, actors), do: Enum.reverse(actors)
 
   defp collect_actors(remaining, actors) do
     receive do
-      {:session_started, actor} -> collect_actors(remaining - 1, [actor | actors])
+      {:session_started, actor, _opts} -> collect_actors(remaining - 1, [actor | actors])
       {:turn, _actor, _prompt} -> collect_actors(remaining, actors)
     after
       1_000 -> flunk("expected #{remaining} additional role sessions")
     end
   end
 
+  defp collect_sessions(0, sessions), do: Enum.reverse(sessions)
+
+  defp collect_sessions(remaining, sessions) do
+    receive do
+      {:session_started, actor, opts} ->
+        collect_sessions(remaining - 1, [{actor, opts} | sessions])
+
+      {:turn, _actor, _prompt} ->
+        collect_sessions(remaining, sessions)
+    after
+      1_000 -> flunk("expected #{remaining} additional role sessions")
+    end
+  end
+
   defp review(role, status) do
+    head_sha = "0123456789abcdef0123456789abcdef01234567"
+
     %{
-      "reviewId" => "review_run_001_1_#{role}",
+      "reviewId" => "review_run_001_1_#{role}_#{String.slice(head_sha, 0, 12)}",
       "reviewType" => role,
+      "commitSha" => head_sha,
       "status" => status,
       "summary" => "#{role} result",
       "findings" => []

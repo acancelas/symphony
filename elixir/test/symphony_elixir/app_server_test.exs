@@ -285,6 +285,33 @@ defmodule SymphonyElixir.AppServerTest do
                  end
                end)
       end)
+
+      File.rm(trace_file)
+
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        codex_command: "#{codex_binary} app-server",
+        codex_turn_sandbox_policy: %{"type" => "dangerFullAccess"}
+      )
+
+      reviewer_policy = %{"type" => "readOnly", "networkAccess" => true}
+
+      assert {:ok, _result} =
+               AppServer.run(workspace, "Validate reviewer override", issue, turn_sandbox_policy: reviewer_policy)
+
+      assert trace_file
+             |> File.read!()
+             |> String.split("\n", trim: true)
+             |> Enum.any?(fn line ->
+               if String.starts_with?(line, "JSON:") do
+                 payload = line |> String.trim_leading("JSON:") |> Jason.decode!()
+
+                 payload["method"] == "turn/start" and
+                   get_in(payload, ["params", "sandboxPolicy"]) == reviewer_policy
+               else
+                 false
+               end
+             end)
     after
       File.rm_rf(test_root)
     end

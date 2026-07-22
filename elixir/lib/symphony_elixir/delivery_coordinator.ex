@@ -19,6 +19,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   @max_repair_cycles 3
   @max_review_record_attempts 2
   @max_review_lookup_attempts 3
+  @review_sandbox_policy %{"type" => "readOnly", "networkAccess" => true}
 
   @doc """
   Returns whether this AgentRun has already crossed the durable review-stage
@@ -188,7 +189,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
              context.worker_host
            ),
          :ok <- run_reviews(context, cycle, candidate),
-         {:ok, reviews} <- fetch_cycle_reviews(context, cycle) do
+         {:ok, reviews} <- fetch_cycle_reviews(context, cycle, candidate) do
       handle_reviews(context, reviews, candidate, cycle, max_cycles)
     end
   end
@@ -225,7 +226,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   end
 
   defp run_or_reuse_review(context, role, cycle, candidate) do
-    case review_recorded?(context, role, cycle) do
+    case review_recorded?(context, role, cycle, candidate) do
       {:ok, true} ->
         Logger.info("Reusing durable specialist Review role=#{role} cycle=#{cycle}")
         :ok
@@ -248,15 +249,21 @@ defmodule SymphonyElixir.DeliveryCoordinator do
            context.worker_host,
            "#{role}-reviewer",
            prompt,
-           context.recipient
+           context.recipient,
+           turn_sandbox_policy: @review_sandbox_policy
          ) do
-      :ok -> verify_or_retry_review(context, role, cycle, candidate, record_attempt)
-      {:error, reason} -> {:error, {:reviewer_failed, role, reason}}
+      :ok ->
+        with :ok <- confirm_reviewer_preserved_candidate(context, role, candidate) do
+          verify_or_retry_review(context, role, cycle, candidate, record_attempt)
+        end
+
+      {:error, reason} ->
+        {:error, {:reviewer_failed, role, reason}}
     end
   end
 
   defp verify_or_retry_review(context, role, cycle, candidate, record_attempt) do
-    case review_recorded?(context, role, cycle) do
+    case review_recorded?(context, role, cycle, candidate) do
       {:ok, true} ->
         :ok
 
@@ -273,25 +280,40 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     end
   end
 
-  defp review_recorded?(context, role, cycle) do
-    native_ref = context.issue.native_ref || %{}
-    expected_id = "review_#{native_ref["runId"]}_#{cycle}_#{role}"
+  defp confirm_reviewer_preserved_candidate(context, role, expected) do
+    case context.candidate_head.confirm(context.workspace, context.issue, context.worker_host) do
+      {:ok, %{head_sha: head_sha}} when head_sha == expected.head_sha ->
+        :ok
 
-    with {:ok, artifacts} <- fetch_review_artifacts(context) do
-      {:ok, Enum.any?(artifacts, &(&1["reviewId"] == expected_id))}
+      {:ok, %{head_sha: actual_head}} ->
+        {:error, {:reviewer_mutated_candidate, role, expected.head_sha, actual_head}}
+
+      {:error, {:candidate_workspace_dirty, diagnosis}} ->
+        {:error, {:reviewer_mutated_candidate, role, expected.head_sha, diagnosis}}
+
+      {:error, reason} ->
+        {:error, {:candidate_verification_failed_after_review, role, reason}}
     end
   end
 
-  defp fetch_cycle_reviews(context, cycle) do
-    native_ref = context.issue.native_ref || %{}
-    run_id = native_ref["runId"]
+  defp review_recorded?(context, role, cycle, candidate) do
+    expected_id = review_id(context.issue, role, cycle, candidate)
 
     with {:ok, artifacts} <- fetch_review_artifacts(context) do
-      expected_ids = Map.new(context.roles, &{&1, "review_#{run_id}_#{cycle}_#{&1}"})
+      {:ok,
+       Enum.any?(artifacts, fn artifact ->
+         artifact["reviewId"] == expected_id and artifact["commitSha"] == candidate.head_sha
+       end)}
+    end
+  end
+
+  defp fetch_cycle_reviews(context, cycle, candidate) do
+    with {:ok, artifacts} <- fetch_review_artifacts(context) do
+      expected_ids = Map.new(context.roles, &{&1, review_id(context.issue, &1, cycle, candidate)})
 
       reviews =
         Enum.map(context.roles, fn role ->
-          Enum.find(artifacts, &(&1["reviewId"] == expected_ids[role]))
+          find_exact_review(artifacts, expected_ids[role], candidate.head_sha)
         end)
 
       case Enum.find_index(reviews, &is_nil/1) do
@@ -299,6 +321,18 @@ defmodule SymphonyElixir.DeliveryCoordinator do
         index -> {:error, {:review_artifact_missing, Enum.at(context.roles, index), cycle}}
       end
     end
+  end
+
+  defp find_exact_review(artifacts, expected_id, expected_sha) do
+    Enum.find(artifacts, fn artifact ->
+      artifact["reviewId"] == expected_id and artifact["commitSha"] == expected_sha
+    end)
+  end
+
+  defp review_id(issue, role, cycle, candidate) do
+    native_ref = issue.native_ref || %{}
+    short_sha = String.slice(candidate.head_sha, 0, 12)
+    "review_#{native_ref["runId"]}_#{cycle}_#{role}_#{short_sha}"
   end
 
   defp fetch_review_artifacts(context, attempt \\ 1) do
@@ -333,9 +367,14 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     You are the BOS repair agent for #{context.issue.identifier}, repair cycle #{cycle}.
     Work only in the existing workspace and exact AgentRun. Review the durable
     findings below, inspect the current diff, implement every valid correction,
-    run the complete repository validation, commit the repaired exact HEAD, and
+    run the complete repository validation, commit the repaired exact HEAD when
+    source or tracked project output actually changes, and
     record updated evidence through bos-mcp. Do not approve your own work and do
     not request merge or human approval; fresh independent reviewers run next.
+    If no source or tracked project output change is required and only evidence
+    is missing or stale, keep HEAD unchanged and record evidence against that
+    unchanged tested SHA. Never create an empty or evidence-only commit and never
+    use `git commit --allow-empty`. Recording evidence must not alter Git HEAD.
 
     Findings:
     #{findings}
@@ -390,12 +429,16 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     )
   end
 
-  defp run_role(app_server, workspace, issue, worker_host, actor, prompt, recipient) do
+  defp run_role(app_server, workspace, issue, worker_host, actor, prompt, recipient, opts \\ []) do
+    session_opts =
+      [
+        worker_host: worker_host,
+        environment_overrides: [{"BOS_MCP_ACTOR", actor}]
+      ]
+      |> Keyword.merge(opts)
+
     with {:ok, session} <-
-           app_server.start_session(workspace,
-             worker_host: worker_host,
-             environment_overrides: [{"BOS_MCP_ACTOR", actor}]
-           ) do
+           app_server.start_session(workspace, session_opts) do
       try do
         callback = fn message -> send_update(recipient, issue, actor, message) end
 
@@ -425,7 +468,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     #{role} decision. Prefer targeted search and summaries before full documents.
     Do not modify files, commits,
     issue state, PR state, risk or approvals. Record exactly one typed Review via
-    bos_record_review with reviewId `review_#{run_id}_#{cycle}_#{role}`, runId
+    bos_record_review with reviewId `#{review_id(issue, role, cycle, candidate)}`, runId
     `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type
     `agent` and subjectId `#{role}-reviewer`, the exact HEAD SHA, a status of
     `passed`, `changes_requested`, or `inconclusive`, concrete findings, and a
