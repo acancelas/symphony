@@ -1,0 +1,14 @@
+{
+  "reviewId": "review_symphony_40_security_3c9267f",
+  "runId": "run_symphony_40_budget_20260722",
+  "attemptId": "attempt_run_symphony_40_budget_20260722_1",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "3c9267f0c26f93525790a9907f13d4022ca56b2c",
+  "status": "passed",
+  "findings": [],
+  "summary": "No new credential, network, filesystem, or approval surface is introduced. Budget configuration remains repository-safe, role names do not create dynamic atoms, command execution policy is unchanged, and interruption preserves the existing audited workspace and outbox."
+}
