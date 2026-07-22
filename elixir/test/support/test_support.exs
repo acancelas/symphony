@@ -23,7 +23,10 @@ defmodule SymphonyElixir.TestSupport do
 
       import SymphonyElixir.TestSupport,
         only: [
+          assert_no_owned_processes!: 1,
           ensure_test_runtime_started!: 0,
+          owned_process_environment: 1,
+          register_process_cleanup!: 1,
           write_workflow_file!: 1,
           write_workflow_file!: 2,
           restore_env: 2,
@@ -75,6 +78,123 @@ defmodule SymphonyElixir.TestSupport do
 
   def restore_env(key, nil), do: System.delete_env(key)
   def restore_env(key, value), do: System.put_env(key, value)
+
+  @doc """
+  Registers bounded cleanup for operating-system children carrying `owner` in
+  their environment. Tests that spawn shells, Git, Codex, FIFOs, or helpers
+  must tag those commands with `owned_process_environment/1` before launch.
+
+  Ownership is explicit so cleanup can never select an unrelated user process.
+  The callback runs after passing, failing, and timed-out ExUnit tests.
+  """
+  def register_process_cleanup!(owner) when is_binary(owner) and owner != "" do
+    ExUnit.Callbacks.on_exit({__MODULE__, owner}, fn ->
+      terminate_owned_processes(owner)
+      assert_no_owned_processes!(owner)
+    end)
+
+    owner
+  end
+
+  def owned_process_environment(owner) when is_binary(owner) and owner != "" do
+    [{"SYMPHONY_TEST_PROCESS_OWNER", owner}]
+  end
+
+  def assert_no_owned_processes!(owner) when is_binary(owner) do
+    case owned_processes(owner) do
+      [] -> :ok
+      processes -> raise "test-owned subprocesses remain: #{inspect(processes)}"
+    end
+  end
+
+  defp terminate_owned_processes(owner) do
+    signal_owned_processes(owner, "TERM")
+    wait_until(fn -> owned_processes(owner) == [] end, 20)
+    signal_owned_processes(owner, "KILL")
+    wait_until(fn -> owned_processes(owner) == [] end, 20)
+  end
+
+  defp signal_owned_processes(owner, signal) do
+    owner
+    |> owned_processes()
+    |> Enum.each(fn {pid, _command} ->
+      System.cmd("kill", ["-#{signal}", "--", Integer.to_string(pid)], stderr_to_stdout: true)
+    end)
+  end
+
+  defp owned_processes(owner) do
+    marker = "SYMPHONY_TEST_PROCESS_OWNER=#{owner}"
+
+    case Path.wildcard("/proc/[0-9]*/environ") do
+      [] -> owned_processes_from_ps(marker)
+      environment_paths -> owned_processes_from_proc(environment_paths, marker)
+    end
+  end
+
+  defp owned_processes_from_proc(environment_paths, marker) do
+    environment_paths
+    |> Enum.flat_map(&owned_process_from_proc(&1, marker))
+  end
+
+  defp owned_process_from_proc(environment_path, marker) do
+    with {:ok, environment} <- File.read(environment_path),
+         true <- marker in :binary.split(environment, <<0>>, [:global]),
+         [pid_text] <- Regex.run(~r{/proc/(\d+)/environ$}, environment_path, capture: :all_but_first),
+         {pid, ""} <- Integer.parse(pid_text) do
+      [{pid, proc_command(environment_path)}]
+    else
+      _ -> []
+    end
+  end
+
+  defp proc_command(environment_path) do
+    environment_path
+    |> Path.dirname()
+    |> Path.join("cmdline")
+    |> File.read()
+    |> case do
+      {:ok, value} -> String.replace(value, <<0>>, " ")
+      _ -> ""
+    end
+  end
+
+  defp owned_processes_from_ps(marker) do
+    case System.cmd("ps", ["-eww", "-o", "pid=,command="], stderr_to_stdout: true) do
+      {output, 0} ->
+        output
+        |> String.split("\n", trim: true)
+        |> Enum.flat_map(&owned_process_from_ps(&1, marker))
+
+      _ ->
+        []
+    end
+  end
+
+  defp owned_process_from_ps(line, marker) do
+    case Regex.run(~r/^\s*(\d+)\s+(.*)$/, line, capture: :all_but_first) do
+      [pid_text, command] -> maybe_owned_ps_process(pid_text, command, marker)
+      _ -> []
+    end
+  end
+
+  defp maybe_owned_ps_process(pid_text, command, marker) do
+    if String.contains?(command, marker) do
+      [{String.to_integer(pid_text), command}]
+    else
+      []
+    end
+  end
+
+  defp wait_until(predicate, attempts) when attempts > 0 do
+    if predicate.() do
+      :ok
+    else
+      Process.sleep(25)
+      wait_until(predicate, attempts - 1)
+    end
+  end
+
+  defp wait_until(_predicate, 0), do: :timeout
 
   def ensure_test_runtime_started! do
     case Application.ensure_all_started(:symphony_elixir) do

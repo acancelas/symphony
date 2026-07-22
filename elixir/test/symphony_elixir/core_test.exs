@@ -360,6 +360,7 @@ defmodule SymphonyElixir.CoreTest do
     hook_marker = Path.join(test_root, "before-run-started")
     hook_fifo = Path.join(test_root, "before-run-blocker")
     hook_pid_file = Path.join(test_root, "before-run-pids")
+    process_owner = register_process_cleanup!("orchestrator-restart-#{issue_suffix}")
     runtime_supervisor_name = Module.concat(__MODULE__, "AgentRuntimeSupervisor#{issue_suffix}")
     task_supervisor_name = Module.concat(__MODULE__, "TaskSupervisor#{issue_suffix}")
     orchestrator_name = Module.concat(__MODULE__, "RestartOrchestrator#{issue_suffix}")
@@ -382,11 +383,6 @@ defmodule SymphonyElixir.CoreTest do
         GenServer.stop(pid)
       end
 
-      # The Erlang task owns the port, but a brutally terminated task cannot
-      # reap its shell child. Stop dispatch first, then terminate only the
-      # exact hook processes registered by this test (with a KILL fallback).
-      terminate_registered_hooks(hook_pid_file, test_root)
-
       restore_app_env(:memory_tracker_issues, previous_memory_issues)
       restart_default_runtime!()
       File.rm_rf(test_root)
@@ -404,7 +400,8 @@ defmodule SymphonyElixir.CoreTest do
       tracker_kind: "memory",
       workspace_root: test_root,
       poll_interval_ms: 10,
-      hook_before_run: "echo $$ >> \"#{hook_pid_file}\"; trap 'exit 0' TERM INT; mkfifo \"#{hook_fifo}\"; : > \"#{hook_marker}\"; read _ < \"#{hook_fifo}\"",
+      hook_before_run:
+        "export SYMPHONY_TEST_PROCESS_OWNER=#{process_owner}; exec sh -c 'echo $$ >> \"#{hook_pid_file}\"; trap \"exit 0\" TERM INT; mkfifo \"#{hook_fifo}\"; : > \"#{hook_marker}\"; read _ < \"#{hook_fifo}\"'",
       hook_timeout_ms: 60_000
     )
 
@@ -494,52 +491,6 @@ defmodule SymphonyElixir.CoreTest do
 
       _ ->
         0
-    end
-  end
-
-  defp terminate_registered_hooks(pid_file, test_root) do
-    pids =
-      case File.read(pid_file) do
-        {:ok, contents} ->
-          contents
-          |> String.split(~r/\s+/, trim: true)
-          |> Enum.flat_map(&parse_hook_pid/1)
-          |> Enum.uniq()
-
-        _ ->
-          []
-      end
-
-    Enum.each(pids, fn pid ->
-      if registered_hook_process?(pid, test_root) do
-        System.cmd("kill", ["-TERM", "--", Integer.to_string(pid)], stderr_to_stdout: true)
-      end
-    end)
-
-    Process.sleep(20)
-
-    Enum.each(pids, fn pid ->
-      if registered_hook_process?(pid, test_root) do
-        System.cmd("kill", ["-KILL", "--", Integer.to_string(pid)], stderr_to_stdout: true)
-      end
-    end)
-  end
-
-  defp parse_hook_pid(value) do
-    case Integer.parse(value) do
-      {pid, ""} when pid > 1 -> [pid]
-      _ -> []
-    end
-  end
-
-  defp registered_hook_process?(pid, test_root) do
-    case File.read("/proc/#{pid}/cmdline") do
-      {:ok, command_line} ->
-        String.contains?(command_line, test_root) and
-          String.contains?(command_line, "before-run-blocker")
-
-      _ ->
-        false
     end
   end
 

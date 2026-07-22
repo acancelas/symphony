@@ -77,6 +77,13 @@ session, so Symphony resets its comparison watermark—not its cumulative totals
 role starts a fresh session. Operational token budgets should use uncached input while retaining
 the full totals for capacity and audit reporting.
 
+Tests that start operating-system processes own their complete lifecycle. Long-running shell, Git,
+Codex, FIFO, SSH, and helper commands are tagged with a unique test owner and register an `on_exit`
+callback before launch. Teardown sends TERM, waits for a bounded interval, escalates to KILL, and
+asserts that no process carrying that exact owner remains. This applies when the test passes,
+fails, or is interrupted by an ExUnit timeout; cleanup must never select an unrelated process.
+The release gate finishes with an owner-marker process scan and records a zero-process result.
+
 Lack of an execution slot is a queue condition, not a failed Attempt. Eligible work remains in a
 separate capacity queue without incrementing retry/backoff state. `agent:merging`, rework and
 recovered running work sort ahead of newly ready work; creation time provides deterministic FIFO
@@ -88,6 +95,13 @@ Direct `gh` invocations—including absolute paths, `env`/`command` prefixes and
 wrappers—and direct `api.github.com` or GitHub GraphQL traffic are declined before process launch.
 The denial is emitted as a redacted `command_policy_blocked` event with a `bos-mcp` replacement.
 Local Git transport such as `fetch` and guarded non-force `push` remains allowed.
+
+If the exact candidate check finds tracked changes, the delivery coordinator gives one bounded
+repair turn the affected paths, dirty-tree fingerprint, and a redacted summary of the preceding
+command. The repair must validate and publish legitimate generated output, or leave unsafe and
+unrelated changes untouched for one durable coordinator-owned blocker. Reviews and evidence then
+restart only after a clean tree and a newly confirmed remote HEAD; the same failure cannot fall
+back into unbounded generic implementation retries.
 
 Intentional OTP supervisor shutdown (`:normal`, `:shutdown`, or `{:shutdown, reason}`) exits the
 CLI successfully so a controlled `systemctl stop` remains operationally distinct from a crash.
@@ -231,6 +245,11 @@ Notes:
   identifier, title, and body.
 - Use `hooks.after_create` to bootstrap a fresh workspace. For a Git-backed repo, you can run
   `git clone ... .` there, along with any other setup commands you need.
+- Local workspace bootstrap is single-owner and atomic. Symphony builds the workspace in a sibling
+  staging directory, publishes it only after `after_create` succeeds, and records an inode-bound
+  readiness marker outside the repository. A pre-existing directory without a valid marker is
+  moved to `.symphony-quarantine` for diagnosis before recovery; it is never reused as a runnable
+  workspace. Concurrent scheduler and retry paths therefore converge on one complete workspace.
 - If a hook needs `mise exec` inside a freshly cloned workspace, trust the repo config and fetch
   the project dependencies in `hooks.after_create` before invoking `mise` later from other hooks.
 - For the Linear adapter, `tracker.provider.api_key` reads from `LINEAR_API_KEY` when unset or

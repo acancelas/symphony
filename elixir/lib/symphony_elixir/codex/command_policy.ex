@@ -43,6 +43,14 @@ defmodule SymphonyElixir.Codex.CommandPolicy do
     end
   end
 
+  @doc false
+  @spec safe_summary(term()) :: String.t()
+  def safe_summary(command) do
+    command
+    |> normalize_command()
+    |> bounded_summary()
+  end
+
   defp github_api_target?(command), do: Regex.match?(@github_api_pattern, command)
 
   defp gh_invocation?(command) do

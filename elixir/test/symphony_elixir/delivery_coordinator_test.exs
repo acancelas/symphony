@@ -90,6 +90,37 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     end
   end
 
+  defmodule FakeCandidateHead do
+    def confirm(workspace, issue, worker_host) do
+      send(
+        Application.fetch_env!(:symphony_elixir, :delivery_test_pid),
+        {:candidate_confirmed, workspace, issue.branch_name, worker_host}
+      )
+
+      {:ok,
+       %{
+         branch: issue.branch_name,
+         head_sha: "0123456789abcdef0123456789abcdef01234567",
+         remote_sha: "0123456789abcdef0123456789abcdef01234567"
+       }}
+    end
+  end
+
+  defmodule SequencedCandidateHead do
+    def confirm(_workspace, issue, _worker_host) do
+      [result | remaining] = Application.fetch_env!(:symphony_elixir, :delivery_candidate_results)
+      Application.put_env(:symphony_elixir, :delivery_candidate_results, remaining)
+
+      case result do
+        {:dirty, status, paths, fingerprint} ->
+          {:error, {:candidate_workspace_dirty, %{status: status, paths: paths, fingerprint: fingerprint}}}
+
+        {:clean, head_sha} ->
+          {:ok, %{branch: issue.branch_name, head_sha: head_sha, remote_sha: head_sha}}
+      end
+    end
+  end
+
   setup do
     Application.put_env(:symphony_elixir, :delivery_test_pid, self())
 
@@ -99,6 +130,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
       Application.delete_env(:symphony_elixir, :delivery_review_record_attempt)
       Application.delete_env(:symphony_elixir, :delivery_review_lookup_attempt)
       Application.delete_env(:symphony_elixir, :delivery_review_statuses)
+      Application.delete_env(:symphony_elixir, :delivery_candidate_results)
     end)
 
     :ok
@@ -115,7 +147,9 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
                nil,
                [
                  app_server_module: FakeAppServer,
+                 candidate_head_module: FakeCandidateHead,
                  game_api_client_module: FakeClient,
+                 candidate_head_module: FakeCandidateHead,
                  review_roles: roles
                ],
                nil
@@ -124,6 +158,8 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     actors = collect_actors(length(roles) + 1, [])
     assert actors == Enum.map(roles, &"#{&1}-reviewer") ++ ["delivery-coordinator"]
     refute "repair-agent" in actors
+    assert_received {:candidate_confirmed, "/tmp/workspace", "bos/issue-42", nil}
+    assert_received {:candidate_confirmed, "/tmp/workspace", "bos/issue-42", nil}
   end
 
   test "fails closed after bounded review repair cycles" do
@@ -137,7 +173,9 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
                nil,
                [
                  app_server_module: FakeAppServer,
+                 candidate_head_module: FakeCandidateHead,
                  game_api_client_module: FakeClient,
+                 candidate_head_module: FakeCandidateHead,
                  review_roles: ["security"],
                  max_repair_cycles: 1
                ],
@@ -158,6 +196,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
                nil,
                [
                  app_server_module: RetryAppServer,
+                 candidate_head_module: FakeCandidateHead,
                  game_api_client_module: FakeClient,
                  review_roles: ["functional"]
                ],
@@ -178,6 +217,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
                nil,
                [
                  app_server_module: FakeAppServer,
+                 candidate_head_module: FakeCandidateHead,
                  game_api_client_module: RateLimitedReviewClient,
                  review_roles: ["functional"],
                  review_lookup_sleep: fn delay_ms -> send(test_pid, {:review_lookup_sleep, delay_ms}) end
@@ -202,6 +242,7 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
                nil,
                [
                  app_server_module: FakeAppServer,
+                 candidate_head_module: FakeCandidateHead,
                  game_api_client_module: FakeClient,
                  review_roles: ["functional"]
                ],
@@ -216,6 +257,73 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
 
     assert {:ok, false} =
              DeliveryCoordinator.review_stage_started?(issue(), game_api_client_module: FakeClient)
+  end
+
+  test "routes a generated lockfile into one repair turn before fresh exact-head reviews" do
+    new_head = String.duplicate("b", 40)
+    fingerprint = String.duplicate("c", 64)
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
+
+    Application.put_env(:symphony_elixir, :delivery_candidate_results, [
+      {:dirty, " M uv.lock", ["uv.lock"], fingerprint},
+      {:clean, new_head},
+      {:clean, new_head},
+      {:clean, new_head}
+    ])
+
+    assert :ok =
+             DeliveryCoordinator.run(
+               "/tmp/workspace",
+               issue(),
+               nil,
+               [
+                 app_server_module: FakeAppServer,
+                 candidate_head_module: SequencedCandidateHead,
+                 game_api_client_module: FakeClient,
+                 review_roles: ["functional"],
+                 prior_command_context: %{command: "uv lock", exit_code: 0}
+               ],
+               nil
+             )
+
+    assert_received {:turn, "dirty-candidate-repair-agent", prompt}
+    assert prompt =~ "uv.lock"
+    assert prompt =~ fingerprint
+    assert prompt =~ "uv lock"
+
+    assert collect_actors(3, []) == [
+             "dirty-candidate-repair-agent",
+             "functional-reviewer",
+             "delivery-coordinator"
+           ]
+  end
+
+  test "blocks after the bounded repair leaves an unsafe tracked change dirty" do
+    fingerprint = String.duplicate("d", 64)
+    diagnosis = {:dirty, " M config/runtime.secret", ["config/runtime.secret"], fingerprint}
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
+    Application.put_env(:symphony_elixir, :delivery_candidate_results, [diagnosis, diagnosis])
+
+    assert {:error, {:candidate_dirty_repair_unresolved, unresolved}} =
+             DeliveryCoordinator.run(
+               "/tmp/workspace",
+               issue(),
+               nil,
+               [
+                 app_server_module: FakeAppServer,
+                 candidate_head_module: SequencedCandidateHead,
+                 game_api_client_module: FakeClient,
+                 review_roles: ["functional"]
+               ],
+               nil
+             )
+
+    assert_received {:turn, "delivery-coordinator", prompt}
+    assert prompt =~ fingerprint
+    assert prompt =~ "config/runtime.secret"
+    assert unresolved.paths == ["config/runtime.secret"]
+    assert collect_actors(2, []) == ["dirty-candidate-repair-agent", "delivery-coordinator"]
+    refute_received {:session_started, "functional-reviewer"}
   end
 
   defp collect_actors(0, actors), do: Enum.reverse(actors)
