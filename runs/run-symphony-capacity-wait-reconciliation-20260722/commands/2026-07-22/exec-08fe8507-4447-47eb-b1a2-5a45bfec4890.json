@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-08fe8507-4447-47eb-b1a2-5a45bfec4890",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730963867_1197",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:36:03.859Z",
+  "command": "/bin/bash -lc \"grep -RInE 'evidenceId|commitSha|EvidenceReport|evidence_report' elixir/test elixir/lib | head -160\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/test/symphony_elixir/delivery_coordinator_test.exs:42:        \"commitSha\" => commit_sha,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:73:            \"commitSha\" => commit_sha,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:318:        \"commitSha\" => String.duplicate(\"f\", 40),\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:441:      \"commitSha\" => head_sha,\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:23:          \"commitSha\" => \"a1b2c3d4\",\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:132:           \"commitSha\" => \"a1b2c3d4\",\nelixir/test/symphony_elixir/post_approval_coordinator_test.exs:173:    assert request[\"probe\"][\"commitSha\"] == \"a1b2c3d4\"\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:220:    commitSha, environment, target, status, startedAt, completedAt,\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:282:      not is_binary(probe[\"commitSha\"]) -> {:error, :commit_missing}\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:323:          verification[\"commitSha\"] == probe[\"commitSha\"] and\nelixir/lib/symphony_elixir/codex/app_server.ex:687:    end this turn. Reuse existing PRs, Reviews and EvidenceReports; do not create\nelixir/lib/symphony_elixir/delivery_coordinator.ex:305:         artifact[\"reviewId\"] == expected_id and artifact[\"commitSha\"] == candidate.head_sha\nelixir/lib/symphony_elixir/delivery_coordinator.ex:328:      artifact[\"reviewId\"] == expected_id and artifact[\"commitSha\"] == expected_sha\nelixir/lib/symphony_elixir/delivery_coordinator.ex:402:    EvidenceReport and Attempt outcome, then request only the next transition\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
