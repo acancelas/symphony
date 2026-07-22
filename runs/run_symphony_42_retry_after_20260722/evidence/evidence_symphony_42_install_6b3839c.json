@@ -1,0 +1,29 @@
+{
+  "evidenceId": "evidence_symphony_42_install_6b3839c",
+  "runId": "run_symphony_42_retry_after_20260722",
+  "commitSha": "6b3839ca2e5eb84ddda73bc00500c0a4f19f85fd",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "name": "Installed X1 matches merged implementation",
+      "status": "passed",
+      "evidence": "Clean detached worktree is at merge 6b3839c; source and installed escript share SHA-256 0350a6cf8d25a3d12478a6cbe5d2e26ba7142acd92be982f71702fe22de0bed9."
+    }
+  ],
+  "checks": [
+    {
+      "name": "bos-orchestrator systemd service",
+      "status": "passed",
+      "evidence": "Active with no restarts; observability API listening on 127.0.0.1:8210 and resumed canonical runs."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "installed_binary",
+      "path": "$HOME/.local/lib/bos/symphony.escript",
+      "sha256": "0350a6cf8d25a3d12478a6cbe5d2e26ba7142acd92be982f71702fe22de0bed9"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "The merged Symphony implementation was rebuilt from a clean worktree, installed byte-for-byte, restarted, and verified operational."
+}
