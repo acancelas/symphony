@@ -1,0 +1,13 @@
+{
+  "attemptId": "attempt-symphony-capacity-wait-reconciliation-1",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-22T14:11:39.549000Z",
+  "reason": "Repair post-merge P1 found by independent security review.",
+  "metrics": {}
+}
