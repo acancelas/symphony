@@ -22,7 +22,7 @@ defmodule SymphonyElixir.CapacityQueueTest do
       })
 
     refute Map.has_key?(queued.retry_attempts, issue.id)
-    refute MapSet.member?(queued.claimed, issue.id)
+    assert MapSet.member?(queued.claimed, issue.id)
     assert queued.capacity_waiting[issue.id].attempt == 3
     assert queued.capacity_waiting[issue.id].reason == "waiting for execution capacity"
 
@@ -94,6 +94,65 @@ defmodule SymphonyElixir.CapacityQueueTest do
     }
 
     refute Orchestrator.should_dispatch_issue_for_test(candidate, state)
+  end
+
+  test "an opaque claimed issue keeps its explicit repository reservation while queued" do
+    claimed =
+      issue("opaque-run-id", "agent:running", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{"repositoryId" => "bos-mcp"})
+
+    candidate = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+
+    state = %State{
+      max_concurrent_agents: 2,
+      claimed: MapSet.new([claimed.id]),
+      repository_claims: %{claimed.id => "bos-mcp"}
+    }
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(state, claimed, 2, %{
+        reason: "waiting for execution capacity"
+      })
+
+    assert MapSet.member?(queued.claimed, claimed.id)
+    assert queued.repository_claims[claimed.id] == "bos-mcp"
+    refute Orchestrator.should_dispatch_issue_for_test(candidate, queued)
+  end
+
+  test "game_api fails closed when canonical repository identity is missing" do
+    previous_token = System.get_env("BOS_API_INTERNAL_TOKEN")
+    System.put_env("BOS_API_INTERNAL_TOKEN", "test-token")
+    on_exit(fn -> restore_env("BOS_API_INTERNAL_TOKEN", previous_token) end)
+
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "game_api",
+      tracker_provider: %{
+        "repositories" => [
+          %{"repository_id" => "bos-mcp", "owner" => "acancelas", "repo" => "bos-mcp"}
+        ]
+      }
+    )
+
+    assert Config.settings!().tracker.kind == "game_api"
+
+    missing_repository =
+      issue("opaque-run-id", "agent:ready", ~U[2026-07-21 08:00:00Z], 1)
+
+    refute Orchestrator.should_dispatch_issue_for_test(
+             missing_repository,
+             %State{max_concurrent_agents: 2}
+           )
+
+    queued =
+      Orchestrator.queue_capacity_wait_for_test(
+        %State{max_concurrent_agents: 2},
+        missing_repository,
+        nil,
+        %{}
+      )
+
+    assert queued.capacity_waiting[missing_repository.id].reason ==
+             "missing canonical repository identity"
   end
 
   test "repository identity survives older recovered projections" do
