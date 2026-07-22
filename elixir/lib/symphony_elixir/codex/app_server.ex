@@ -50,6 +50,7 @@ defmodule SymphonyElixir.Codex.AppServer do
       metadata = port_metadata(port, worker_host)
 
       with {:ok, session_policies} <- session_policies(expanded_workspace, worker_host),
+           {:ok, session_policies} <- override_turn_sandbox_policy(session_policies, opts),
            {:ok, thread_id} <-
              do_start_session(port, expanded_workspace, session_policies, dynamic_tool_binding) do
         {:ok,
@@ -345,6 +346,19 @@ defmodule SymphonyElixir.Codex.AppServer do
 
   defp session_policies(workspace, worker_host) when is_binary(worker_host) do
     Config.codex_runtime_settings(workspace, remote: true)
+  end
+
+  defp override_turn_sandbox_policy(session_policies, opts) do
+    case Keyword.get(opts, :turn_sandbox_policy) do
+      nil ->
+        {:ok, session_policies}
+
+      %{"type" => type} = policy when is_binary(type) and type != "" ->
+        {:ok, %{session_policies | turn_sandbox_policy: policy}}
+
+      invalid_policy ->
+        {:error, {:invalid_turn_sandbox_policy_override, invalid_policy}}
+    end
   end
 
   defp do_start_session(port, workspace, session_policies, dynamic_tool_binding) do

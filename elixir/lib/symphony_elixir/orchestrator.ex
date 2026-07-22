@@ -75,9 +75,11 @@ defmodule SymphonyElixir.Orchestrator do
           codex_rate_limits: nil
         }
 
-        run_terminal_run_reconciliation()
+        # Delivery polling is the startup-critical path. Historical reconciliation
+        # and cleanup are maintenance work and must not open the shared provider
+        # circuit before the ready queue has been recovered and dispatched.
         schedule_terminal_run_reconciliation()
-        run_terminal_workspace_cleanup()
+        schedule_terminal_workspace_cleanup(config.polling.interval_ms)
         state = schedule_tick(state, 0)
 
         {:ok, state}
@@ -141,6 +143,15 @@ defmodule SymphonyElixir.Orchestrator do
       end)
 
     schedule_terminal_run_reconciliation()
+    {:noreply, state}
+  end
+
+  def handle_info(:cleanup_terminal_workspaces, state) do
+    _task =
+      Task.Supervisor.start_child(state.task_supervisor, fn ->
+        run_terminal_workspace_cleanup()
+      end)
+
     {:noreply, state}
   end
 
@@ -1003,6 +1014,17 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp dispatch_issue(%State{} = state, issue, attempt \\ nil, preferred_worker_host \\ nil) do
+    if Config.settings!().tracker.kind == "game_api" do
+      # The normalized claim endpoint performs the authoritative state and
+      # lease check atomically. A second GitHub read here wastes provider quota
+      # and can prevent claiming an Issue already confirmed by this poll.
+      do_dispatch_issue(state, issue, attempt, preferred_worker_host)
+    else
+      dispatch_revalidated_issue(state, issue, attempt, preferred_worker_host)
+    end
+  end
+
+  defp dispatch_revalidated_issue(state, issue, attempt, preferred_worker_host) do
     case revalidate_issue_for_dispatch(issue, &Tracker.fetch_issues_by_ids/1, terminal_state_set()) do
       {:ok, %Issue{} = refreshed_issue} ->
         do_dispatch_issue(state, refreshed_issue, attempt, preferred_worker_host)
@@ -1135,7 +1157,12 @@ defmodule SymphonyElixir.Orchestrator do
   defp schedule_issue_retry(%State{} = state, issue_id, attempt, metadata)
        when is_binary(issue_id) and is_map(metadata) do
     previous_retry = Map.get(state.retry_attempts, issue_id, %{attempt: 0})
-    next_attempt = if is_integer(attempt), do: attempt, else: previous_retry.attempt + 1
+
+    next_attempt =
+      if is_integer(attempt) and attempt > 0,
+        do: attempt,
+        else: previous_retry.attempt + 1
+
     delay_ms = retry_delay(next_attempt, metadata)
     old_timer = Map.get(previous_retry, :timer_ref)
     retry_token = make_ref()
@@ -1290,6 +1317,14 @@ defmodule SymphonyElixir.Orchestrator do
       self(),
       :reconcile_terminal_runs,
       @terminal_run_reconciliation_interval_ms
+    )
+  end
+
+  defp schedule_terminal_workspace_cleanup(poll_interval_ms) do
+    Process.send_after(
+      self(),
+      :cleanup_terminal_workspaces,
+      max(poll_interval_ms + :timer.seconds(5), :timer.seconds(5))
     )
   end
 

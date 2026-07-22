@@ -27,18 +27,17 @@ child environment, so the agent does not need a second tracker login.
 
 If a claimed issue moves to a terminal state (`Done`, `Closed`, `Cancelled`, or `Duplicate`),
 Symphony stops the active agent for that issue and cleans up matching workspaces.
-For the BOS `game_api` adapter, startup first lists durable AgentRuns and asks `game-api` to
-reconcile every non-terminal projection against the canonical Issue, pull request, exact HEAD,
-merge, and EvidenceReport. The operation is run-scoped and idempotent: a lost response returns the
-original receipt, an active lease is preserved, and Issue closure without exact-head proof cannot
-be promoted to successful completion. Only after this ledger repair does terminal workspace
-cleanup run from the requested normalized tracker states. The same reconciliation runs every 15
-minutes through the shared provider circuit, so manual Issue closure or an interrupted finalizer
-is repaired without restarting the service and cannot create a provider polling storm.
+For the BOS `game_api` adapter, startup polls and dispatches Delivery work before historical
+maintenance. Durable AgentRun reconciliation runs every 15 minutes, and terminal workspace cleanup
+is deferred until after the initial poll. Reconciliation is run-scoped and idempotent: a lost
+response returns the original receipt, an active lease is preserved, and Issue closure without
+exact-head proof cannot be promoted to successful completion.
 An individual historical chain that lacks a valid run manifest is returned as a structured
 `invalid_run_projection` skip and cannot prevent later runs or repositories from reconciling.
-Provider, authentication, rate-limit, and transport failures remain cycle-fatal and continue to
-open the shared circuit.
+Provider, authentication, rate-limit, and transport failures remain cycle-fatal within their
+traffic class. Audit outbox replay and Delivery use separate circuits, so audit throttling cannot
+hide the ready queue. Multi-repository polling preserves confirmed Issues if a later repository is
+throttled; `game-api` claim performs the authoritative state and lease check atomically.
 Cleanup is fail-closed for Git workspaces: if `git status` reports uncommitted changes, or Git
 state cannot be read reliably, Symphony preserves the workspace for recovery and logs the
 reason. A clean worktree is not sufficient: its `HEAD` must also be reachable from the configured
@@ -51,7 +50,7 @@ instead of forcing one remote commit per diff notification. Terminal turn comple
 cancellation events still flush immediately. This preserves the filesystem recovery fast-path and
 the replacement-X1 ledger while avoiding unnecessary GitHub ref/tree/commit pressure.
 Ordinary flush failures use bounded exponential backoff with jitter per AgentRun. A `game-api` or
-GitHub provider rate limit opens one process-wide audit circuit: the internal exponential backoff
+GitHub provider rate limit opens the process-wide audit circuit: the internal exponential backoff
 is capped at 15 minutes, while an explicit provider `Retry-After` remains authoritative up to a
 defensive 24-hour ceiling. Symphony adds a positive jitter of at most 10% and 30 seconds without
 ever shortening that provider window, so concurrent X1 workers do not probe in lockstep when the
@@ -263,6 +262,10 @@ Notes:
   uncached input (`input_tokens - cached_input_tokens`), so effective cache reuse is observable but
   is not penalized as new context. Every configured limit must be positive and each soft limit must
   be lower than its corresponding hard limit.
+- Independent specialist Review turns receive a network-enabled read-only sandbox even when the
+  implementation policy permits workspace writes. Symphony verifies that local and remote HEAD
+  remain unchanged after every reviewer, and durable Review IDs include the exact candidate SHA.
+  Repair turns may write source changes but must never create empty or evidence-only commits.
 - The runtime exposes `soft_limit`, `hard_limit`, and `provider_rate_limit` as distinct pause
   statuses. Budget events flow through the normal BOS audit outbox, preserving the role, elapsed
   time, input, cached input, uncached input, and reason needed for safe recovery.

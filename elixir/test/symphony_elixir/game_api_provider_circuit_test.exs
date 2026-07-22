@@ -28,6 +28,35 @@ defmodule SymphonyElixir.GameApiProviderCircuitTest do
     assert %{attempt: 1, half_open: false} = ProviderCircuit.state_for_test()
   end
 
+  test "confirmed partial progress reopens the circuit for atomic issue operations" do
+    ProviderCircuit.rate_limited_for_test(300_000, 0)
+    assert {:error, {:game_api_rate_limited, _remaining}} = ProviderCircuit.before_request()
+
+    assert :ok = ProviderCircuit.allow_confirmed_partial_progress()
+    assert ProviderCircuit.state_for_test() == nil
+    assert :ok = ProviderCircuit.before_request()
+  end
+
+  test "a tracker poll receives one scoped probe after audit traffic opens the circuit" do
+    ProviderCircuit.rate_limited_for_test(300_000, 0)
+
+    assert :ok = ProviderCircuit.allow_tracker_read_probe()
+    assert :ok = ProviderCircuit.before_request()
+
+    ProviderCircuit.rate_limited_for_test(300_000, 0)
+    assert {:error, {:game_api_rate_limited, _remaining}} = ProviderCircuit.before_request()
+  end
+
+  test "audit and delivery cooldowns are isolated" do
+    ProviderCircuit.rate_limited(300_000, :audit)
+
+    assert {:error, {:game_api_rate_limited, _remaining}} =
+             ProviderCircuit.before_request(:audit)
+
+    assert :ok = ProviderCircuit.before_request(:delivery)
+    assert ProviderCircuit.state_for_test() == nil
+  end
+
   test "provider retry guidance extends the shared cooldown" do
     delay = ProviderCircuit.rate_limited(300_000)
     assert delay > 300_000

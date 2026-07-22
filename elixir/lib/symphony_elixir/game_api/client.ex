@@ -9,6 +9,7 @@ defmodule SymphonyElixir.GameApi.Client do
   alias SymphonyElixir.Config
   alias SymphonyElixir.GameApi.ProviderCircuit
   alias SymphonyElixir.Tracker.Issue
+  require Logger
 
   @recoverable_audit_error_codes ~w(
     audit_canonicalization_failed
@@ -23,6 +24,11 @@ defmodule SymphonyElixir.GameApi.Client do
   def fetch_issues_by_states([]), do: {:ok, []}
 
   def fetch_issues_by_states(state_names) when is_list(state_names) do
+    # Audit outbox replay and tracker reads may use different gateway/provider
+    # buckets. Give the scheduler one bounded probe per poll so delayed audit
+    # traffic cannot freeze an otherwise healthy ready queue.
+    ProviderCircuit.allow_tracker_read_probe()
+
     repositories()
     |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->
       params =
@@ -31,8 +37,26 @@ defmodule SymphonyElixir.GameApi.Client do
 
       case request(:get, "/v1/internal/bos/delivery/issues/by-states", params: params)
            |> response_list("issues") do
-        {:ok, issues} -> {:cont, {:ok, accumulated ++ issues}}
-        {:error, reason} -> {:halt, {:error, reason}}
+        {:ok, issues} ->
+          {:cont, {:ok, accumulated ++ issues}}
+
+        {:error, reason} when accumulated != [] ->
+          # The failed repository may use a different GitHub installation or
+          # rate-limit bucket. Preserve the confirmed queue and allow the
+          # atomic claim operation to probe its own path instead of letting a
+          # later repository freeze already recovered work.
+          ProviderCircuit.allow_confirmed_partial_progress()
+
+          Logger.warning(
+            "Returning the confirmed partial ready queue after a repository lookup failed " <>
+              "repository=#{repository["repository_id"]} confirmed_issues=#{length(accumulated)} " <>
+              "reason=#{inspect(reason)}"
+          )
+
+          {:halt, {:ok, accumulated}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
       end
     end)
   end
@@ -103,7 +127,10 @@ defmodule SymphonyElixir.GameApi.Client do
 
   @spec append_audit_batch(map()) :: {:ok, map()} | {:error, term()}
   def append_audit_batch(batch) when is_map(batch) do
-    request(:post, "/v1/internal/bos/delivery/audit/events", json: batch)
+    request(:post, "/v1/internal/bos/delivery/audit/events",
+      json: batch,
+      provider_circuit_scope: :audit
+    )
   end
 
   @spec record_runtime_probe(map()) :: {:ok, map()} | {:error, term()}
@@ -234,6 +261,8 @@ defmodule SymphonyElixir.GameApi.Client do
       ]
       |> maybe_add_header("x-bos-runner-action-token", System.get_env("BOS_RUNNER_ACTION_TOKEN"))
 
+    {provider_circuit_scope, options} = Keyword.pop(options, :provider_circuit_scope, :delivery)
+
     options =
       Keyword.merge(options,
         headers: headers,
@@ -241,14 +270,19 @@ defmodule SymphonyElixir.GameApi.Client do
         retry: false
       )
 
-    with :ok <- ProviderCircuit.before_request() do
+    with :ok <- ProviderCircuit.before_request(provider_circuit_scope) do
       case Req.request(Keyword.merge(options, method: method, url: url)) do
         {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
-          ProviderCircuit.succeeded()
+          ProviderCircuit.succeeded(provider_circuit_scope)
           {:ok, body}
 
         {:ok, %Req.Response{status: status} = response} when status in [403, 429] ->
-          {:error, {:game_api_rate_limited, ProviderCircuit.rate_limited(retry_after_ms(response))}}
+          retry_after_ms =
+            response
+            |> retry_after_ms()
+            |> ProviderCircuit.rate_limited(provider_circuit_scope)
+
+          {:error, {:game_api_rate_limited, retry_after_ms}}
 
         {:ok, %Req.Response{status: status, body: body}} ->
           {:error, http_error(status, body)}
