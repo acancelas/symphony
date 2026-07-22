@@ -1034,6 +1034,28 @@ defmodule SymphonyElixir.CoreTest do
     assert Orchestrator.retry_delay_for_test(1, %{}) == 10_000
   end
 
+  test "provider retry-after is a lower bound for issue retry polling" do
+    metadata =
+      Orchestrator.retry_metadata_for_test(
+        %{identifier: "BOS-13", provider_retry_after_ms: 1_000},
+        {:game_api_rate_limited, 534_093}
+      )
+
+    assert metadata.provider_retry_after_ms == 534_093
+    assert metadata.error == "retry poll failed: {:game_api_rate_limited, 534093}"
+
+    cleared_metadata = Orchestrator.retry_metadata_for_test(metadata, :transport_failure)
+    refute Map.has_key?(cleared_metadata, :provider_retry_after_ms)
+
+    assert Orchestrator.retry_delay_for_test(3, %{provider_retry_after_ms: 534_093}) == 534_093
+    assert Orchestrator.retry_delay_for_test(3, %{provider_retry_after_ms: 5_000}) == 40_000
+
+    assert Orchestrator.retry_delay_for_test(1, %{
+             delay_type: :continuation,
+             provider_retry_after_ms: 90_000
+           }) == 90_000
+  end
+
   test "stale retry timer messages do not consume newer retry entries" do
     issue_id = "issue-stale-retry"
     orchestrator_name = Module.concat(__MODULE__, :StaleRetryOrchestrator)
