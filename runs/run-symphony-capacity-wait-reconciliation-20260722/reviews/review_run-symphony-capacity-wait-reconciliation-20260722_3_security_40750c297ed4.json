@@ -1,0 +1,30 @@
+{
+  "reviewId": "review_run-symphony-capacity-wait-reconciliation-20260722_3_security_40750c297ed4",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "inconclusive",
+  "findings": [
+    {
+      "severity": "blocking",
+      "title": "Fresh exact-commit identity confirmation unavailable",
+      "detail": "Existing durable evidence reports a clean local HEAD, tracking ref, and live remote bos/issue-51 branch at 40750c297ed42435dabe1d4670bfda85ce92af36, but this review could not freshly confirm that both local HEAD and the remote branch still equal the requested SHA: the local command runner failed before Git execution because its sandbox launcher was unavailable, and the canonical run-history request was aborted. Passing requires affirmative current evidence."
+    },
+    {
+      "severity": "informational",
+      "title": "Exact-commit implementation evidence is otherwise security-positive",
+      "detail": "Confirmed EvidenceReports tied to 40750c297ed42435dabe1d4670bfda85ce92af36 describe the complete 8-file patch and regression coverage: stale missing, terminal, and unroutable waiters release provider and local reservations; provider release failure preserves local fencing; foreign ownership drops only local state; and valid owned waiters are heartbeated without consuming Attempt or retry budget. Full tests, 100.00% coverage, strict Credo, and Dialyzer are recorded passed."
+    },
+    {
+      "severity": "informational",
+      "title": "Post-merge deployment criterion remains outside this pre-merge review",
+      "detail": "Exact merged-artifact installation and service-health verification remain outstanding and must be bound to the exact merged commit through DeploymentVerification before terminal completion."
+    }
+  ],
+  "summary": "Inconclusive: exact-commit implementation evidence is affirmative and contains no identified security defect, but this cycle could not freshly verify the required local HEAD and live remote bos/issue-51 identities, so a passing verdict is not supportable."
+}
