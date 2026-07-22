@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-192530e8-d968-49bc-9cf3-e5d18da39824",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784731014396_1220",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:36:53.489Z",
+  "command": "/bin/bash -lc \"grep -Rh 'mcp__bos_mcp__bos_record_progress' $WORKSPACE/.codex/sessions/2026/07/21/*.jsonl 2>/dev/null | grep 'custom_tool_call' | grep -v 'ALL_TOOLS' | tail -3 | cut -c1-10000\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "{\"timestamp\":\"2026-07-21T20:54:20.659Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"custom_tool_call_output\",\"call_id\":\"call_gh7NK9vO44G0EQm7T8XTMOLl\",\"output\":[{\"type\":\"input_text\",\"text\":\"Script completed\\nWall time 0.0 seconds\\nOutput:\\n\"},{\"type\":\"input_text\",\"text\":\"Warning: truncated output (original token count: 65222)\\nTotal output lines: 1\\n\\n[{\\\"name\\\":\\\"mcp__bos_mcp__bos_append_audit_events\\\",\\\"description\\\":\\\"Append an idempotent RFC 8785 audit batch through game-api.\\\\n\\\\nexec tool declaration:\\\\n```ts\\\\ndeclare const tools: { mcp__bos_mcp__bos_append_audit_events(args: { batchId: string; events: Array<{ [key: string]: unknown; }>; operationId: string; }): Promise<CallToolResult>; };\\\\n```\\\"},{\\\"name\\\":\\\"mcp__bos_mcp__bos_block_issue\\\",\\\"description\\\":\\\"Transition an active Issue to blocked with a concrete reason.\\\\n\\\\nexec tool declaration:\\\\n```ts\\\\ndeclare const tools: { mcp__bos_mcp__bos_block_issue(args: { fromState: string; issueNumber: number; operationId: string; reason: string; runId: string; }): Promise<CallToolResult>; };\\\\n```\\\"},{\\\"name\\\":\\\"mcp__bos_mcp__bos_claim_issue\\\",\\\"description\\\":\\\"Idempotently claim or resume one BOS Delivery issue.\\\\n\\\\nexec tool declaration:\\\\n```ts\\\\ndeclare const tools: { mcp__bos_mcp__bos_claim_issue(args: { issueNumber: number; leaseExpiresAt: string; operationId: string; runId: string; runnerId: string; }): Promise<CallToolResult>; };\\\\n```\\\"},{\\\"name\\\":\\\"mcp__bos_mcp__bos_complete_attempt\\\",\\\"description\\\":\\\"Persist the immutable completed record for an Attempt.\\\\n\\\\nexec tool declaration:\\\\n```ts\\\\ndeclare const tools: { mcp__bos_mcp__bos_complete_attempt(args: { artifact: { [key: string]: unknown; }; auditBatch?: { [key: string]: unknown; }; issueNumber: number; operationId: string; runId: string; }): Promise<CallToolResult>; };\\\\n```\\\"},{\\\"name\\\":\\\"mcp__bos_mcp__bos_create_capability\\\",\\\"description\\\":\\\"Create a Capability linked to its parent Goal.\\\\n\\\\nexec tool declaration:\\\\n```ts\\\\ndeclare const tools",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
