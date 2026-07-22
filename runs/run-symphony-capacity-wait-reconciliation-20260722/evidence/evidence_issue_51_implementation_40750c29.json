@@ -1,0 +1,87 @@
+{
+  "evidenceId": "evidence_issue_51_implementation_40750c29",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "A closed or missing claimed Issue in capacity_waiting releases its local and remote claim",
+      "status": "passed",
+      "evidence": "Regression coverage proves missing and terminal waiters invoke remote release and remove local claim, queue, and repository reservation state."
+    },
+    {
+      "criterion": "An unroutable waiting Issue cannot block another Issue in the same repository",
+      "status": "passed",
+      "evidence": "Regression coverage proves an unroutable waiter is released and a subsequent same-repository candidate becomes dispatchable."
+    },
+    {
+      "criterion": "A valid waiting claim remains recoverable without consuming an Attempt or retry budget",
+      "status": "passed",
+      "evidence": "Regression coverage proves valid owned waiters are refreshed and heartbeated while retaining queue attempt 3 and an empty retry-attempt map."
+    },
+    {
+      "criterion": "Full Elixir gate passes with 100 percent coverage, Credo and Dialyzer",
+      "status": "passed",
+      "evidence": "363 tests pass; coverage is 100.00%; specs/strict Credo and Dialyzer pass with zero findings."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cd elixir && mise exec -- mix test",
+      "status": "passed",
+      "summary": "363 tests, 0 failures, 2 skipped."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix test --cover",
+      "status": "passed",
+      "summary": "363 tests pass with 100.00% total coverage."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix lint",
+      "status": "passed",
+      "summary": "Public-spec check and strict Credo pass with no issues."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix dialyzer",
+      "status": "passed",
+      "summary": "0 errors, 0 skipped, 0 unnecessary skips."
+    },
+    {
+      "command": "cd elixir && mise exec -- mix format --check-formatted",
+      "status": "passed",
+      "summary": "All files are correctly formatted."
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "summary": "No whitespace errors in the complete issue diff."
+    },
+    {
+      "command": "git status --porcelain=v1",
+      "status": "passed",
+      "summary": "Worktree is clean after committing exact tested HEAD."
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+      "branch": "bos/issue-51"
+    },
+    {
+      "type": "documentation",
+      "path": "SPEC.md"
+    },
+    {
+      "type": "documentation",
+      "path": "elixir/README.md"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Exact merged-artifact installation and service-health verification are delivery-coordinator responsibilities after independent review and merge.",
+      "mitigation": "Symphony will bind deployment verification to the exact merged commit before terminal completion."
+    }
+  ],
+  "summary": "Issue 51 implementation is committed, diff-reviewed, and fully validated at clean HEAD 40750c297ed42435dabe1d4670bfda85ce92af36."
+}
