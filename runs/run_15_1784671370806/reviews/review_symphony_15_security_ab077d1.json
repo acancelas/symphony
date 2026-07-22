@@ -1,0 +1,14 @@
+{
+  "reviewId": "review_symphony_15_security_ab077d1",
+  "runId": "run_15_1784671370806",
+  "attemptId": "attempt_run_15_1784671370806_2",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "commitSha": "ab077d1d68168c1758eec66826635f579343bc42",
+  "status": "passed",
+  "findings": [],
+  "summary": "Recovery is restricted to normalized 409/422 audit integrity codes, fetches the confirmed remote watermark, preserves stable event IDs, and does not weaken redaction, authentication, or irreversible-action gates."
+}
