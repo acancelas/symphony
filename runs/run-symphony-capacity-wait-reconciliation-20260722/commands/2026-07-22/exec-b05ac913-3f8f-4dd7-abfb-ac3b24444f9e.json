@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b05ac913-3f8f-4dd7-abfb-ac3b24444f9e",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730874253_1171",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:34:34.253Z",
+  "command": "/bin/bash -lc \"grep -RIn \\\"OUTBOX\\\\|outbox_root\\\" lib test config | head -80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "lib/symphony_elixir/audit/outbox.ex:55:    root = Keyword.get(opts, :root, outbox_root())\nlib/symphony_elixir/audit/outbox.ex:1335:  defp outbox_root do\nlib/symphony_elixir/audit/outbox.ex:1336:    System.get_env(\"BOS_OUTBOX_ROOT\") ||\nlib/symphony_elixir/audit/outbox.ex:1337:      Application.get_env(:symphony_elixir, :audit_outbox_root) ||\nconfig/config.exs:21:    audit_outbox_root: Path.join(System.tmp_dir!(), \"symphony-test-outbox-#{System.unique_integer([:positive])}\")\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-735961ed-dfb9-48b7-a802-790f93b37d31",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730874136_1161",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:34:34.136Z",
+  "command": "/bin/bash -lc \"grep -RInE \\\"cover|credo|dialyzer|preferred_cli_env|aliases\\\" mix.exs mix.lock .github ../.github README.md 2>/dev/null | head -200; sed -n '1,260p' mix.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "mix.exs:11:      test_coverage: [\nmix.exs:55:      dialyzer: [\nmix.exs:60:      aliases: aliases(),\nmix.exs:88:      {:credo, \"~> 1.7\", only: [:dev, :test], runtime: false},\nmix.exs:93:  defp aliases do\nmix.exs:97:      lint: [\"specs.check\", \"credo --strict\"]\nmix.lock:6:  \"credo\": {:hex, :credo, \"1.7.19\", \"cc52129665fc7c15143d47838fda0f9cd6dac9ceced7bf4da6f85fcbfe64b12a\", [:mix], [{:bunt, \"~> 0.2.1 or ~> 1.0\", [hex: :bunt, repo: \"hexpm\", optional: false]}, {:file_system, \"~> 0.2 or ~> 1.0\", [hex: :file_system, repo: \"hexpm\", optional: false]}, {:jason, \"~> 1.0\", [hex: :jason, repo: \"hexpm\", optional: false]}], \"hexpm\", \"2d8bc95d5a7bb99dd2613621d4f08c6a3575c3fd4b62e6a2b48a100352a557b8\"},\nREADME.md:42:state cannot be read reliably, Symphony preserves the workspace for recovery and logs the\nREADME.md:46:Codex `turn/diff/updated` notifications are treated as durable recovery checkpoints: Symphony\nREADME.md:50:cancellation events still flush immediately. This preserves the filesystem recovery fast-path and\nREADME.md:64:recovery therefore stays crash-safe without accumulating or rescanning one file per historical\nREADME.md:68:unconfirmed files are restored before recovery. If an older runtime already removed detail from\nREADME.md:71:Recovered hash-chained events are never normalized or mutated without recomputing their sequence,\nREADME.md:91:recovered running work sort ahead of newly ready work; creation time provides deterministic FIFO\nREADME.md:243:  `api_key`, `project_slug`, and `assignee` aliases for compatibility.\nREADME.md:262:  covers reviewers and any role without an explicit override. `implementation-agent` and\nREADME.md:275:  time, input, cached input, uncached input, and reason needed for safe recovery.\nREADME.md:283:  moved to `.symphony-quarantine` for diagnosis before recovery; it is never reused as a runnable\nREADME.md:322:  The legacy flat `tracker.endpoint`, `api_key`, `project_slug`, and `assignee` aliases remain\nREADME.md:371:- `test/`: ExUnit coverage",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
