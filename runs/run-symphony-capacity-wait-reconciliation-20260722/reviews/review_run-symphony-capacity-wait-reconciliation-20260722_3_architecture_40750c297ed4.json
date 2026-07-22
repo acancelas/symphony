@@ -1,0 +1,45 @@
+{
+  "reviewId": "review_run-symphony-capacity-wait-reconciliation-20260722_3_architecture_40750c297ed4",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "reviewType": "architecture",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "info",
+      "code": "capacity_wait_reconciliation_ordering",
+      "summary": "Capacity-waiting reconciliation executes before candidate selection and dispatch.",
+      "evidence": "Orchestrator.maybe_dispatch/1 reconciles running, blocked, and capacity_waiting state before fetching active issues and choosing dispatch candidates."
+    },
+    {
+      "severity": "info",
+      "code": "repository_fencing_preserved",
+      "summary": "Remote release failure fails closed and retains local repository reservation.",
+      "evidence": "release_capacity_waiting_claim/4 removes claimed, capacity_waiting, and repository_claims state only after Tracker.release_issue/2 returns :ok; provider errors retain state."
+    },
+    {
+      "severity": "info",
+      "code": "claim_ownership_and_retry_invariants",
+      "summary": "Ownership transfer and valid-waiter recovery preserve the intended scheduler invariants.",
+      "evidence": "Foreign run ownership drops only stale local state without releasing the remote claim; valid owned waiters refresh and heartbeat while retaining queued attempt metadata and leaving retry_attempts unchanged."
+    },
+    {
+      "severity": "info",
+      "code": "exact_commit_identity",
+      "summary": "Exact reviewed commit identity is affirmatively supported.",
+      "evidence": "Latest confirmed cycle-2 evidence records a clean local HEAD and tracking/live remote at 40750c297ed42435dabe1d4670bfda85ce92af36; an independent live compare reports bos/issue-51 identical to that SHA."
+    },
+    {
+      "severity": "info",
+      "code": "deployment_boundary",
+      "summary": "Merged-artifact installation and service health remain a post-merge delivery verification boundary.",
+      "evidence": "Existing exact-commit evidence identifies DeploymentVerification as outstanding after merge; this does not block the pre-merge architecture verdict."
+    }
+  ],
+  "summary": "Passed architecture review for exact HEAD 40750c297ed42435dabe1d4670bfda85ce92af36. The design reconciles capacity waiters before dispatch, releases stale provider/local claims safely, preserves fencing on provider failure, respects claim ownership, and keeps valid waiting claims recoverable without Attempt or retry-budget consumption. Full exact-commit validation evidence is confirmed; post-merge installation and health verification remain delivery-coordinator responsibilities."
+}
