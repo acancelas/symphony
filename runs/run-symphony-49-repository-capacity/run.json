@@ -2,7 +2,7 @@
   "runId": "run-symphony-49-repository-capacity",
   "issueNumber": 49,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "human",
     "subjectId": "alejandro-cancelas"
@@ -18,5 +18,19 @@
   "baseCommit": "826a25339b1f3bd56819aedb43b5ab2a4a879a4c",
   "headCommit": "0bc979a2d170e176c4db64352ea9423b682b14a4",
   "pullRequestNumber": 50,
-  "currentAttemptId": "attempt-symphony-49-1"
+  "currentAttemptId": "attempt-symphony-49-1",
+  "completedAt": "2026-07-22T14:02:32.929048Z",
+  "reconciliation": {
+    "operationId": "reconcile_terminal_run-symphony-49-repository-capacity",
+    "classification": "verified_success",
+    "previousStatus": "running",
+    "issueState": "closed",
+    "issueStateReason": "completed",
+    "pullRequestNumber": 50,
+    "pullRequestMerged": true,
+    "mergeCommitSha": "8c2ec23a4a7873890a81562a1e701efae684be34",
+    "verifiedHeadSha": "0bc979a2d170e176c4db64352ea9423b682b14a4",
+    "evidenceId": "evidence-symphony-49-repository-capacity",
+    "reconciledAt": "2026-07-22T14:02:32.929048Z"
+  }
 }
