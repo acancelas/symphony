@@ -1,0 +1,14 @@
+{
+  "reviewId": "review-symphony-49-quality",
+  "runId": "run-symphony-49-repository-capacity",
+  "attemptId": "attempt-symphony-49-1",
+  "reviewType": "quality",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "commitSha": "0bc979a2d170e176c4db64352ea9423b682b14a4",
+  "status": "passed",
+  "findings": [],
+  "summary": "Independent quality review passed on the exact PR HEAD after full validation."
+}
