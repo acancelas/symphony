@@ -1,0 +1,35 @@
+{
+  "reviewId": "review_run-symphony-capacity-wait-reconciliation-20260722_2_security_40750c297ed4",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "none",
+      "title": "Capacity-wait reconciliation preserves claim fencing on provider failures",
+      "details": "Tracker refresh failure keeps all waiting claims; heartbeat failure retains the valid owned waiter; remote release failure retains local claimed, capacity-waiting, and repository-reservation state, preventing unsafe concurrent dispatch."
+    },
+    {
+      "severity": "none",
+      "title": "Ownership transfer is handled without mutating the foreign remote claim",
+      "details": "When the refreshed runId differs, reconciliation removes only the stale local reservation and does not heartbeat or remotely release the new owner's claim."
+    },
+    {
+      "severity": "none",
+      "title": "Exact-commit regression and quality evidence is affirmative",
+      "details": "Tests cover missing, terminal, unroutable, foreign-owned, and valid-owned waiters, including same-repository dispatch and preservation of attempt 3 with an empty retry map. Exact-commit evidence reports 363 tests passing, 100.00% coverage, strict Credo and Dialyzer clean."
+    },
+    {
+      "severity": "none",
+      "title": "Reviewed commit identity remains bound",
+      "details": "Latest durable clean-worktree evidence confirms local HEAD 40750c297ed42435dabe1d4670bfda85ce92af36; an independent live GitHub comparison reports bos/issue-51 identical to that SHA."
+    }
+  ],
+  "summary": "Passed security review for exact commit 40750c297ed42435dabe1d4670bfda85ce92af36. Capacity-wait reconciliation safely releases stale reservations, preserves fencing on provider failures, avoids touching foreign claims, and maintains attempt/retry invariants with exact-commit regression and full-gate evidence."
+}
