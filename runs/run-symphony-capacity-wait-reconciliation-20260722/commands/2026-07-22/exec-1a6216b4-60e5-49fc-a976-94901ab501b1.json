@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-1a6216b4-60e5-49fc-a976-94901ab501b1",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730955304_1191",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:35:55.296Z",
+  "command": "/bin/bash -lc \"test -f .git/CODEX_COMMIT_MSG && sed -n '1,120p' .git/CODEX_COMMIT_MSG; git add -A && git diff --cached --check && git diff --cached --stat && git commit -F .git/CODEX_COMMIT_MSG\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "fix(orchestrator): reconcile capacity-waiting claims\n\nSummary:\n- Refresh and heartbeat valid capacity-waiting claims on every poll.\n- Release stale remote claims and local repository reservations safely.\n- Cover missing, terminal, unroutable, and ownership-change cases.\n\nRationale:\n- A stale waiter could otherwise reserve its repository until restart.\n- Queue reconciliation must preserve valid attempts and retry budgets.\n\nTests:\n- mise exec -- mix test\n- mise exec -- mix test --cover (100.00%)\n- mise exec -- mix lint\n- mise exec -- mix dialyzer\n- mise exec -- mix format --check-formatted\n\nCo-authored-by: Codex <codex@openai.com>\n SPEC.md                                            |  16 ++-\n elixir/README.md                                   |   4 +\n elixir/lib/symphony_elixir/game_api/adapter.ex     |  19 ++++\n elixir/lib/symphony_elixir/game_api/client.ex      |  21 ++++\n elixir/lib/symphony_elixir/orchestrator.ex         | 110 ++++++++++++++++++++\n elixir/lib/symphony_elixir/tracker.ex              |  13 +++\n .../test/symphony_elixir/capacity_queue_test.exs   | 111 +++++++++++++++++++++\n .../test/symphony_elixir/game_api_adapter_test.exs |  19 ++++\n 8 files changed, 311 insertions(+), 2 deletions(-)\n[bos/issue-51 40750c29] fix(orchestrator): reconcile capacity-waiting claims\n 8 files changed, 311 insertions(+), 2 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
