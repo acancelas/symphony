@@ -1,0 +1,15 @@
+{
+  "reviewId": "review_symphony_44_quality",
+  "runId": "run_symphony_44_20260722",
+  "attemptId": "attempt_001",
+  "reviewType": "quality",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer",
+    "displayName": "Quality reviewer"
+  },
+  "commitSha": "629d47d2f50cd76acdbda6ccfbef7c1fac8c5fed",
+  "status": "passed",
+  "findings": [],
+  "summary": "The full repository gate passed: formatting, specs, Credo, Dialyzer, 345 tests with zero failures, two intentional skips, and 100 percent coverage. Regression tests cover the observed 2,123-second window, bounds, and shared state."
+}
