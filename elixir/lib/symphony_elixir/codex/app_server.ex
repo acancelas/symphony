@@ -869,7 +869,7 @@ defmodule SymphonyElixir.Codex.AppServer do
          %{
            "id" => id,
            "params" => %{
-             "serverName" => "bos-mcp",
+             "serverName" => server_name,
              "mode" => "form",
              "_meta" => %{"codex_approval_kind" => "mcp_tool_call"}
            }
@@ -879,7 +879,8 @@ defmodule SymphonyElixir.Codex.AppServer do
          metadata,
          _tool_executor,
          true
-       ) do
+       )
+       when server_name in ["bos-mcp", "codebase-memory"] do
     send_message(port, %{"id" => id, "result" => %{"action" => "accept", "content" => %{}}})
 
     emit_message(
