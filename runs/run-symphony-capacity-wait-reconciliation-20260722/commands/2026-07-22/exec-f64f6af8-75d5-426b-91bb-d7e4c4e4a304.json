@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f64f6af8-75d5-426b-91bb-d7e4c4e4a304",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_1",
+  "eventId": "event_1784730450566_1016",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:27:30.566Z",
+  "command": "/bin/bash -lc \"grep -RIn --exclude-dir=_build --exclude-dir=deps 'agent.progress_recorded' elixir/lib elixir/test | head -100 && sed -n '1,220p' elixir/lib/symphony_elixir/audit/event.ex 2>/dev/null || true && find elixir/lib/symphony_elixir/audit -maxdepth 2 -type f -print\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/audit/outbox.ex:737:      (event_type == \"agent.progress_recorded\" and get_in(event, [\"payload\", \"method\"]) == \"turn/started\")\nelixir/lib/symphony_elixir/audit/outbox.ex:1092:  defp event_type(_method, _payload), do: \"agent.progress_recorded\"\nelixir/test/symphony_elixir/audit/outbox_test.exs:242:        \"eventType\" => \"agent.progress_recorded\",\nelixir/test/symphony_elixir/audit/outbox_test.exs:250:        \"eventType\" => \"agent.progress_recorded\",\nelixir/test/symphony_elixir/audit/outbox_test.exs:289:    assert summary[\"eventTypes\"] == %{\"agent.progress_recorded\" => 1}\nelixir/test/symphony_elixir/audit/outbox_test.exs:311:      \"eventType\" => \"agent.progress_recorded\",\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/lib/symphony_elixir/audit/canonical_json.ex\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
