@@ -1,0 +1,9 @@
+{
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "issueNumber": 51,
+  "pullRequestNumber": 52,
+  "url": "https://github.com/acancelas/symphony/pull/52",
+  "head": "2be943c98f4a7eedfcc9b69896ac35f058bd1970",
+  "base": "8c2ec23a4a7873890a81562a1e701efae684be34",
+  "draft": false
+}
