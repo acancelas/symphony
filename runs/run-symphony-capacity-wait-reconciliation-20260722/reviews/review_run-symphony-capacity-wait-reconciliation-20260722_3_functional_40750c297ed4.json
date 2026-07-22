@@ -1,0 +1,35 @@
+{
+  "reviewId": "review_run-symphony-capacity-wait-reconciliation-20260722_3_functional_40750c297ed4",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "reviewType": "functional",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "commitSha": "40750c297ed42435dabe1d4670bfda85ce92af36",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "none",
+      "category": "acceptance",
+      "finding": "Capacity-wait reconciliation runs on every poll and releases provider plus local repository reservations for missing, terminal, inactive, or unroutable waiting issues; a release failure retains local fencing for safe retry."
+    },
+    {
+      "severity": "none",
+      "category": "ownership",
+      "finding": "A refreshed claim owned by another run drops only the stale local reservation and does not heartbeat or release the foreign provider claim."
+    },
+    {
+      "severity": "none",
+      "category": "budget",
+      "finding": "A valid same-run waiting claim is refreshed and heartbeated without consuming a new Attempt or retry budget; regression coverage asserts attempt 3 and an unchanged empty retry-attempt map."
+    },
+    {
+      "severity": "none",
+      "category": "identity_and_validation",
+      "finding": "Latest durable evidence confirms a clean local HEAD at 40750c297ed42435dabe1d4670bfda85ce92af36; an independent live GitHub comparison confirms bos/issue-51 is identical to that SHA. Exact-commit evidence reports 363 tests passing, 100.00% coverage, strict Credo, Dialyzer, formatting, and diff hygiene passing."
+    }
+  ],
+  "summary": "Passed functional review at exact commit 40750c297ed42435dabe1d4670bfda85ce92af36. The implementation and regression evidence affirm all pre-merge capacity-wait acceptance behavior, with local and remote identity bound to the reviewed SHA; merged-artifact installation and service health remain the defined post-merge verification."
+}
