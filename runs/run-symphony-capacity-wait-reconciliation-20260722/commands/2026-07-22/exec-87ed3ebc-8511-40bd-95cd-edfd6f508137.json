@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-87ed3ebc-8511-40bd-95cd-edfd6f508137",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730837276_1131",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:33:58.206Z",
+  "command": "/bin/bash -lc 'git status --short --branch && git log -8 --oneline --decorate && git diff --stat && git diff --cached --stat'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-51\n M SPEC.md\n M elixir/README.md\n M elixir/lib/symphony_elixir/game_api/adapter.ex\n M elixir/lib/symphony_elixir/game_api/client.ex\n M elixir/lib/symphony_elixir/orchestrator.ex\n M elixir/lib/symphony_elixir/tracker.ex\n M elixir/test/symphony_elixir/capacity_queue_test.exs\n M elixir/test/symphony_elixir/game_api_adapter_test.exs\n8c2ec23a (HEAD -> bos/issue-51, origin/main, origin/HEAD, main) Serialize delivery capacity per repository (#50)\n826a2533 Merge pull request #48 from acancelas/bos/trusted-local-mcp\n9e0b4607 fix: trust local code intelligence MCP\nbd49ded5 Merge pull request #47 from acancelas/bos/auto-approve-bos-mcp-elicitation\ne46bc1f3 fix: auto-approve trusted BOS MCP elicitations\n7b64588b Merge pull request #46 from acancelas/bos/reviewer-readonly\n9a33925a Document isolated delivery recovery\nfca99c99 Use atomic claims and normalize continuation retries\n SPEC.md                                            |  16 ++-\n elixir/README.md                                   |   4 +\n elixir/lib/symphony_elixir/game_api/adapter.ex     |  19 ++++\n elixir/lib/symphony_elixir/game_api/client.ex      |  21 ++++\n elixir/lib/symphony_elixir/orchestrator.ex         | 110 ++++++++++++++++++++\n elixir/lib/symphony_elixir/tracker.ex              |  13 +++\n .../test/symphony_elixir/capacity_queue_test.exs   | 111 +++++++++++++++++++++\n .../test/symphony_elixir/game_api_adapter_test.exs |  19 ++++\n 8 files changed, 311 insertions(+), 2 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
