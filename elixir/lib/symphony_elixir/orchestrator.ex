@@ -1014,6 +1014,17 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp dispatch_issue(%State{} = state, issue, attempt \\ nil, preferred_worker_host \\ nil) do
+    if Config.settings!().tracker.kind == "game_api" do
+      # The normalized claim endpoint performs the authoritative state and
+      # lease check atomically. A second GitHub read here wastes provider quota
+      # and can prevent claiming an Issue already confirmed by this poll.
+      do_dispatch_issue(state, issue, attempt, preferred_worker_host)
+    else
+      dispatch_revalidated_issue(state, issue, attempt, preferred_worker_host)
+    end
+  end
+
+  defp dispatch_revalidated_issue(state, issue, attempt, preferred_worker_host) do
     case revalidate_issue_for_dispatch(issue, &Tracker.fetch_issues_by_ids/1, terminal_state_set()) do
       {:ok, %Issue{} = refreshed_issue} ->
         do_dispatch_issue(state, refreshed_issue, attempt, preferred_worker_host)
@@ -1146,7 +1157,12 @@ defmodule SymphonyElixir.Orchestrator do
   defp schedule_issue_retry(%State{} = state, issue_id, attempt, metadata)
        when is_binary(issue_id) and is_map(metadata) do
     previous_retry = Map.get(state.retry_attempts, issue_id, %{attempt: 0})
-    next_attempt = if is_integer(attempt), do: attempt, else: previous_retry.attempt + 1
+
+    next_attempt =
+      if is_integer(attempt) and attempt > 0,
+        do: attempt,
+        else: previous_retry.attempt + 1
+
     delay_ms = retry_delay(next_attempt, metadata)
     old_timer = Map.get(previous_retry, :timer_ref)
     retry_token = make_ref()
