@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-59260220-36f3-4270-9fec-e38aed8f7bca",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730844428_1141",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:34:05.357Z",
+  "command": "/bin/bash -lc 'git diff --check && git diff -- elixir/lib/symphony_elixir/orchestrator.ex elixir/lib/symphony_elixir/tracker.ex elixir/lib/symphony_elixir/game_api/adapter.ex elixir/lib/symphony_elixir/game_api/client.ex && git diff -- elixir/test/symphony_elixir/capacity_queue_test.exs elixir/test/symphony_elixir/game_api_adapter_test.exs SPEC.md elixir/README.md'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "diff --git a/elixir/lib/symphony_elixir/game_api/adapter.ex b/elixir/lib/symphony_elixir/game_api/adapter.ex\nindex df5f32aa..1422ef62 100644\n--- a/elixir/lib/symphony_elixir/game_api/adapter.ex\n+++ b/elixir/lib/symphony_elixir/game_api/adapter.ex\n@@ -29,6 +29,7 @@ defmodule SymphonyElixir.GameApi.Adapter do\n            {:ok, payload} <- client_module().fetch_issue(repository_id, issue_number) do\n         {:cont, {:ok, [normalize_issue(payload) | issues]}}\n       else\n+        {:error, {:game_api_http_error, 404}} -> {:cont, {:ok, issues}}\n         {:error, reason} -> {:halt, {:error, reason}}\n       end\n     end)\n@@ -70,6 +71,24 @@ defmodule SymphonyElixir.GameApi.Adapter do\n     end\n   end\n \n+  @spec release_issue(Issue.t(), String.t()) :: :ok | {:error, term()}\n+  def release_issue(%Issue{native_ref: native_ref}, reason) when is_binary(reason) do\n+    with run_id when is_binary(run_id) <- native_ref[\"runId\"],\n+         {:ok, %{\"status\" => \"completed\"}} <-\n+           client_module().release_issue(\n+             native_ref[\"repositoryId\"],\n+             native_ref[\"issueNumber\"],\n+             run_id,\n+             reason\n+           ) do\n+      :ok\n+    else\n+      nil -> {:error, :missing_run_id}\n+      {:error, reason} -> {:error, reason}\n+      other -> {:error, {:game_api_release_rejected, other}}\n+    end\n+  end\n+\n   @spec start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}\n   def start_execution(%Issue{} = issue, attempt_number)\n       when is_integer(attempt_number) and attempt_number > 0 do\ndiff --git a/elixir/lib/symphony_elixir/game_api/client.ex b/elixir/lib/symphony_elixir/game_api/client.ex\nindex 77e5d458..c39a684a 100644\n--- a/elixir/lib/symphony_elixir/game_api/client.ex\n+++ b/elixir/lib/symphony_elixir/game_api/client.ex\n@@ -125,6 +125,27 @@ defmodule SymphonyElixir.GameApi.Client do\n     end\n   end\n \n+  @spec release_issue(String.t(), pos_integer(), String.t(), String.t()) ::\n+          {:ok, map()} | {:error, term()}\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51",
+  "retention": {
+    "category": "permanent"
+  }
+}
