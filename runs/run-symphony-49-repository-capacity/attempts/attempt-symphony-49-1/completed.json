@@ -1,0 +1,20 @@
+{
+  "attemptId": "attempt-symphony-49-1",
+  "runId": "run-symphony-49-repository-capacity",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "startedAt": "2026-07-22T12:35:18.265000Z",
+  "completedAt": "2026-07-22T13:40:24.828000Z",
+  "summary": "Repository-scoped capacity implemented and exact HEAD passed the complete gate, CI, and three independent reviews.",
+  "metrics": {
+    "testsPassed": 357,
+    "testsFailed": 0,
+    "testsSkipped": 2,
+    "coveragePercent": 100,
+    "ciChecksPassed": 2
+  }
+}
