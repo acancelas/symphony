@@ -2,7 +2,7 @@
   "runId": "run_symphony_42_retry_after_20260722",
   "issueNumber": 42,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "human",
     "subjectId": "github:acancelas"
@@ -16,5 +16,20 @@
   "branch": "bos/fix-provider-retry-after",
   "baseCommit": "42ef3d96f99d0f2954d075b76d093de93f67151b",
   "headCommit": "4a50a8c420758a1621e5e02d981636bfc8085579",
-  "currentAttemptId": "attempt_run_symphony_42_retry_after_20260722_1"
+  "currentAttemptId": "attempt_run_symphony_42_retry_after_20260722_1",
+  "completedAt": "2026-07-22T03:39:11.398952Z",
+  "pullRequestNumber": 43,
+  "reconciliation": {
+    "operationId": "reconcile_terminal_run_symphony_42_retry_after_20260722",
+    "classification": "verified_success",
+    "previousStatus": "running",
+    "issueState": "closed",
+    "issueStateReason": "completed",
+    "pullRequestNumber": 43,
+    "pullRequestMerged": true,
+    "mergeCommitSha": "6b3839ca2e5eb84ddda73bc00500c0a4f19f85fd",
+    "verifiedHeadSha": "4a50a8c420758a1621e5e02d981636bfc8085579",
+    "evidenceId": "evidence_symphony_42_4a50a8c",
+    "reconciledAt": "2026-07-22T03:39:11.398952Z"
+  }
 }
