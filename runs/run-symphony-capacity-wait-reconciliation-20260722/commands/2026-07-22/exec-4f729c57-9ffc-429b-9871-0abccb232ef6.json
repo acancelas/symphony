@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-4f729c57-9ffc-429b-9871-0abccb232ef6",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730932623_1183",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:35:32.623Z",
+  "command": "/bin/bash -lc 'mise exec -- mix dialyzer'",
+  "durationMs": 6974,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Finding suitable PLTs\nChecking PLT...\n[:asn1, :bandit, :compiler, :crypto, :date_time_parser, :decimal, :ecto, :eex, :elixir, :finch, :hpax, :jason, :kernel, :logger, :mime, :mint, :mix, :nimble_options, :nimble_pool, :phoenix, :phoenix_html, :phoenix_live_view, :phoenix_pubsub, :phoenix_template, :plug, :plug_crypto, :public_key, :req, :solid, :ssl, :stdlib, :symphony_elixir, :telemetry, :thousand_island, :websock, :websock_adapter, :yamerl, :yaml_elixir]\nPLT is up to date!\nNo :ignore_warnings opt specified in mix.exs and default does not exist.\n\nStarting Dialyzer\n[\n  check_plt: false,\n  init_plt: ~c\"$WORKSPACE/.bos/worktrees/symphony-51/elixir/_build/dev/dialyxir_erlang-28.5_elixir-1.19.5_deps-dev.plt\",\n  files: [~c\"$WORKSPACE/.bos/worktrees/symphony-51/elixir/_build/dev/lib/symphony_elixir/ebin/Elixir.SymphonyElixirWeb.Router.Helpers.beam\",\n   ~c\"$WORKSPACE/.bos/worktrees/symphony-51/elixir/_build/dev/lib/symphony_elixir/ebin/Elixir.SymphonyElixir.WorkflowStore.State.beam\",\n   ~c\"$WORKSPACE/.bos/worktrees/symphony-51/elixir/_build/dev/lib/symphony_elixir/ebin/Elixir.SymphonyElixir.Codex.TurnBudget.beam\",\n   ~c\"$WORKSPACE/.bos/worktrees/symphony-51/elixir/_build/dev/lib/symphony_elixir/ebin/Elixir.SymphonyElixir.LogFile.beam\",\n   ~c\"$WORKSPACE/.bos/worktrees/symphony-51/elixir/_build/dev/lib/symphony_elixir/ebin/Elixir.SymphonyElixir.Codex.DynamicTool.beam\",\n   ...],\n  ...\n]\nTotal errors: 0, Skipped: 0, Unnecessary Skips: 0\ndone in 0m6.29s\ndone (passed successfully)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}

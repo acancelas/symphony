@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-97beb508-521a-404a-8581-eb030f194243",
+  "runId": "run-symphony-capacity-wait-reconciliation-20260722",
+  "attemptId": "attempt_run-symphony-capacity-wait-reconciliation-20260722_3",
+  "eventId": "event_1784730914039_1181",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-07-22T14:35:14.055Z",
+  "command": "/bin/bash -lc 'task_outbox=$(mktemp -d); BOS_OUTBOX_ROOT=\"$task_outbox\" mise exec -- mix test --cover'",
+  "durationMs": 15421,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Cover compiling modules ...\nRunning ExUnit with seed: 787203, max_cases: 20\n\n................................................................................hint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint: \nhint: \tgit config --global init.defaultBranch <name>\nhint: \nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint: \nhint: \tgit branch -m <name>\n........................................**.................................................................................................................................................................................................................................................\nFinished in 11.7 seconds (1.8s async, 9.8s sync)\n363 tests, 0 failures, 2 skipped\n\nGenerating cover results ...\n\n| Percentage | Module                                     |\n|------------|--------------------------------------------|\n|    100.00% | Mix.Tasks.PrBody.Check                     |\n|    100.00% | Mix.Tasks.Specs.Check                      |\n|    100.00% | Mix.Tasks.Workspace.BeforeRemove           |\n|    100.00% | SymphonyElixir                             |\n|    100.00% | SymphonyElixir.AgentRuntimeSupervisor      |\n|    100.00% | SymphonyElixir.CandidateHead               |\n|    100.00% | SymphonyElixir.Codex.CommandPolicy         |\n|    100.00% | SymphonyElixir.Codex.TurnBudget            |\n|    100.00% | SymphonyElixir.Config.Schema               |\n|    100.00% | SymphonyElixir.Config.Schema.Agent         |\n|    100.00% | SymphonyElixir.Config.Schema.Codex         |\n|    100.00% | SymphonyElixir.Config.Schema.Hooks         |\n|    100.00% | SymphonyElixir.Config.Schema.Observability |\n|    100.00% | SymphonyElixir.Config.Schema.Polling       |\n|",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-51/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
