@@ -1,0 +1,14 @@
+{
+  "reviewId": "review_symphony_40_quality_3c9267f",
+  "runId": "run_symphony_40_budget_20260722",
+  "attemptId": "attempt_run_symphony_40_budget_20260722_1",
+  "reviewType": "quality",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "commitSha": "3c9267f0c26f93525790a9907f13d4022ca56b2c",
+  "status": "passed",
+  "findings": [],
+  "summary": "Synthetic protocol coverage proves one turn/steer and one turn/interrupt at exact uncached thresholds. The paused branch cannot start Delivery coordination. Configuration rejects invalid and inverted limits. The complete repository suite passes 341 tests with 100 percent coverage, Credo/spec checks report no findings, and Dialyzer reports zero errors."
+}
