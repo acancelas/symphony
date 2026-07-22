@@ -2,7 +2,7 @@
   "runId": "run_15_1784671370806",
   "issueNumber": 15,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "runner",
     "runnerId": "x1"
@@ -14,5 +14,21 @@
   },
   "startedAt": "2026-07-21T22:02:52.782000Z",
   "branch": "bos/issue-15",
-  "currentAttemptId": "attempt_run_15_1784671370806_1"
+  "currentAttemptId": "attempt_run_15_1784671370806_1",
+  "completedAt": "2026-07-22T01:11:06.189748Z",
+  "headCommit": "ab077d1d68168c1758eec66826635f579343bc42",
+  "pullRequestNumber": 35,
+  "reconciliation": {
+    "operationId": "reconcile_terminal_run_15_1784671370806",
+    "classification": "verified_success",
+    "previousStatus": "running",
+    "issueState": "closed",
+    "issueStateReason": "completed",
+    "pullRequestNumber": 35,
+    "pullRequestMerged": true,
+    "mergeCommitSha": "04c9c5e86d00e704acb63938dd35efc53ff2c8dd",
+    "verifiedHeadSha": "ab077d1d68168c1758eec66826635f579343bc42",
+    "evidenceId": "evidence_symphony_15_final_ab077d1",
+    "reconciledAt": "2026-07-22T01:11:06.189748Z"
+  }
 }
