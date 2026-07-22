@@ -63,6 +63,64 @@ defmodule SymphonyElixir.CapacityQueueTest do
              |> Enum.map(& &1.id)
   end
 
+  test "an active run reserves repository capacity without consuming global capacity" do
+    running = issue("bos-mcp#19", "In Progress", ~U[2026-07-20 08:00:00Z], 1)
+    same_repository = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+    other_repository = issue("game-api#84", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+
+    state = %State{
+      max_concurrent_agents: 2,
+      running: %{
+        running.id => %{issue: running}
+      }
+    }
+
+    refute Orchestrator.should_dispatch_issue_for_test(same_repository, state)
+    assert Orchestrator.should_dispatch_issue_for_test(other_repository, state)
+  end
+
+  test "repository capacity is released when the active run leaves running state" do
+    candidate = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+
+    assert Orchestrator.should_dispatch_issue_for_test(candidate, %State{max_concurrent_agents: 2})
+  end
+
+  test "a retrying or blocked claim keeps repository capacity reserved" do
+    candidate = issue("bos-mcp#28", "Todo", ~U[2026-07-21 08:00:00Z], 1)
+
+    state = %State{
+      max_concurrent_agents: 2,
+      claimed: MapSet.new(["bos-mcp#19"])
+    }
+
+    refute Orchestrator.should_dispatch_issue_for_test(candidate, state)
+  end
+
+  test "repository identity survives older recovered projections" do
+    explicit =
+      issue("opaque", "agent:running", ~U[2026-07-20 08:00:00Z], 1)
+      |> Map.put(:native_ref, %{"repositoryId" => "tengo-suerte"})
+
+    recovered = issue("tengo-suerte#1", "agent:running", ~U[2026-07-20 08:00:00Z], 1)
+
+    assert Issue.repository_id(explicit) == "tengo-suerte"
+    assert Issue.repository_id(recovered) == "tengo-suerte"
+    assert Issue.repository_id(%Issue{id: nil}) == nil
+    assert Issue.repository_id(%Issue{id: ""}) == nil
+    assert Issue.repository_id(%Issue{id: "#1"}) == nil
+    assert Issue.repository_id(%Issue{id: "bos-mcp#"}) == nil
+
+    assert Issue.repository_id(%Issue{
+             id: "fallback#1",
+             native_ref: %{"repositoryId" => "  "}
+           }) == "fallback"
+
+    assert Issue.repository_id(%Issue{
+             id: "ignored#1",
+             native_ref: %{repository_id: " explicit "}
+           }) == "explicit"
+  end
+
   defp issue(id, state, created_at, priority) do
     %Issue{
       id: id,

@@ -659,6 +659,19 @@ claim state.
    - Claim removed because issue is terminal, non-active, missing, or retry path completed without
      re-dispatch.
 
+Repository capacity is an additional scheduling invariant for trackers that expose repository
+identity:
+
+- At most one claimed Issue per repository may be active locally, including `Running`,
+  `RetryQueued`, and blocked claims.
+- Issues from different repositories may run concurrently up to the global, state, and worker
+  limits.
+- Repository capacity waiting does not create an Attempt or consume retry budget.
+- A restarted orchestrator reconstructs the reservation by dispatching canonical running work
+  before ready work; stable `repositoryId` or the normalized `repository#issue` identity is used.
+- This serialization prevents concurrent writers in one repository from amplifying optimistic
+  compare-and-swap retries on the shared `bos/audit` ref.
+
 Important nuance:
 
 - A successful worker exit does not mean the issue is done forever.

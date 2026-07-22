@@ -854,7 +854,7 @@ defmodule SymphonyElixir.Orchestrator do
   defp maybe_queue_capacity_candidate(state, issue, active_states, terminal_states) do
     if capacity_candidate_issue?(issue, state, active_states, terminal_states) and
          capacity_blocked?(issue, state) do
-      queue_for_capacity(state, issue, nil, %{})
+      queue_for_capacity(state, issue, nil, %{reason: capacity_wait_reason(issue, state)})
     else
       state
     end
@@ -877,6 +877,7 @@ defmodule SymphonyElixir.Orchestrator do
   defp capacity_blocked?(issue, state) do
     available_slots(state) <= 0 or
       !state_slots_available?(issue, state.running) or
+      !repository_slot_available?(issue, state) or
       !worker_slots_available?(state)
   end
 
@@ -934,6 +935,7 @@ defmodule SymphonyElixir.Orchestrator do
       !Map.has_key?(blocked, issue.id) and
       available_slots(state) > 0 and
       state_slots_available?(issue, running) and
+      repository_slot_available?(issue, state) and
       worker_slots_available?(state)
   end
 
@@ -957,6 +959,48 @@ defmodule SymphonyElixir.Orchestrator do
       _ ->
         false
     end)
+  end
+
+  defp repository_slot_available?(
+         %Issue{} = issue,
+         %State{running: running, claimed: claimed}
+       )
+       when is_map(running) do
+    case Issue.repository_id(issue) do
+      nil ->
+        true
+
+      repository_id ->
+        no_running_issue_in_repository?(running, issue.id, repository_id) and
+          no_claimed_issue_in_repository?(claimed, issue.id, repository_id)
+    end
+  end
+
+  defp repository_slot_available?(_issue, _state), do: false
+
+  defp no_running_issue_in_repository?(running, candidate_id, repository_id) do
+    Enum.all?(running, fn
+      {issue_id, %{issue: %Issue{} = running_issue}} ->
+        issue_id == candidate_id or Issue.repository_id(running_issue) != repository_id
+
+      _ ->
+        true
+    end)
+  end
+
+  defp no_claimed_issue_in_repository?(claimed, candidate_id, repository_id) do
+    Enum.all?(claimed, fn issue_id ->
+      issue_id == candidate_id or
+        Issue.repository_id(%Issue{id: issue_id}) != repository_id
+    end)
+  end
+
+  defp capacity_wait_reason(%Issue{} = issue, %State{} = state) do
+    if repository_slot_available?(issue, state) do
+      "waiting for execution capacity"
+    else
+      "waiting for repository capacity"
+    end
   end
 
   defp candidate_issue?(
@@ -1355,7 +1399,7 @@ defmodule SymphonyElixir.Orchestrator do
       worker_host: metadata[:worker_host] || Map.get(previous, :worker_host),
       workspace_path: metadata[:workspace_path] || Map.get(previous, :workspace_path),
       queued_at: Map.get(previous, :queued_at, DateTime.utc_now()),
-      reason: "waiting for execution capacity"
+      reason: metadata[:reason] || capacity_wait_reason(issue, state)
     }
 
     %{
@@ -1911,7 +1955,8 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp dispatch_slots_available?(%Issue{} = issue, %State{} = state) do
-    available_slots(state) > 0 and state_slots_available?(issue, state.running)
+    available_slots(state) > 0 and state_slots_available?(issue, state.running) and
+      repository_slot_available?(issue, state)
   end
 
   defp apply_codex_token_delta(
