@@ -238,6 +238,7 @@ defmodule SymphonyElixir.GameApi.Client do
     cond do
       blank?(endpoint(tracker_settings)) -> {:error, :missing_game_api_endpoint}
       blank?(System.get_env("BOS_API_INTERNAL_TOKEN")) -> {:error, :missing_game_api_token}
+      blank?(System.get_env("BOS_API_TARGET_PROJECT_ID")) -> {:error, :missing_game_api_target_project_id}
       configured_repositories == [] -> {:error, :missing_game_api_repositories}
       Enum.any?(configured_repositories, &invalid_repository?/1) -> {:error, :invalid_game_api_repository}
       true -> :ok
@@ -258,7 +259,8 @@ defmodule SymphonyElixir.GameApi.Client do
         {"x-bos-actor-id", "runner:#{runner_id}"},
         {"x-bos-runner-id", runner_id},
         {"x-bos-authenticated-by", "symphony_internal_token"},
-        {"x-bos-origin", "symphony"}
+        {"x-bos-origin", "symphony"},
+        {"x-project-id", System.get_env("BOS_API_TARGET_PROJECT_ID")}
       ]
       |> maybe_add_header("x-bos-runner-action-token", System.get_env("BOS_RUNNER_ACTION_TOKEN"))
 

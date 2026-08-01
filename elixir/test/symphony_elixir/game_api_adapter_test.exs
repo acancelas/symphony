@@ -149,11 +149,13 @@ defmodule SymphonyElixir.GameApiAdapterTest do
   test "normalizes a blank runner identity in an actual heartbeat request" do
     previous_runner_id = System.get_env("BOS_RUNNER_ID")
     previous_internal_token = System.get_env("BOS_API_INTERNAL_TOKEN")
+    previous_target_project_id = System.get_env("BOS_API_TARGET_PROJECT_ID")
     previous_http_client = Application.get_env(:symphony_elixir, :game_api_http_client_module)
     previous_test_pid = Application.get_env(:symphony_elixir, :game_api_http_test_pid)
 
     System.put_env("BOS_RUNNER_ID", "   ")
     System.put_env("BOS_API_INTERNAL_TOKEN", "test-token")
+    System.put_env("BOS_API_TARGET_PROJECT_ID", "bos-control-plane")
     Application.put_env(:symphony_elixir, :game_api_http_client_module, FakeHttpClient)
     Application.put_env(:symphony_elixir, :game_api_http_test_pid, self())
     ProviderCircuit.reset_for_test()
@@ -161,6 +163,7 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     on_exit(fn ->
       restore_env("BOS_RUNNER_ID", previous_runner_id)
       restore_env("BOS_API_INTERNAL_TOKEN", previous_internal_token)
+      restore_env("BOS_API_TARGET_PROJECT_ID", previous_target_project_id)
       ProviderCircuit.reset_for_test()
 
       if previous_http_client do
@@ -193,6 +196,31 @@ defmodule SymphonyElixir.GameApiAdapterTest do
     assert options[:json]["runnerId"] == "x1"
     assert {"x-bos-runner-id", "x1"} in options[:headers]
     assert {"x-bos-actor-id", "runner:x1"} in options[:headers]
+    assert {"x-project-id", "bos-control-plane"} in options[:headers]
+  end
+
+  test "fails configuration when the BOS target project routing identity is missing" do
+    previous_internal_token = System.get_env("BOS_API_INTERNAL_TOKEN")
+    previous_target_project_id = System.get_env("BOS_API_TARGET_PROJECT_ID")
+
+    System.put_env("BOS_API_INTERNAL_TOKEN", "test-token")
+    System.delete_env("BOS_API_TARGET_PROJECT_ID")
+
+    on_exit(fn ->
+      restore_env("BOS_API_INTERNAL_TOKEN", previous_internal_token)
+      restore_env("BOS_API_TARGET_PROJECT_ID", previous_target_project_id)
+    end)
+
+    tracker = %{
+      endpoint: "https://game-api.test",
+      provider: %{
+        "repositories" => [
+          %{"repository_id" => "bos-front", "owner" => "acancelas", "repo" => "bos-front"}
+        ]
+      }
+    }
+
+    assert {:error, :missing_game_api_target_project_id} = Client.validate_config(tracker)
   end
 
   test "persists the execution identity before Codex starts" do
