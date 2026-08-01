@@ -1,0 +1,55 @@
+{
+  "evidenceId": "symphony54-tests-bee110a4",
+  "runId": "goal38-symphony-54-project-header",
+  "commitSha": "bee110a4ecccb87dcc4cb378b489679f56c14af0",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "All GameApiTrackerAdapter requests include X-Project-Id",
+      "status": "passed",
+      "evidence": "Client central request headers include BOS_API_TARGET_PROJECT_ID and regression assertion covers it."
+    },
+    {
+      "criterion": "Missing target project ID fails validation",
+      "status": "passed",
+      "evidence": "New validate_config regression test passes."
+    },
+    {
+      "criterion": "Complete test suite passes",
+      "status": "passed",
+      "evidence": "mix test: 373 tests, 0 failures, 2 skipped."
+    }
+  ],
+  "checks": [
+    {
+      "name": "mix test",
+      "status": "passed",
+      "summary": "373 tests, 0 failures, 2 skipped"
+    },
+    {
+      "name": "mix escript.build",
+      "status": "passed"
+    },
+    {
+      "name": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "bee110a4ecccb87dcc4cb378b489679f56c14af0"
+    },
+    {
+      "type": "branch",
+      "name": "codex/issue54-project-header"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Installed user service still uses the previous escript until this exact change is merged and installed.",
+      "mitigation": "Install merged exact commit, restart service, and verify live claims before closing the issue."
+    }
+  ],
+  "summary": "Target-project routing header implementation is fully tested: 373 tests passed and the escript builds."
+}
