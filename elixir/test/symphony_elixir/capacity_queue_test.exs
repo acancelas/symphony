@@ -467,8 +467,14 @@ defmodule SymphonyElixir.CapacityQueueTest do
 
   test "game_api fails closed when canonical repository identity is missing" do
     previous_token = System.get_env("BOS_API_INTERNAL_TOKEN")
+    previous_target_project_id = System.get_env("BOS_API_TARGET_PROJECT_ID")
     System.put_env("BOS_API_INTERNAL_TOKEN", "test-token")
-    on_exit(fn -> restore_env("BOS_API_INTERNAL_TOKEN", previous_token) end)
+    System.put_env("BOS_API_TARGET_PROJECT_ID", "bos-control-plane")
+
+    on_exit(fn ->
+      restore_env("BOS_API_INTERNAL_TOKEN", previous_token)
+      restore_env("BOS_API_TARGET_PROJECT_ID", previous_target_project_id)
+    end)
 
     write_workflow_file!(Workflow.workflow_file_path(),
       tracker_kind: "game_api",
