@@ -1,0 +1,57 @@
+{
+  "evidenceId": "symphony54-live-proof-1006d6cf",
+  "runId": "goal38-symphony-54-project-header",
+  "commitSha": "1006d6cf75a4f19f0e39c9e2e538e1f5f5f87f83",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "Installed Symphony sees eligible game-api issues after restart",
+      "status": "passed",
+      "evidence": "Live /api/v1/state lists game-api#155 and game-api#159 in capacity_waiting after refresh."
+    },
+    {
+      "criterion": "Installed artifact matches merged implementation",
+      "status": "passed",
+      "evidence": "Built from merge commit 1006d6cf; source and installed escript SHA-256 both 824ddb580ff70f22b989458a0cdca16143b492634121ce59f923a91493179405."
+    }
+  ],
+  "checks": [
+    {
+      "name": "systemd service",
+      "status": "passed",
+      "summary": "bos-orchestrator.service active after restart"
+    },
+    {
+      "name": "live tracker refresh",
+      "status": "passed",
+      "summary": "Cross-project queue populated, including game-api Sentry issues 155 and 159"
+    },
+    {
+      "name": "merge tree equivalence",
+      "status": "passed",
+      "summary": "Merged source paths are identical to fully tested PR HEAD"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "number": 55,
+      "url": "https://github.com/acancelas/symphony/pull/55"
+    },
+    {
+      "type": "merge_commit",
+      "sha": "1006d6cf75a4f19f0e39c9e2e538e1f5f5f87f83"
+    },
+    {
+      "type": "installed_sha256",
+      "value": "824ddb580ff70f22b989458a0cdca16143b492634121ce59f923a91493179405"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Historical ready backlog is ahead of new Sentry issues in the capacity queue.",
+      "mitigation": "Reconcile already-completed bootstrap issues and prioritize the Sentry repair queue without discarding legitimate work."
+    }
+  ],
+  "summary": "Merged and installed Symphony routing fix is live; the scheduler now discovers actionable Sentry issues across game-api."
+}
