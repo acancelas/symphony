@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-992966d4-b6c2-47e4-ba26-e9620810f436",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641943674_1331",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:39:03.674Z",
+  "command": "/bin/bash -lc \"find $WORKSPACE/.bos -maxdepth 3 -type d -iname '*game*api*' -o -iname '*delivery*api*' 2>/dev/null | head -n 100 && grep -RIn \\\"EvidenceReport\\\\|reviewId\\\" $WORKSPACE/.bos/install $WORKSPACE/.bos/runtime-builds --include='*.md' --include='*.json' --include='*.ts' --exclude-dir=node_modules 2>/dev/null | head -n 200\"",
+  "durationMs": 196,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "required: [\"issueNumber\", \"operationId\", \"reviewId\", \"status\", \"summary\"], additionalProperties: false } },\n$WORKSPACE/.bos/runtime-builds/bos-mcp-main-f425c91/src/delivery/tools.ts:168:  { name: \"bos_get_evidence\", description: \"List confirmed EvidenceReports for an AgentRun.\", inputSchema: { type: \"object\", properties: { runId: { type: \"string\", minLength: 1 } }, required: [\"runId\"], additionalProperties: false } },\n$WORKSPACE/.bos/runtime-builds/bos-mcp-main-f425c91/src/delivery/tools.ts:353:    [\"bos_record_evidence\", \"Persist an EvidenceReport for the exact verified commit.\"],\n$WORKSPACE/.bos/runtime-builds/bos-mcp-main-741b690a/dist/delivery/tools.d.ts:369:            readonly reviewId: {\n$WORKSPACE/.bos/runtime-builds/bos-mcp-main-741b690a/dist/delivery/tools.d.ts:388:        readonly required: readonly [\"issueNumber\", \"operationId\", \"reviewId\", \"status\", \"summary\"];\n$WORKSPACE/.bos/runtime-builds/bos-mcp-main-741b690a/dist/delivery/tools.d.ts:437:    readonly description: \"List confirmed EvidenceReports for an AgentRun.\";\n$WORKSPACE/.bos/runtime-builds/bos-mcp-main-741b690a/src/delivery/apiClient.ts:265:      \"artifactId\", \"evidenceId\", \"reviewId\", \"learningId\", \"validationId\", \"approvalId\",\n$WORKSPACE/.bos/runtime-builds/bos-mcp-main-741b690a/src/delivery/tools.ts:47:  reviewId: z.string().min(1),\n$WORKSPACE/.bos/runtime-builds/bos-mcp-main-741b690a/src/delivery/tools.ts:162:  { name: \"bos_record_goal_breakdown_review\", description: \"Persist one independent analyst-reviewer verdict for a Goal breakdown.\", inputSchema: { type: \"object\", properties: { issueNumber: { type: \"integer\", minimum: 1 }, operationId: { type: \"string\", minLength: 8 }, runId: { type: \"string\", minLength: 1 }, reviewId: { type: \"string\", minLength: 1 }, status: { type: \"string\", enum: [\"passed\", \"changes_requested\", \"inconclusive\"] }, summary: { type: \"string\", minLength: 1 }, findings: { type: \"array\", items: { type: \"object\" } } }, required: [\"issueNumber\", \"operationId\", \"reviewId\", ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
