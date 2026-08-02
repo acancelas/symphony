@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-469eb6b2-31c1-4a93-9816-a4fa81c26b9c",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642211931_1482",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:43:31.829Z",
+  "command": "/bin/bash -lc \"git add -A && git diff --cached --check && git diff --cached --stat && printf '%s\\\\n' 'fix(goal): fail closed on invalid authorization state' '' 'Summary:' '- Reject missing proposals and malformed windows, budgets, or usage.' '- Give each logical turn and repair cycle a stable gateway check ID.' '- Add regression coverage for corrupted projections and repeated checks.' '' 'Rationale:' '- Goal-scoped work must never bypass authorization because confirmed' '  gateway state is incomplete or schema-incompatible.' '- Distinct idempotency keys prevent later checks from replaying stale' '  authorization decisions.' '' 'Tests:' '- cd elixir && mise exec -- mix test (385 tests, 0 failures, 2 skipped)' '- cd elixir && mise exec -- mix format --check-formatted' '- git diff --check' '' 'Co-authored-by: Codex <codex@openai.com>' | git commit -F -\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": " elixir/lib/symphony_elixir/agent_runner.ex         |  2 +-\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  2 +-\n elixir/lib/symphony_elixir/goal_execution.ex       | 64 ++++++++++++++++------\n .../test/symphony_elixir/goal_execution_test.exs   | 50 +++++++++++++++--\n 4 files changed, 95 insertions(+), 23 deletions(-)\n[bos/issue-53 39d62e93] fix(goal): fail closed on invalid authorization state\n 4 files changed, 95 insertions(+), 23 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
