@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-947f099b-dd59-49bb-ad4f-fbec4c153c0a",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641616329_1186",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:33:36.198Z",
+  "command": "/bin/bash -lc 'git status --short --branch && git rev-parse HEAD && git ls-remote --heads origin refs/heads/bos/issue-53 && git show --stat --oneline --decorate --no-renames c76711aaa1c85728377695c67b607bedab162dba && git diff --name-status c76711aaa1c85728377695c67b607bedab162dba''^ c76711aaa1c85728377695c67b607bedab162dba'",
+  "durationMs": 1560,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "c76711aaa1c85728377695c67b607bedab162dba\trefs/heads/bos/issue-53\nc76711aa (HEAD -> bos/issue-53, origin/bos/issue-53) fix(goal): enforce gateway authorization before every turn\n elixir/README.md                                   |   8 +\n elixir/lib/symphony_elixir/agent_runner.ex         |  22 ++-\n elixir/lib/symphony_elixir/game_api/client.ex      |  24 +++\n elixir/lib/symphony_elixir/goal_execution.ex       | 171 ++++++++++++++++++---\n .../test/symphony_elixir/goal_execution_test.exs   | 140 +++++++++++++++++\n 5 files changed, 341 insertions(+), 24 deletions(-)\nM\telixir/README.md\nM\telixir/lib/symphony_elixir/agent_runner.ex\nM\telixir/lib/symphony_elixir/game_api/client.ex\nM\telixir/lib/symphony_elixir/goal_execution.ex\nM\telixir/test/symphony_elixir/goal_execution_test.exs\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-82170a21-ae94-4c70-ae1f-e39510da8a9e",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641616365_1190",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:33:36.234Z",
+  "command": "/bin/bash -lc \"sed -n '1,220p' .bos/project.yaml && git show c76711aaa1c85728377695c67b607bedab162dba:elixir/lib/symphony_elixir/delivery_coordinator.ex | sed -n '70,260p' && git show c76711aaa1c85728377695c67b607bedab162dba:elixir/lib/symphony_elixir/agent_runner.ex | sed -n '170,290p'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "schemaVersion: 1\nprojectId: bos\nrepositoryId: symphony\nworkflowId: bos-autonomous-delivery\nremote: https://github.com/acancelas/symphony\ndelivery:\n  issueProvider: github\n  issueRequired: true\n  branchStrategy: issue-based\nquality:\n  commands:\n    - id: test\n      runner: shell\n      script: cd elixir && mise exec -- mix test\n      required: true\n      timeoutSeconds: 900\nenvironments:\n  production:\n    branch: main\n    automaticDeployment: false\n    requiresApproval: true\n    requiresVerification: true\noffline:\n  allowed: [read, edit, local_checks]\n  blocked: [push, pull_request, deployment]\n    run_delivery_cycle(context, 1, max_cycles, [])\n  end\n\n  defp run_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints) do\n    case GoalExecution.check(context.client, context.issue, :derived_repair) do\n      :unmanaged -> run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints)\n      {:ok, _authorization} -> run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints)\n      {:pause, reason, authorization} -> {:error, {:goal_execution_paused, reason, authorization}}\n      {:error, reason} -> {:error, {:goal_execution_check_failed, reason}}\n    end\n  end\n\n  defp run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints) do\n    case review_and_repair(context, cycle, max_cycles) do\n      {:ok, reviewed_candidate} ->\n        confirm_reviewed_candidate(context, reviewed_candidate, cycle, max_cycles, dirty_fingerprints)\n\n      {:error, {:candidate_workspace_dirty, diagnosis}} ->\n        repair_dirty_candidate(context, diagnosis, cycle, max_cycles, dirty_fingerprints)\n\n      other ->\n        other\n    end\n  end\n\n  defp confirm_reviewed_candidate(context, reviewed, cycle, max_cycles, dirty_fingerprints) do\n    case context.candidate_head.confirm(context.workspace, context.issue, context.worker_host) do\n      {:ok, %{head_sha: head_sha} = candidate} when head_sha == reviewed.head_sha ->\n        run_finalizer(\n         ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
