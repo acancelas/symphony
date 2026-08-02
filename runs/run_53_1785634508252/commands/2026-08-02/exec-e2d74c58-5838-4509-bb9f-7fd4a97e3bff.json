@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e2d74c58-5838-4509-bb9f-7fd4a97e3bff",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637677106_883",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:27:57.106Z",
+  "command": "/bin/bash -lc \"sed -n '801,1600p' SPEC.md; sed -n '1601,2400p' SPEC.md; sed -n '200,500p' elixir/README.md\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\n- `available_slots = max(max_concurrent_agents - running_count, 0)`\n\nPer-state limit:\n\n- `max_concurrent_agents_by_state[state]` if present (state key normalized)\n- otherwise fallback to global limit\n\nThe runtime counts issues by their current tracked state in the `running` map.\n\n### 8.4 Retry and Backoff\n\nRetry entry creation:\n\n- Cancel any existing retry timer for the same issue.\n- Store `attempt`, `identifier`, `error`, `due_at_ms`, and new timer handle.\n\nBackoff formula:\n\n- Normal continuation retries after a clean worker exit use a short fixed delay of `1000` ms.\n- Failure-driven retries use `delay = min(10000 * 2^(attempt - 1), agent.max_retry_backoff_ms)`.\n- Power is capped by the configured max retry backoff (default `300000` / 5m).\n\nRetry handling behavior:\n\n1. Refresh the specific issue with `fetch_issues_by_ids([issue_id])`.\n2. If not found, release claim.\n3. If found in a terminal state, clean its workspace and release claim.\n4. If found and still active and routable:\n   - Dispatch if slots are available.\n   - Otherwise requeue with error `no available orchestrator slots`.\n5. If found but no longer active or routable, release claim without dispatch.\n\nNote:\n\n- Terminal-state workspace cleanup is handled by startup cleanup, active-run reconciliation, and\n  retry refreshes that observe a terminal transition.\n- ID refresh avoids treating a terminal, non-active, or newly unroutable issue as merely absent.\n\n### 8.5 Active Run Reconciliation\n\nReconciliation runs every tick and has two parts.\n\nPart A: Stall detection\n\n- For each running issue, compute `elapsed_ms` since:\n  - `last_codex_timestamp` if any event has been seen, else\n  - `started_at`\n- If `elapsed_ms > codex.stall_timeout_ms`, terminate the worker and queue a retry.\n- If `stall_timeout_ms <= 0`, skip stall detection entirely.\n\nPart B: Tracker state refresh\n\n- Fetch current issue states for all running issue IDs.\n- For each running issue:\n  - If tracker state is terminal: terminate worker and clean ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
