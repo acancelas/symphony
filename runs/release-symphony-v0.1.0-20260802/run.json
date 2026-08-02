@@ -1,0 +1,21 @@
+{
+  "runId": "release-symphony-v0.1.0-20260802",
+  "issueNumber": 58,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "human",
+    "subjectId": "alejandro-cancelas"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "0.1.0"
+  },
+  "startedAt": "2026-08-02T13:16:35Z",
+  "branch": "main",
+  "baseCommit": "1006d6cf75a4f19f0e39c9e2e538e1f5f5f87f83",
+  "headCommit": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3",
+  "pullRequestNumber": 56,
+  "currentAttemptId": "attempt-release-symphony-v0.1.0-1"
+}
