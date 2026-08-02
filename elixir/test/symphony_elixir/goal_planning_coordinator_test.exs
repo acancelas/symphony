@@ -24,9 +24,14 @@ defmodule SymphonyElixir.GoalPlanningCoordinatorTest do
        }}
     end
 
-    def request_goal_breakdown_approval(issue) do
-      send(Application.fetch_env!(:symphony_elixir, :goal_planning_test_pid), {:approval_requested, issue.id})
-      {:ok, %{"status" => "completed"}}
+    def fetch_goal_execution(_repository_id, _issue_number) do
+      send(Application.fetch_env!(:symphony_elixir, :goal_planning_test_pid), :execution_proposal_confirmed)
+
+      {:ok,
+       %{
+         "proposal" => %{"proposalVersion" => 1, "maximumTotalTokens" => 1_000_000},
+         "approval" => nil
+       }}
     end
   end
 
@@ -36,7 +41,7 @@ defmodule SymphonyElixir.GoalPlanningCoordinatorTest do
     :ok
   end
 
-  test "uses independent analyst and reviewer sessions before requesting human approval" do
+  test "uses independent analyst and reviewer sessions before confirming one Goal decision queue" do
     assert :ok =
              GoalPlanningCoordinator.run(
                "/tmp/workspace",
@@ -48,7 +53,7 @@ defmodule SymphonyElixir.GoalPlanningCoordinatorTest do
 
     assert_receive {:session_started, "goal-analyst"}
     assert_receive {:session_started, "goal-proposal-reviewer"}
-    assert_receive {:approval_requested, "bos-front#12"}
+    assert_receive :execution_proposal_confirmed
   end
 
   defp issue do

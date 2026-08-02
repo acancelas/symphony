@@ -211,6 +211,28 @@ defmodule SymphonyElixir.DeliveryCoordinatorTest do
     assert collect_actors(2, []) == ["security-reviewer", "delivery-coordinator"]
   end
 
+  test "defaults to no more than two repair review cycles" do
+    Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
+    Application.put_env(:symphony_elixir, :delivery_review_statuses, %{"security" => "changes_requested"})
+
+    assert {:error, {:review_repair_limit_reached, _summary}} =
+             DeliveryCoordinator.run(
+               "/tmp/workspace",
+               issue(),
+               nil,
+               [
+                 app_server_module: FakeAppServer,
+                 candidate_head_module: FakeCandidateHead,
+                 game_api_client_module: FakeClient,
+                 review_roles: ["security"]
+               ],
+               nil
+             )
+
+    assert collect_actors(4, []) ==
+             ["security-reviewer", "repair-agent", "security-reviewer", "delivery-coordinator"]
+  end
+
   test "retries only the missing reviewer artifact before restarting broader delivery" do
     Application.put_env(:symphony_elixir, :delivery_test_reviews, [])
 

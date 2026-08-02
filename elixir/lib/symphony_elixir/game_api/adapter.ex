@@ -111,7 +111,8 @@ defmodule SymphonyElixir.GameApi.Adapter do
         "repositoryName" => payload["_repositoryName"],
         "repositoryCloneUrl" => payload["_repositoryCloneUrl"],
         "runId" => claim["runId"],
-        "runnerId" => claim["runnerId"]
+        "runnerId" => claim["runnerId"],
+        "inheritedAuthorization" => payload["inheritedAuthorization"]
       },
       identifier: "#{repository_id}-#{issue_number}",
       title: payload["title"],

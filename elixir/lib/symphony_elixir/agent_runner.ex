@@ -10,6 +10,8 @@ defmodule SymphonyElixir.AgentRunner do
   alias SymphonyElixir.{
     Config,
     DeliveryCoordinator,
+    GoalExecution,
+    GoalExecutionPolicy,
     GoalPlanningCoordinator,
     PostApprovalCoordinator,
     PromptBuilder,
@@ -52,7 +54,8 @@ defmodule SymphonyElixir.AgentRunner do
     Logger.info("Starting worker attempt for #{issue_context(issue)} worker_host=#{worker_host_for_log(worker_host)}")
     attempt_number = normalize_attempt_number(Keyword.get(opts, :attempt))
 
-    with {:ok, issue} <- Tracker.start_execution(issue, attempt_number),
+    with {:ok, issue} <- ensure_goal_authorized(issue, opts),
+         {:ok, issue} <- Tracker.start_execution(issue, attempt_number),
          {:ok, workspace} <- Workspace.create_for_issue(issue, worker_host) do
       send_worker_runtime_info(codex_update_recipient, issue, worker_host, workspace)
 
@@ -93,6 +96,33 @@ defmodule SymphonyElixir.AgentRunner do
     end
   end
 
+  defp ensure_goal_authorized(%Issue{} = issue, opts) do
+    client = Keyword.get(opts, :game_api_client_module, SymphonyElixir.GameApi.Client)
+
+    case GoalExecutionPolicy.locator(issue) do
+      :unscoped ->
+        {:ok, issue}
+
+      {:ok, repository_id, goal_number, _authorization} ->
+        with {:ok, execution} <- client.fetch_goal_execution(repository_id, goal_number),
+             {:ok, policy} <- GoalExecutionPolicy.evaluate(issue, execution) do
+          native_ref =
+            issue.native_ref
+            |> Map.put("goalExecutionPolicy", policy)
+            |> Map.put("goalRepositoryId", repository_id)
+            |> Map.put("goalIssueNumber", goal_number)
+
+          {:ok, %{issue | native_ref: native_ref}}
+        else
+          {:pause, reason} -> {:error, {:goal_execution_paused, reason}}
+          {:error, reason} -> {:error, {:goal_authorization_rejected, reason}}
+        end
+
+      {:error, reason} ->
+        {:error, {:goal_authorization_rejected, reason}}
+    end
+  end
+
   defp run_bos_delivery_stage({:ok, true}, workspace, issue, recipient, opts, worker_host) do
     Logger.info("Resuming durable review stage without reopening implementation for #{issue_context(issue)}")
 
@@ -127,6 +157,9 @@ defmodule SymphonyElixir.AgentRunner do
         Logger.info("Paused bounded implementation turn for #{issue_context(issue)} reason=#{budget.pause_reason}")
 
         :ok
+
+      {:error, _reason} = error ->
+        error
     end
   end
 
@@ -203,6 +236,67 @@ defmodule SymphonyElixir.AgentRunner do
   end
 
   defp do_run_codex_turns(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
+    client = Keyword.get(opts, :game_api_client_module, SymphonyElixir.GameApi.Client)
+
+    case authorize_goal_turn(client, issue, turn_number) do
+      :unmanaged ->
+        run_codex_turn(
+          app_session,
+          workspace,
+          issue,
+          codex_update_recipient,
+          opts,
+          issue_state_fetcher,
+          turn_number,
+          max_turns
+        )
+
+      {:ok, _authorization} ->
+        run_codex_turn(
+          app_session,
+          workspace,
+          issue,
+          codex_update_recipient,
+          opts,
+          issue_state_fetcher,
+          turn_number,
+          max_turns
+        )
+
+      {:pause, reason, authorization} ->
+        {:paused, %{pause_reason: reason, goal_authorization: authorization}}
+
+      {:error, reason} ->
+        {:error, {:goal_execution_check_failed, reason}}
+    end
+  end
+
+  defp authorize_goal_turn(client, issue, turn_number) do
+    case GoalExecutionPolicy.locator(issue) do
+      :unscoped ->
+        GoalExecution.check(
+          client,
+          issue,
+          :included_issue,
+          %{"attempts" => 1},
+          "turn_#{turn_number}"
+        )
+
+      {:ok, repository_id, goal_number, _authorization} ->
+        with {:ok, execution} <- client.fetch_goal_execution(repository_id, goal_number),
+             {:ok, policy} <- GoalExecutionPolicy.evaluate(issue, execution) do
+          {:ok, policy}
+        else
+          {:pause, reason} -> {:pause, reason, %{"contract" => "current"}}
+          {:error, reason} -> {:error, {:goal_authorization_rejected, reason}}
+        end
+
+      {:error, reason} ->
+        {:error, {:goal_authorization_rejected, reason}}
+    end
+  end
+
+  defp run_codex_turn(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
     prompt = build_turn_prompt(issue, opts, turn_number, max_turns)
 
     case AppServer.run_turn(

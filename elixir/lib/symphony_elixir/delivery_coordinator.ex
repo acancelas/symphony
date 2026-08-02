@@ -13,10 +13,12 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   alias SymphonyElixir.CandidateHead
   alias SymphonyElixir.Codex.AppServer
   alias SymphonyElixir.GameApi.Client
+  alias SymphonyElixir.GoalExecution
+  alias SymphonyElixir.GoalExecutionPolicy
   alias SymphonyElixir.Tracker.Issue
 
   @review_roles ~w(functional architecture security quality visual)
-  @max_repair_cycles 3
+  @max_repair_cycles 2
   @max_review_record_attempts 2
   @max_review_lookup_attempts 3
   @review_sandbox_policy %{"type" => "readOnly", "networkAccess" => true}
@@ -46,7 +48,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   def run(workspace, %Issue{} = issue, recipient, opts, worker_host) do
     app_server = Keyword.get(opts, :app_server_module, AppServer)
     client = Keyword.get(opts, :game_api_client_module, Client)
-    roles = Keyword.get(opts, :review_roles, @review_roles)
+    roles = Keyword.get(opts, :review_roles, inherited_review_roles(issue))
     max_cycles = Keyword.get(opts, :max_repair_cycles, @max_repair_cycles)
     max_lookup_attempts = Keyword.get(opts, :max_review_lookup_attempts, @max_review_lookup_attempts)
     sleep_fn = Keyword.get(opts, :review_lookup_sleep, &Process.sleep/1)
@@ -69,7 +71,50 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     run_delivery_cycle(context, 1, max_cycles, [])
   end
 
+  defp inherited_review_roles(%Issue{native_ref: native_ref}) when is_map(native_ref) do
+    case get_in(native_ref, ["goalExecutionPolicy", :reviewers]) do
+      roles when is_list(roles) and roles != [] -> roles
+      _ -> @review_roles
+    end
+  end
+
+  defp inherited_review_roles(_issue), do: @review_roles
+
   defp run_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints) do
+    case authorize_delivery_cycle(context, cycle) do
+      :unmanaged -> run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints)
+      {:ok, _authorization} -> run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints)
+      {:pause, reason, authorization} -> {:error, {:goal_execution_paused, reason, authorization}}
+      {:error, reason} -> {:error, {:goal_execution_check_failed, reason}}
+    end
+  end
+
+  defp authorize_delivery_cycle(context, cycle) do
+    case GoalExecutionPolicy.locator(context.issue) do
+      :unscoped ->
+        GoalExecution.check(
+          context.client,
+          context.issue,
+          :derived_repair,
+          %{},
+          "cycle_#{cycle}"
+        )
+
+      {:ok, repository_id, goal_number, _authorization} ->
+        with {:ok, execution} <- context.client.fetch_goal_execution(repository_id, goal_number),
+             {:ok, policy} <- GoalExecutionPolicy.evaluate(context.issue, execution) do
+          {:ok, policy}
+        else
+          {:pause, reason} -> {:pause, reason, %{"contract" => "current"}}
+          {:error, reason} -> {:error, {:goal_authorization_rejected, reason}}
+        end
+
+      {:error, reason} ->
+        {:error, {:goal_authorization_rejected, reason}}
+    end
+  end
+
+  defp run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints) do
     case review_and_repair(context, cycle, max_cycles) do
       {:ok, reviewed_candidate} ->
         confirm_reviewed_candidate(context, reviewed_candidate, cycle, max_cycles, dirty_fingerprints)
@@ -393,8 +438,8 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
   defp run_finalizer(workspace, issue, recipient, worker_host, app_server, candidate) do
     prompt = """
-    You are the BOS delivery coordinator for #{issue.identifier}. All five
-    independent specialist Reviews have passed for the current repair cycle.
+    You are the BOS delivery coordinator for #{issue.identifier}. All required
+    risk-adaptive independent Reviews have passed for the current repair cycle.
     Re-read the exact confirmed candidate HEAD `#{candidate.head_sha}`, acceptance
     contract, checks, reviews and evidence through bos-mcp. Confirm the remote
     `#{candidate.branch}` branch still equals that SHA. Ensure the PR exists for

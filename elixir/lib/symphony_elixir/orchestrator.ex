@@ -7,8 +7,18 @@ defmodule SymphonyElixir.Orchestrator do
   require Logger
   import Bitwise, only: [<<<: 2]
 
-  alias SymphonyElixir.{AgentRunner, Config, RunnerIdentity, StatusDashboard, Tracker, Workspace}
+  alias SymphonyElixir.{
+    AgentRunner,
+    Config,
+    GoalExecutionPolicy,
+    RunnerIdentity,
+    StatusDashboard,
+    Tracker,
+    Workspace
+  }
+
   alias SymphonyElixir.Audit.Outbox
+  alias SymphonyElixir.GameApi.Client
   alias SymphonyElixir.Tracker.Issue
 
   @continuation_retry_delay_ms 1_000
@@ -206,6 +216,7 @@ defmodule SymphonyElixir.Orchestrator do
       running_entry ->
         Outbox.record(running_entry.issue, update)
         {updated_running_entry, token_delta} = integrate_codex_update(running_entry, update)
+        updated_running_entry = maybe_record_goal_consumption(updated_running_entry, token_delta, update)
 
         state =
           state
@@ -1359,7 +1370,8 @@ defmodule SymphonyElixir.Orchestrator do
             codex_last_reported_total_tokens: 0,
             turn_count: 0,
             retry_attempt: normalize_retry_attempt(attempt),
-            started_at: DateTime.utc_now()
+            started_at: DateTime.utc_now(),
+            goal_last_accounted_at: DateTime.utc_now()
           })
 
         %{
@@ -2067,6 +2079,69 @@ defmodule SymphonyElixir.Orchestrator do
       }),
       token_delta
     }
+  end
+
+  defp maybe_record_goal_consumption(
+         running_entry,
+         token_delta,
+         %{event: :turn_completed}
+       ) do
+    issue = running_entry.issue
+
+    case GoalExecutionPolicy.locator(issue) do
+      {:ok, repository_id, goal_number, authorization} ->
+        record_goal_consumption(
+          running_entry,
+          token_delta,
+          repository_id,
+          goal_number,
+          authorization
+        )
+
+      _ ->
+        running_entry
+    end
+  end
+
+  defp maybe_record_goal_consumption(running_entry, _token_delta, _update), do: running_entry
+
+  defp record_goal_consumption(
+         running_entry,
+         token_delta,
+         repository_id,
+         goal_number,
+         authorization
+       ) do
+    issue = running_entry.issue
+    now = DateTime.utc_now()
+    accounted_at = running_entry.goal_last_accounted_at || running_entry.started_at || now
+    native_ref = issue.native_ref || %{}
+
+    payload = %{
+      "repositoryId" => repository_id,
+      "goalIssueNumber" => goal_number,
+      "operationId" => "goal_consumption_#{native_ref["runId"] || issue.id}_turn_#{running_entry.turn_count}",
+      "approvalId" => authorization["goalApprovalId"],
+      "durationSeconds" => max(DateTime.diff(now, accounted_at, :second), 0),
+      "totalTokens" => max(Map.get(token_delta, :uncached_input_tokens, 0), 0),
+      "sourceIssueNumber" => native_ref["issueNumber"],
+      "runId" => native_ref["runId"]
+    }
+
+    handle_goal_consumption_result(Client.record_goal_consumption(payload), running_entry, now)
+  end
+
+  defp handle_goal_consumption_result({:ok, %{"status" => "completed"}}, running_entry, now),
+    do: %{running_entry | goal_last_accounted_at: now}
+
+  defp handle_goal_consumption_result({:ok, response}, running_entry, _now) do
+    Logger.warning("Goal consumption was not confirmed: #{inspect(response)}")
+    running_entry
+  end
+
+  defp handle_goal_consumption_result({:error, reason}, running_entry, _now) do
+    Logger.warning("Goal consumption recording failed and will be reconstructed: #{inspect(reason)}")
+    running_entry
   end
 
   defp pause_status_for_event(:turn_budget_soft_limit, _current), do: "soft_limit"

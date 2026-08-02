@@ -79,6 +79,14 @@ session, so Symphony resets its comparison watermark—not its cumulative totals
 role starts a fresh session. Operational token budgets should use uncached input while retaining
 the full totals for capacity and audit reporting.
 
+Goal-authorized work reuses one exact approved proposal for every included Issue and strictly
+derived repair. Before each implementation turn or repair cycle, Symphony idempotently inherits
+that authorization and asks `game-api` to enforce the shared execution window and aggregate
+attempt, token, and cost ceilings. At 75 percent consumption the scope is frozen; at 100 percent
+no new turn starts. Restarts and provider pauses re-read the confirmed projection, so they cannot
+replenish remaining authorization. New scope, a larger ceiling, or a new window stays paused at
+one Goal-level decision boundary. Specialist delivery remains bounded to two repair cycles.
+
 Tests that start operating-system processes own their complete lifecycle. Long-running shell, Git,
 Codex, FIFO, SSH, and helper commands are tagged with a unique test owner and register an `on_exit`
 callback before launch. Teardown sends TERM, waits for a bounded interval, escalates to KILL, and
@@ -173,8 +181,8 @@ artifacts without creating a release.
 After downloading the executable for your platform from a release:
 
 ```bash
-chmod +x ./symphony-v0.0.1-macos_arm64
-./symphony-v0.0.1-macos_arm64 ./WORKFLOW.md
+chmod +x ./symphony-v0.1.0-macos_arm64
+./symphony-v0.1.0-macos_arm64 ./WORKFLOW.md
 ```
 
 ## Configuration
