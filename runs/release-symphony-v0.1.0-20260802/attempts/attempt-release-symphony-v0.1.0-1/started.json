@@ -1,0 +1,13 @@
+{
+  "attemptId": "attempt-release-symphony-v0.1.0-1",
+  "runId": "release-symphony-v0.1.0-20260802",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "agent",
+    "subjectId": "release-manager"
+  },
+  "startedAt": "2026-08-02T13:16:35Z",
+  "summary": "Certify the exact merged Symphony v0.1.0 release candidate.",
+  "metrics": {}
+}
