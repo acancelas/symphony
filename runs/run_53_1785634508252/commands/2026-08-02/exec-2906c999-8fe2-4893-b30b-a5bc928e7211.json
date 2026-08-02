@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-2906c999-8fe2-4893-b30b-a5bc928e7211",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642267472_1493",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:44:27.387Z",
+  "command": "/bin/bash -lc 'git status --short --branch && git rev-parse HEAD && git show --stat --oneline --decorate --no-renames HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-53...origin/bos/issue-53 [ahead 1]\n39d62e9344e89094b448b3f57f30fcd12310841b\n39d62e93 (HEAD -> bos/issue-53) fix(goal): fail closed on invalid authorization state\n elixir/lib/symphony_elixir/agent_runner.ex         |  2 +-\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  2 +-\n elixir/lib/symphony_elixir/goal_execution.ex       | 64 ++++++++++++++++------\n .../test/symphony_elixir/goal_execution_test.exs   | 50 +++++++++++++++--\n 4 files changed, 95 insertions(+), 23 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
