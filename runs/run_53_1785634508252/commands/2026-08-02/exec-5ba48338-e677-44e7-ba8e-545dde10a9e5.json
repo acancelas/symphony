@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-5ba48338-e677-44e7-ba8e-545dde10a9e5",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641387216_1109",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:29:47.130Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format --check-formatted && mise exec -- mix test'",
+  "durationMs": 12357,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Running ExUnit with seed: 341631, max_cases: 20\n\n......................................................................................................................................................hint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint: \nhint: \tgit config --global init.defaultBranch <name>\nhint: \nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint: \nhint: \tgit branch -m <name>\n.**......................................................................................................................................................................................................................................\nFinished in 10.6 seconds (1.7s async, 8.9s sync)\n383 tests, 0 failures, 2 skipped\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
