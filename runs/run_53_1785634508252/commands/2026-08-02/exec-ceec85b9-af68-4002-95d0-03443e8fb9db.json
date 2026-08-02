@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-ceec85b9-af68-4002-95d0-03443e8fb9db",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637687186_918",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:28:07.186Z",
+  "command": "/bin/bash -lc \"find elixir/test -iname '*game_api*' -o -iname '*client*test*' | sort; grep -R \\\"Req.Test\\\\|plug:\\\" -n elixir/test/symphony_elixir | head -80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/test/symphony_elixir/game_api_adapter_test.exs\nelixir/test/symphony_elixir/game_api_provider_circuit_test.exs\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

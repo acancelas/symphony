@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f05668aa-be1a-47f5-8078-609d603ebfe2",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637687042_891",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:28:07.042Z",
+  "command": "/bin/bash -lc 'git show --stat --oneline --decorate HEAD; git diff --check origin/main...HEAD; git show --format=fuller --name-only HEAD; git diff --unified=60 origin/main...HEAD -- elixir/lib elixir/test elixir/README.md SPEC.md'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "e7fdbe95 (HEAD -> bos/issue-53) feat(goal): enforce shared execution authorization\n elixir/lib/symphony_elixir/agent_runner.ex         |  19 +++\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  12 +-\n elixir/lib/symphony_elixir/game_api/client.ex      |   8 +\n elixir/lib/symphony_elixir/goal_execution.ex       | 162 +++++++++++++++++++++\n .../symphony_elixir/delivery_coordinator_test.exs  |  22 +++\n .../test/symphony_elixir/goal_execution_test.exs   |  77 ++++++++++\n 6 files changed, 299 insertions(+), 1 deletion(-)\ncommit e7fdbe958982f9e65f4a0631c78e98ee325ccf31\nAuthor:     Alejandro Cancelas <hola@alejandrocancelas.com>\nAuthorDate: Sun Aug 2 03:41:45 2026 +0200\nCommit:     Alejandro Cancelas <hola@alejandrocancelas.com>\nCommitDate: Sun Aug 2 03:41:45 2026 +0200\n\n    feat(goal): enforce shared execution authorization\n    \n    Summary:\n    - gate implementation and derived repair cycles on the latest approved Goal\n      execution projection\n    - enforce aggregate windows and attempt, token, and cost ceilings while\n      freezing scope at 75 percent\n    - cap specialist repair review cycles at two and cover pause/resume behavior\n    \n    Rationale:\n    - one immutable Goal approval must authorize included and strictly derived\n      work without allowing restarts to replenish aggregate budgets\n    - scope expansion and higher ceilings must stop at one durable Goal decision\n      boundary\n    \n    Tests:\n    - cd elixir && mise exec -- mix test (379 tests, 0 failures, 2 skipped)\n    \n    Co-authored-by: Codex <codex@openai.com>\n\nelixir/lib/symphony_elixir/agent_runner.ex\nelixir/lib/symphony_elixir/delivery_coordinator.ex\nelixir/lib/symphony_elixir/game_api/client.ex\nelixir/lib/symphony_elixir/goal_execution.ex\nelixir/test/symphony_elixir/delivery_coordinator_test.exs\nelixir/test/symphony_elixir/goal_execution_test.exs\ndiff --git a/elixir/lib/symphony_elixir/agent_runner.ex b/elixir/lib/symphony_elixir/agent_runner.ex\nindex 9222794d..901c3a41 100644\n--- a/elixir/",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

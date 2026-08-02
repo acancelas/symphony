@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-fa3b4c40-3d06-4931-b301-a3bbf0f83303",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637687158_914",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:28:07.158Z",
+  "command": "/bin/bash -lc \"sed -n '1,240p' elixir/lib/symphony_elixir/game_api/client.ex; sed -n '240,560p' elixir/lib/symphony_elixir/game_api/client.ex; sed -n '1,260p' elixir/test/symphony_elixir/game_api/client_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 2,
+  "outputSummary": "defmodule SymphonyElixir.GameApi.Client do\n  @moduledoc \"\"\"\n  Normalized tracker client for the BOS `game-api` gateway.\n\n  It has no GitHub token and never calls GitHub directly.\n  \"\"\"\n\n  alias SymphonyElixir.Audit.CanonicalJson\n  alias SymphonyElixir.Config\n  alias SymphonyElixir.GameApi.ProviderCircuit\n  alias SymphonyElixir.RunnerIdentity\n  alias SymphonyElixir.Tracker.Issue\n  require Logger\n\n  @recoverable_audit_error_codes ~w(\n    audit_canonicalization_failed\n    audit_chain_conflict\n    audit_chain_start_invalid\n    audit_event_hash_invalid\n    audit_hash_chain_mismatch\n    audit_sequence_gap\n  )\n\n  @spec fetch_issues_by_states([String.t()]) :: {:ok, [map()]} | {:error, term()}\n  def fetch_issues_by_states([]), do: {:ok, []}\n\n  def fetch_issues_by_states(state_names) when is_list(state_names) do\n    # Audit outbox replay and tracker reads may use different gateway/provider\n    # buckets. Give the scheduler one bounded probe per poll so delayed audit\n    # traffic cannot freeze an otherwise healthy ready queue.\n    ProviderCircuit.allow_tracker_read_probe()\n\n    repositories()\n    |> Enum.reduce_while({:ok, []}, fn repository, {:ok, accumulated} ->\n      params =\n        repository_query(repository) ++\n          Enum.map(state_names, &{\"states\", &1})\n\n      case request(:get, \"/v1/internal/bos/delivery/issues/by-states\", params: params)\n           |> response_list(\"issues\") do\n        {:ok, issues} ->\n          {:cont, {:ok, accumulated ++ issues}}\n\n        {:error, reason} when accumulated != [] ->\n          # The failed repository may use a different GitHub installation or\n          # rate-limit bucket. Preserve the confirmed queue and allow the\n          # atomic claim operation to probe its own path instead of letting a\n          # later repository freeze already recovered work.\n          ProviderCircuit.allow_confirmed_partial_progress()\n\n          Logger.warning(\n            \"Returning the confirmed partial ready queue after a repository lookup failed \" ",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "long"
+  }
+}

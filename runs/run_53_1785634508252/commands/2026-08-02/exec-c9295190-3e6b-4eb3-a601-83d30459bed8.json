@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c9295190-3e6b-4eb3-a601-83d30459bed8",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637687117_904",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:28:07.117Z",
+  "command": "/bin/bash -lc \"grep -R \\\"goal_execution\\\\|inherit_goal\\\\|scope_change\\\\|max_repair_cycles\\\" -n elixir/lib elixir/test | head -240; grep -R \\\"requestedConsumption\\\\|authorizationId\\\\|includedIssueNumbers\\\" -n . --exclude-dir=.git --exclude='*.beam' | head -240\"",
+  "durationMs": 244,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./elixir/test/symphony_elixir/goal_execution_test.exs:66:        \"includedIssueNumbers\" => [53, 54],\n./elixir/lib/symphony_elixir/goal_execution.ex:87:    issue_number in (value(proposal, \"includedIssueNumbers\") || value(proposal, \"included_issue_numbers\") || [])\n./elixir/lib/symphony_elixir/goal_execution.ex:130:    value(authorization, \"authorizationId\") || value(authorization, \"authorization_id\") ||\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
