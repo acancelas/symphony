@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-ee775855-d52a-46fc-9113-6e5ba7e84e25",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641969621_1341",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:39:29.538Z",
+  "command": "/bin/bash -lc \"grep -RInE \\\"reviewId|attemptId|commitSha|changes_requested\\\" $WORKSPACE/.bos/install/game-api-main --include='*.py' --exclude-dir='.venv' --exclude-dir='__pycache__' | head -n 300\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_policy.py:155:    audit.documents[\"approvals\"] = [{\"status\": \"approved\", \"commitSha\": \"a1b2c3d4\"}]\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_policy.py:157:    audit.documents[\"evidence\"] = [{\"status\": \"passed\", \"commitSha\": \"a1b2c3d4\"}]\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_policy.py:435:                \"commitSha\": \"a1b2c3d4\",\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_policy.py:452:            \"commitSha\": \"a1b2c3d4\",\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_policy.py:475:            \"commitSha\": \"a1b2c3d4\",\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_policy.py:502:            \"commitSha\": \"a1b2c3d4\",\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_policy.py:512:        {\"verificationId\": \"verification_001\", \"commitSha\": \"a1b2c3d4\", \"status\": \"passed\"}\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_run_reconciliation.py:61:        self.evidence = [{\"evidenceId\": \"evidence_008\", \"status\": \"passed\", \"commitSha\": \"a\" * 40}]\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_run_reconciliation.py:116:    audit.evidence[0][\"commitSha\"] = \"d\" * 40\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_vercel.py:66:    assert result[\"providerResult\"][\"commitSha\"] == \"a1b2c3d4\"\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_vercel.py:116:                \"providerResult\": {\"projectId\": \"prj_001\", \"deploymentId\": \"dpl_001\", \"environment\": \"production\", \"state\": \"READY\", \"commitSha\": \"a1b2c3d4\", \"url\": \"https://bos.example.test\", \"aliases\": [\"bos.example.test\"], \"buildLogs\": {\"eventCount\": 0, \"errorCount\": 0, \"redacted\": True}, \"checks\": {\"count\": 0, \"statuses\": {}, \"items\": []}},\n$WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_vercel.py:157:    assert result[\"mismatches\"] == [\"commitSha\"]\n$WORKSPACE/.bos/install/game-api-main/tests/test_b",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
