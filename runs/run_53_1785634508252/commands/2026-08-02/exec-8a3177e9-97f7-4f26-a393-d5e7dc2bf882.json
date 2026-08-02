@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8a3177e9-97f7-4f26-a393-d5e7dc2bf882",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643150930_1873",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:59:10.930Z",
+  "command": "/bin/bash -lc 'grep -RInE \"goal execution|Goal execution|includedIssueNumbers|repairPolicy|scope frozen|75 percent|authorization\" SPEC.md WORKFLOW.md .bos/project.yaml elixir/README.md elixir/lib elixir/test | head -220'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "SPEC.md:1138:  - scope/authorization behavior;\nSPEC.md:1260:- OPTIONAL provider-native agent tools and their authorization boundary.\nelixir/README.md:84:that authorization and asks `game-api` to enforce the shared execution window and aggregate\nelixir/README.md:85:attempt, token, and cost ceilings. At 75 percent consumption the scope is frozen; at 100 percent\nelixir/README.md:87:replenish remaining authorization. New scope, a larger ceiling, or a new window stays paused at\nelixir/lib/symphony_elixir/goal_execution.ex:3:  Evaluates the immutable authorization granted by a single Goal approval.\nelixir/lib/symphony_elixir/goal_execution.ex:5:  The gateway remains authoritative for authorization and aggregate consumption.\nelixir/lib/symphony_elixir/goal_execution.ex:55:    if function_exported?(client, :inherit_goal_authorization, 1) and\nelixir/lib/symphony_elixir/goal_execution.ex:57:      with {:ok, identity} <- authorization_identity(projection, native_ref, issue_number, task_kind),\nelixir/lib/symphony_elixir/goal_execution.ex:58:           {:ok, inherited} <- client.inherit_goal_authorization(identity),\nelixir/lib/symphony_elixir/goal_execution.ex:59:           authorization_id <- inherited_authorization_id(inherited, identity),\nelixir/lib/symphony_elixir/goal_execution.ex:63:               \"authorizationId\" => authorization_id,\nelixir/lib/symphony_elixir/goal_execution.ex:70:        gateway_decision(checked, Map.put(snapshot, :authorization_id, authorization_id))\nelixir/lib/symphony_elixir/goal_execution.ex:80:  defp inherited_authorization_id(inherited, identity) do\nelixir/lib/symphony_elixir/goal_execution.ex:81:    value(inherited, \"authorizationId\") || value(inherited, \"authorization_id\") || identity[\"authorizationId\"]\nelixir/lib/symphony_elixir/goal_execution.ex:84:  defp authorization_identity(projection, native_ref, issue_number, task_kind) do\nelixir/lib/symphony_elixir/goal_execution.ex:90:      \"authorizationId\" => authorization_id(projection, approval),\ne",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
