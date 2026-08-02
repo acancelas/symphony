@@ -1,0 +1,65 @@
+{
+  "evidenceId": "evidence-symphony-53-aed939a5-repair-2",
+  "runId": "run_53_1785634508252",
+  "commitSha": "aed939a508bf0ae1aca96532bf35a39dc3254b19",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "All included subtasks run without new approval",
+      "status": "passed",
+      "evidence": "Gateway-capable managed issues require a nonblank canonical repositoryId and positive issueNumber before Goal execution can be fetched or authorized; missing managed repository identity now fails closed."
+    },
+    {
+      "criterion": "Derived repairs inherit authorization",
+      "status": "passed",
+      "evidence": "The same managed identity validation gates derived repair checks, preventing repair cycles from bypassing inherited Goal authorization when repository identity is malformed."
+    },
+    {
+      "criterion": "New scope and higher ceilings pause for one Goal decision",
+      "status": "passed",
+      "evidence": "Existing canonical Goal proposal, approval, scope, execution-window, and aggregate-budget checks remain covered and passing after the identity correction."
+    },
+    {
+      "criterion": "Pause and resume preserve remaining authorization",
+      "status": "passed",
+      "evidence": "Gateway-capable managed work still re-fetches canonical state for each logical check; genuinely non-BOS issues without native references retain unmanaged compatibility."
+    }
+  ],
+  "checks": [
+    {
+      "name": "mix format --check-formatted",
+      "status": "passed"
+    },
+    {
+      "name": "mix test",
+      "status": "passed",
+      "summary": "385 tests, 0 failures, 2 skipped"
+    },
+    {
+      "name": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "name": "goal_execution_test.exs",
+      "status": "passed",
+      "summary": "11 tests, 0 failures"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "aed939a508bf0ae1aca96532bf35a39dc3254b19"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-53"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "The repaired exact commit is locally ahead of origin until the orchestrator publishes the candidate branch.",
+      "mitigation": "Preserve the clean committed workspace; publication and fresh independent review remain owned by the subsequent Symphony delivery coordinator."
+    }
+  ],
+  "summary": "Repair cycle 2 closes the malformed managed repository identity bypass while preserving unmanaged compatibility only for issues without BOS native references."
+}
