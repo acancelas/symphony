@@ -1,0 +1,27 @@
+{
+  "reviewId": "review_run_53_1785634508252_1_security_c76711aaa1c8",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "reviewType": "security",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "commitSha": "c76711aaa1c85728377695c67b607bedab162dba",
+  "status": "changes_requested",
+  "findings": [
+    {
+      "severity": "high",
+      "title": "Goal authorization fails open when the confirmed projection has no proposal",
+      "details": "GoalExecution.evaluate/5 returns :unmanaged when game-api successfully returns a projection whose proposal is nil, and AgentRunner then starts the Codex turn without authorization inheritance or a shared-budget check. For a BOS Goal-scoped delivery issue, missing or malformed authorization state must pause or error rather than silently downgrade the issue to unmanaged.",
+      "evidence": "elixir/lib/symphony_elixir/goal_execution.ex check/evaluate; elixir/lib/symphony_elixir/agent_runner.ex do_run_codex_turns; goal_execution_test.exs asserts a fetched nil proposal is :unmanaged."
+    },
+    {
+      "severity": "high",
+      "title": "Malformed execution windows and budget values are accepted by the local enforcement guard",
+      "details": "parse_datetime/1 converts malformed timestamps to nil and outside_window?/2 treats nil bounds as unrestricted. number/1 converts malformed ceilings and consumption to nil, and exceeds?/3 ignores nil limits or substitutes zero consumption. This permits local authorization to proceed instead of failing closed on corrupted or schema-incompatible security inputs.",
+      "evidence": "elixir/lib/symphony_elixir/goal_execution.ex outside_window?/2, parse_datetime/1, exceeds?/3, number/1; goal_execution_test.exs explicitly expects a malformed startsAt value to authorize."
+    }
+  ],
+  "summary": "Exact-commit checks pass and local/remote SHAs match, but the Goal authorization guard has fail-open paths for missing proposals and malformed window/budget data. These security-boundary inputs must fail closed before this high-risk change can pass."
+}
