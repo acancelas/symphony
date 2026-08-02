@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-5e5960f1-d473-49ed-a575-79c8c3fc5b37",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642543056_1607",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:49:03.056Z",
+  "command": "/bin/bash -lc \"sed -n '25,50p' elixir/test/symphony_elixir/delivery_coordinator_test.exs; sed -n '450,472p' elixir/test/symphony_elixir/delivery_coordinator_test.exs; sed -n '460,492p' elixir/lib/symphony_elixir/delivery_coordinator.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\n        Application.put_env(\n          :symphony_elixir,\n          :delivery_test_reviews,\n          [review_artifact(role, status, String.to_integer(cycle), review_id, commit_sha) | reviews]\n        )\n      end\n\n      {:ok, %{session_id: session.actor}}\n    end\n\n    def stop_session(_session), do: :ok\n\n    defp review_artifact(role, status, _cycle, review_id, commit_sha) do\n      %{\n        \"reviewId\" => review_id,\n        \"reviewType\" => role,\n        \"commitSha\" => commit_sha,\n        \"status\" => status,\n        \"summary\" => \"#{role} result\",\n        \"findings\" => []\n      }\n    end\n  end\n\n  defmodule FakeClient do\n      {:turn, _actor, _prompt} ->\n        collect_sessions(remaining, sessions)\n    after\n      1_000 -> flunk(\"expected #{remaining} additional role sessions\")\n    end\n  end\n\n  defp review(role, status) do\n    head_sha = \"0123456789abcdef0123456789abcdef01234567\"\n\n    %{\n      \"reviewId\" => \"review_run_001_1_#{role}_#{String.slice(head_sha, 0, 12)}\",\n      \"reviewType\" => role,\n      \"commitSha\" => head_sha,\n      \"status\" => status,\n      \"summary\" => \"#{role} result\",\n      \"findings\" => []\n    }\n  end\n\n  defp issue do\n    %Issue{\n      id: \"bos-front#42\",\n        app_server.stop_session(session)\n      end\n    end\n  end\n\n  defp review_prompt(issue, role, cycle, candidate, record_attempt) do\n    native_ref = issue.native_ref || %{}\n    run_id = native_ref[\"runId\"]\n    attempt_id = native_ref[\"attemptId\"]\n\n    \"\"\"\n    You are the independent BOS #{role} reviewer for #{issue.identifier}, cycle #{cycle}.\n    Begin with the compact delivery context, issue acceptance contract, current\n    diff, exact confirmed git HEAD `#{candidate.head_sha}` and existing evidence.\n    Confirm the local HEAD and remote `#{candidate.branch}` branch both still\n    equal that SHA. Inspect only the instructions and files needed to decide this\n    review; do not repeatedly load broad context or rerun an unchanged passing\n    validation unless its evidence is missing, stale or",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
