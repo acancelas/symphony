@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c7e8bdc0-d87e-4f3d-ae4e-9bb0dd641010",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785638149681_1055",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:35:49.528Z",
+  "command": "/bin/bash -lc \"awk 'BEGIN{RS=\\\"</tr>\\\"} /:-\\\\(/ {gsub(/<[\"'^>]*>/,\" \"); gsub(/&quot;/,\"'\"\\\\\\\"\\\"); gsub(/&gt;/,\\\"> \\\"); gsub(/&lt;/,\\\"<\\\"); print}' cover/Elixir.SymphonyElixir.GoalExecution.html\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\n \n  44  \n  :-(  \n    defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, :unmanaged),  \n\n\n \n  66  \n  :-(  \n          _ ->  {:error, :invalid_goal_execution_check}  \n\n\n \n  288  \n  :-(  \n    defp value(_, _), do: nil  \n\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
