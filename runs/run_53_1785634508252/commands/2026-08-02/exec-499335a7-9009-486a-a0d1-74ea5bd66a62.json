@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-499335a7-9009-486a-a0d1-74ea5bd66a62",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785638181259_1060",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:36:21.177Z",
+  "command": "/bin/bash -lc \"sed -n '105,155p' test/symphony_elixir/goal_execution_test.exs\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "  end\n\n  test \"gateway checks fail closed and preserve pause decisions\" do\n    issue = gateway_issue()\n\n    Process.put(:goal_fetch_result, {:ok, Map.put(projection(), \"scopeChangeRequest\", %{\"requestId\" => \"change\"})})\n    assert {:pause, :goal_change_decision_required, _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n    refute_received {:configurable_inherit, _}\n\n    Process.put(:goal_fetch_result, {:ok, %{\"proposal\" => nil}})\n    assert :unmanaged = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n\n    Process.put(:goal_fetch_result, {:error, :provider_down})\n    assert {:error, :provider_down} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n\n    Process.put(:goal_fetch_result, {:ok, projection()})\n    Process.put(:goal_inherit_result, {:error, :inherit_failed})\n    assert {:error, :inherit_failed} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n\n    Process.put(:goal_inherit_result, :invalid_response)\n    assert {:error, :invalid_goal_execution_check} =\n             GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n\n    Process.put(:goal_inherit_result, {:ok, %{\"authorizationId\" => \"authorization-1\"}})\n    Process.put(:goal_check_result, {:ok, %{\"authorized\" => true}})\n    assert {:ok, _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n\n    Process.put(:goal_check_result, {:ok, %{\"status\" => \"paused\", \"reason\" => \"window_closed\"}})\n    assert {:pause, \"window_closed\", _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n\n    Process.put(:goal_check_result, {:ok, %{}})\n    assert {:error, :invalid_goal_execution_check} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n\n    Process.put(:goal_check_result, {:ok, :invalid_response})\n    assert {:error, :invalid_goal_execution_check} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n  end\n\n  test \"invalid ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
