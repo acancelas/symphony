@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d90f7fc8-de59-43cc-ada6-e1394d611e72",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641852027_1291",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:37:31.956Z",
+  "command": "/bin/bash -lc 'grep -RInE \"record_review|reviewId|reviewType|changes_requested|subjectId\" elixir/lib elixir/test README.md SPEC.md WORKFLOW.md | head -n 260'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/audit/outbox.ex:1264:      %{\"type\" => \"agent\", \"subjectId\" => implementation_agent_id()}\nelixir/lib/symphony_elixir/audit/outbox.ex:1266:      %{\"type\" => \"runner\", \"subjectId\" => runner_id()}\nelixir/lib/symphony_elixir/audit/outbox.ex:1275:      %{\"type\" => \"agent\", \"subjectId\" => actor}\nelixir/lib/symphony_elixir/game_api/client.ex:541:               \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\nelixir/lib/symphony_elixir/game_api/client.ex:645:      \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:46:      status when status in [\"changes_requested\", \"inconclusive\"] and cycle < context.max_cycles ->\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:49:      status when status in [\"changes_requested\", \"inconclusive\"] ->\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:100:    #{native_ref[\"issueNumber\"]}, runId #{native_ref[\"runId\"]}, reviewId\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:103:    changes_requested, or inconclusive, plus concrete findings and summary.\nelixir/lib/symphony_elixir/delivery_coordinator.ex:315:         artifact[\"reviewId\"] == expected_id and artifact[\"commitSha\"] == candidate.head_sha\nelixir/lib/symphony_elixir/delivery_coordinator.ex:338:      artifact[\"reviewId\"] == expected_id and artifact[\"commitSha\"] == expected_sha\nelixir/lib/symphony_elixir/delivery_coordinator.ex:481:    bos_record_review with reviewId `#{review_id(issue, role, cycle, candidate)}`, runId\nelixir/lib/symphony_elixir/delivery_coordinator.ex:482:    `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type\nelixir/lib/symphony_elixir/delivery_coordinator.ex:483:    `agent` and subjectId `#{role}-reviewer`, the exact HEAD SHA, a status of\nelixir/lib/symphony_elixir/delivery_coordinator.ex:484:    `passed`, `changes_requested`, or `inconclusive`, concrete findings, and a\nelixir/lib/symphony_elixir/delivery_coordinator.ex:",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

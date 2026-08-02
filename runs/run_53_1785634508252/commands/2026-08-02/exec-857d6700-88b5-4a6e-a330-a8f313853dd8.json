@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-857d6700-88b5-4a6e-a330-a8f313853dd8",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641852948_1297",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:37:32.877Z",
+  "command": "/bin/bash -lc \"grep -RIn \\\"bos_record_review\\\\|Persist a specialized agent Review\\\\|reviewType.*commitSha\\\" . --exclude-dir=.git --exclude='*.beam' | head -n 200\"",
+  "durationMs": 329,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "grep: ./elixir/_build/test/phoenix-colocated/symphony_elixir/node_modules: No such file or directory\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:481:    bos_record_review with reviewId `#{review_id(issue, role, cycle, candidate)}`, runId\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:494:    \"A prior reviewer session ended without the required durable Review. This is record attempt #{record_attempt}; call bos_record_review and confirm its receipt before doing anything else.\"\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
