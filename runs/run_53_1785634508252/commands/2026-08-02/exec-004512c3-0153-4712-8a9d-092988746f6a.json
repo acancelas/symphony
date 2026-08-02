@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-004512c3-0153-4712-8a9d-092988746f6a",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643332522_1932",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:02:12.522Z",
+  "command": "/bin/bash -lc \"rg -n \\\"run_codex_turns\\\\(|goal_execution|{:paused|DeliveryCoordinator.run\\\" elixir/lib/symphony_elixir/agent_runner.ex elixir/test/symphony_elixir/agent_runner_test.exs elixir/test/symphony_elixir/delivery_coordinator_test.exs .bos/project.yaml\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "long"
+  }
+}
