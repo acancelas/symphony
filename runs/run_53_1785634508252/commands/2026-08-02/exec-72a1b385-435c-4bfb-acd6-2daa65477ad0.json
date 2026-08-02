@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-72a1b385-435c-4bfb-acd6-2daa65477ad0",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634905381_468",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:41:45.381Z",
+  "command": "/bin/bash -lc 'git add elixir/lib/symphony_elixir/agent_runner.ex elixir/lib/symphony_elixir/delivery_coordinator.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/lib/symphony_elixir/goal_execution.ex elixir/test/symphony_elixir/delivery_coordinator_test.exs elixir/test/symphony_elixir/goal_execution_test.exs && git diff --cached --check && git diff --cached --stat && git commit -F .codex-commit-message'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": " elixir/lib/symphony_elixir/agent_runner.ex         |  19 +++\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  12 +-\n elixir/lib/symphony_elixir/game_api/client.ex      |   8 +\n elixir/lib/symphony_elixir/goal_execution.ex       | 162 +++++++++++++++++++++\n .../symphony_elixir/delivery_coordinator_test.exs  |  22 +++\n .../test/symphony_elixir/goal_execution_test.exs   |  77 ++++++++++\n 6 files changed, 299 insertions(+), 1 deletion(-)\n[bos/issue-53 e7fdbe95] feat(goal): enforce shared execution authorization\n 6 files changed, 299 insertions(+), 1 deletion(-)\n create mode 100644 elixir/lib/symphony_elixir/goal_execution.ex\n create mode 100644 elixir/test/symphony_elixir/goal_execution_test.exs\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

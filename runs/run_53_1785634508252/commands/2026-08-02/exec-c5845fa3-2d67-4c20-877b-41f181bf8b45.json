@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-c5845fa3-2d67-4c20-877b-41f181bf8b45",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634948845_495",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:42:28.845Z",
+  "command": "/bin/bash -lc \"grep -Rni \\\"EvidenceReport\\\\|evidenceId\\\\|record_evidence\\\" elixir/lib elixir/test | head -n 120\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/codex/app_server.ex:687:    end this turn. Reuse existing PRs, Reviews and EvidenceReports; do not create\nelixir/lib/symphony_elixir/delivery_coordinator.ex:412:    EvidenceReport and Attempt outcome, then request only the next transition\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

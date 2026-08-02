@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9087b55f-4cad-43b4-938e-906416edc77a",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634911265_472",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:41:51.165Z",
+  "command": "/bin/bash -lc 'git status --short --branch && git rev-parse HEAD && git show --stat --oneline --decorate --no-renames HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-53\ne7fdbe958982f9e65f4a0631c78e98ee325ccf31\ne7fdbe95 (HEAD -> bos/issue-53) feat(goal): enforce shared execution authorization\n elixir/lib/symphony_elixir/agent_runner.ex         |  19 +++\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  12 +-\n elixir/lib/symphony_elixir/game_api/client.ex      |   8 +\n elixir/lib/symphony_elixir/goal_execution.ex       | 162 +++++++++++++++++++++\n .../symphony_elixir/delivery_coordinator_test.exs  |  22 +++\n .../test/symphony_elixir/goal_execution_test.exs   |  77 ++++++++++\n 6 files changed, 299 insertions(+), 1 deletion(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
