@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-fa348ad6-f10e-4bee-a3a3-fce67514755b",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785638033180_1020",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:33:53.180Z",
+  "command": "/bin/bash -lc 'make all'",
+  "durationMs": 21963,
+  "environmentPolicy": "restricted",
+  "exitCode": 2,
+  "outputSummary": "Resolving Hex dependencies...\nResolution completed in 0.147s\nUnchanged:\n  bandit 1.12.0 VULNERABLE!\n    EEF-CVE-2026-65623 (HIGH)\n    aka: CVE-2026-65623, GHSA-vg8x-66vg-5pxh\n    Quadratic CPU blow-up reassembling fragmented WebSocket messages in Bandit\n    https://osv.dev/vulnerability/EEF-CVE-2026-65623\n  bunt 1.0.0\n  burrito 1.5.0\n  cc_precompiler 0.1.11\n  credo 1.7.19\n  date_time_parser 1.3.0\n  decimal 3.1.1\n  dialyxir 1.4.7\n  ecto 3.14.1\n  elixir_make 0.9.0\n  erlex 0.2.9\n  file_system 1.1.1\n  finch 0.23.0\n  fine 0.1.6\n  floki 0.38.4\n  hpax 1.0.4\n  jason 1.4.5\n  kday 1.1.0\n  lazy_html 0.1.11\n  mime 2.0.7\n  mint 1.9.3\n  nimble_options 1.1.1\n  nimble_pool 1.1.0\n  phoenix 1.8.9\n  phoenix_html 4.3.0\n  phoenix_live_view 1.2.7\n  phoenix_pubsub 2.2.0\n  phoenix_template 1.0.4\n  plug 1.20.3\n  plug_crypto 2.1.1\n  req 0.6.3\n  solid 1.3.2\n  telemetry 1.4.2\n  thousand_island 1.5.0\n  typed_struct 0.3.0\n  websock 0.5.3\n  websock_adapter 0.6.0\n  yamerl 0.10.0\n  yaml_elixir 2.12.2\nFound packages with security advisories, see above for details\nAll dependencies have been fetched\nmake[1]: Leaving directory '$WORKSPACE/.bos/worktrees/symphony-53/elixir'\nmake build\nmake[1]: Entering directory '$WORKSPACE/.bos/worktrees/symphony-53/elixir'\nmix build\nGenerated escript bin/symphony with MIX_ENV=dev\nmake[1]: Leaving directory '$WORKSPACE/.bos/worktrees/symphony-53/elixir'\nmake fmt-check\nmake[1]: Entering directory '$WORKSPACE/.bos/worktrees/symphony-53/elixir'\nmix format --check-formatted\nmake[1]: Leaving directory '$WORKSPACE/.bos/worktrees/symphony-53/elixir'\nmake lint\nmake[1]: Entering directory '$WORKSPACE/.bos/worktrees/symphony-53/elixir'\nmix lint\nspecs.check: all public functions have @spec or exemption\nChecking 83 source files (this might take a while) ...\n\nPlease report incorrect results: https://github.com/rrrene/credo/issues\n\nAnalysis took 1.8 seconds (0.08s to load, 1.7s running 69 checks on 83 files)\n1932 mods/funs, found no issues.\n\nUse `mix credo explain` to explain issues",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
