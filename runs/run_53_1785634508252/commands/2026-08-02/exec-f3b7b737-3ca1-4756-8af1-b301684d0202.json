@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f3b7b737-3ca1-4756-8af1-b301684d0202",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641296581_1101",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:28:16.581Z",
+  "command": "/bin/bash -lc \"git status --short --branch && git log -5 --oneline && find elixir -type f \\\\( -name '*.ex' -o -name '*.exs' \\\\) -print0 | xargs -0 grep -nE 'Goal|goal_execution|authorization|repair cycle|repair_cycle|scope frozen|scope_frozen|max.*token|token.*budget' | head -n 300\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-53\n M elixir/README.md\n M elixir/lib/symphony_elixir/agent_runner.ex\n M elixir/lib/symphony_elixir/game_api/client.ex\n M elixir/lib/symphony_elixir/goal_execution.ex\n M elixir/test/symphony_elixir/goal_execution_test.exs\ne7fdbe95 feat(goal): enforce shared execution authorization\n1006d6cf fix: (#55)\n2aba135c fix: reconcile capacity-waiting claims (#52)\n8c2ec23a Serialize delivery capacity per repository (#50)\n826a2533 Merge pull request #48 from acancelas/bos/trusted-local-mcp\nelixir/test/symphony_elixir/goal_execution_test.exs:1:defmodule SymphonyElixir.GoalExecutionTest do\nelixir/test/symphony_elixir/goal_execution_test.exs:4:  alias SymphonyElixir.GoalExecution\nelixir/test/symphony_elixir/goal_execution_test.exs:7:    def fetch_goal_execution(\"symphony\", 53),\nelixir/test/symphony_elixir/goal_execution_test.exs:8:      do: {:ok, SymphonyElixir.GoalExecutionTest.projection_for_gateway()}\nelixir/test/symphony_elixir/goal_execution_test.exs:10:    def inherit_goal_authorization(payload) do\nelixir/test/symphony_elixir/goal_execution_test.exs:11:      send(self(), {:inherit_goal_authorization, payload})\nelixir/test/symphony_elixir/goal_execution_test.exs:12:      {:ok, %{\"authorizationId\" => \"authorization-1\"}}\nelixir/test/symphony_elixir/goal_execution_test.exs:15:    def check_goal_execution(payload) do\nelixir/test/symphony_elixir/goal_execution_test.exs:16:      send(self(), {:check_goal_execution, payload})\nelixir/test/symphony_elixir/goal_execution_test.exs:22:    def fetch_goal_execution(_repository_id, _issue_number),\nelixir/test/symphony_elixir/goal_execution_test.exs:25:    def inherit_goal_authorization(payload) do\nelixir/test/symphony_elixir/goal_execution_test.exs:27:      Process.get(:goal_inherit_result, {:ok, %{\"authorizationId\" => \"authorization-1\"}})\nelixir/test/symphony_elixir/goal_execution_test.exs:30:    def check_goal_execution(payload) do\nelixir/test/symphony_elixir/goal_execution_test.exs:41:    assert {:ok, %{authorization_id: \"app",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
