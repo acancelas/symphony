@@ -181,8 +181,8 @@ artifacts without creating a release.
 After downloading the executable for your platform from a release:
 
 ```bash
-chmod +x ./symphony-v0.0.1-macos_arm64
-./symphony-v0.0.1-macos_arm64 ./WORKFLOW.md
+chmod +x ./symphony-v0.1.0-macos_arm64
+./symphony-v0.1.0-macos_arm64 ./WORKFLOW.md
 ```
 
 ## Configuration

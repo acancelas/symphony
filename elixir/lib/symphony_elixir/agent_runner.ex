@@ -157,6 +157,9 @@ defmodule SymphonyElixir.AgentRunner do
         Logger.info("Paused bounded implementation turn for #{issue_context(issue)} reason=#{budget.pause_reason}")
 
         :ok
+
+      {:error, _reason} = error ->
+        error
     end
   end
 

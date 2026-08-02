@@ -71,4 +71,16 @@ defmodule SymphonyElixir.TurnBudgetTest do
                :delivery_started
              end)
   end
+
+  test "an implementation authorization failure is returned without opening delivery coordination" do
+    issue = %Issue{id: "issue-53", identifier: "BOS-53"}
+    parent = self()
+    coordinator = fn -> send(parent, :delivery_coordinator_started) end
+    error = {:error, {:goal_execution_check_failed, :provider_unavailable}}
+
+    assert ^error =
+             AgentRunner.continue_after_implementation_for_test(error, issue, coordinator)
+
+    refute_receive :delivery_coordinator_started
+  end
 end
