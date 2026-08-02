@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-4af0ca98-5fa2-438d-a18f-c0fa4fb77ebb",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641569570_1167",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:32:49.481Z",
+  "command": "/bin/bash -lc \"git grep -n 'bos_record_progress' \"'$(git rev-list --all | head -n 250) -- '\"'runs/*/commands/*.json' 'runs/*/commands/*/*.json' 2>/dev/null | head -n 30\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "1c5ff7657f1642661761801fbb588148652581f9:runs/run-symphony-capacity-wait-reconciliation-20260722/commands/2026-07-22/exec-192530e8-d968-49bc-9cf3-e5d18da39824.json:16:  \"command\": \"/bin/bash -lc \\\"grep -Rh 'mcp__bos_mcp__bos_record_progress' $WORKSPACE/.codex/sessions/2026/07/21/*.jsonl 2>/dev/null | grep 'custom_tool_call' | grep -v 'ALL_TOOLS' | tail -3 | cut -c1-10000\\\"\",\n1c5ff7657f1642661761801fbb588148652581f9:runs/run-symphony-capacity-wait-reconciliation-20260722/commands/2026-07-22/exec-98935dc7-82eb-4d91-94fc-892f2237de1e.json:16:  \"command\": \"/bin/bash -lc \\\"grep -RIn --exclude-dir=.git --exclude-dir=_build --exclude-dir=deps 'bos_record_progress\\\\\\\\|record_progress' . | head -120 && grep -RIn --exclude-dir=.git --exclude-dir=_build --exclude-dir=deps 'implementation_progress\\\\\\\\|progress.*event' elixir/test elixir/lib | head -120\\\"\",\n1c5ff7657f1642661761801fbb588148652581f9:runs/run_10_1784616755042/commands/2026-07-21/exec-f4ba3867-d4ec-4555-ba08-ded8f86fb09e.json:16:  \"command\": \"/bin/bash -lc \\\"grep -RIn --exclude-dir=_build --exclude-dir=deps 'bos_record_progress' . | head -40; cd elixir && mise exec -- mix test test/symphony_elixir/post_approval_coordinator_test.exs test/symphony_elixir/game_api_adapter_test.exs\\\"\",\n613ee2f45a5301f634ed4acbe6378dfb1fd1efca:runs/run-symphony-capacity-wait-reconciliation-20260722/commands/2026-07-22/exec-192530e8-d968-49bc-9cf3-e5d18da39824.json:16:  \"command\": \"/bin/bash -lc \\\"grep -Rh 'mcp__bos_mcp__bos_record_progress' $WORKSPACE/.codex/sessions/2026/07/21/*.jsonl 2>/dev/null | grep 'custom_tool_call' | grep -v 'ALL_TOOLS' | tail -3 | cut -c1-10000\\\"\",\n613ee2f45a5301f634ed4acbe6378dfb1fd1efca:runs/run-symphony-capacity-wait-reconciliation-20260722/commands/2026-07-22/exec-98935dc7-82eb-4d91-94fc-892f2237de1e.json:16:  \"command\": \"/bin/bash -lc \\\"grep -RIn --exclude-dir=.git --exclude-dir=_build --exclude-dir=deps 'bos_record_progress\\\\\\\\|record_progress' . | head -120 && grep -RIn --exclude-dir=.git --exclude-dir=_b",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

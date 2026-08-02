@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-415bee1b-e954-4fd6-ae24-86bd1f28d23b",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641565867_1153",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:32:45.778Z",
+  "command": "/bin/bash -lc 'git show 1c5ff7657f1642661761801fbb588148652581f9:runs/run-symphony-49-repository-capacity/evidence/evidence-symphony-49-repository-capacity.json && git show 1c5ff7657f1642661761801fbb588148652581f9:runs/goal38-symphony-54-project-header/evidence/symphony54-tests-bee110a4.json'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "{\n  \"evidenceId\": \"evidence-symphony-49-repository-capacity\",\n  \"runId\": \"run-symphony-49-repository-capacity\",\n  \"commitSha\": \"0bc979a2d170e176c4db64352ea9423b682b14a4\",\n  \"status\": \"passed\",\n  \"acceptanceCriteria\": [\n    {\n      \"criterion\": \"Only one active delivery worker per repository while different repositories remain parallel.\",\n      \"status\": \"passed\"\n    },\n    {\n      \"criterion\": \"Opaque repository identities are preserved and missing identity fails closed.\",\n      \"status\": \"passed\"\n    },\n    {\n      \"criterion\": \"The capacity owner can resume after retry without deadlock.\",\n      \"status\": \"passed\"\n    },\n    {\n      \"criterion\": \"Complete local and GitHub validation passes at the exact PR HEAD.\",\n      \"status\": \"passed\"\n    }\n  ],\n  \"checks\": [\n    {\n      \"name\": \"make all\",\n      \"status\": \"passed\",\n      \"tests\": 357,\n      \"coveragePercent\": 100\n    },\n    {\n      \"name\": \"validate-pr-description\",\n      \"status\": \"passed\",\n      \"checkRunId\": 88927815510\n    },\n    {\n      \"name\": \"make-all CI\",\n      \"status\": \"passed\",\n      \"checkRunId\": 88927813604\n    }\n  ],\n  \"artifacts\": [\n    {\n      \"type\": \"pull_request\",\n      \"number\": 50,\n      \"headSha\": \"0bc979a2d170e176c4db64352ea9423b682b14a4\"\n    },\n    {\n      \"type\": \"binary\",\n      \"sha256\": \"998d298c683b3bc59470e22884e659e4b6c18b39c3688c6b0f77ea1ab8de2005\"\n    }\n  ],\n  \"residualRisk\": [\n    {\n      \"risk\": \"Distributed fencing across multiple independent runners is not required for the single-X1 topology and remains documented.\",\n      \"severity\": \"low\"\n    }\n  ],\n  \"summary\": \"Exact HEAD satisfies repository capacity, recovery, quality, security and CI acceptance.\"\n}\n{\n  \"evidenceId\": \"symphony54-tests-bee110a4\",\n  \"runId\": \"goal38-symphony-54-project-header\",\n  \"commitSha\": \"bee110a4ecccb87dcc4cb378b489679f56c14af0\",\n  \"status\": \"passed\",\n  \"acceptanceCriteria\": [\n    {\n      \"criterion\": \"All GameApiTrackerAdapter requests include X-Project-Id\",\n      \"status\": \"passed\",\n      \"eviden",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
