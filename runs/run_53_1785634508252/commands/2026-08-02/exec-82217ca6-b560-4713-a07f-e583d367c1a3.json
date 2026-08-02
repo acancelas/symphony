@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-82217ca6-b560-4713-a07f-e583d367c1a3",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641726331_1254",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:35:26.331Z",
+  "command": "/bin/bash -lc 'git diff --unified=80 origin/main...HEAD -- elixir/lib/symphony_elixir/agent_runner.ex elixir/lib/symphony_elixir/delivery_coordinator.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/lib/symphony_elixir/goal_execution.ex elixir/test/symphony_elixir/delivery_coordinator_test.exs elixir/test/symphony_elixir/goal_execution_test.exs elixir/README.md'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "diff --git a/elixir/README.md b/elixir/README.md\nindex edb3b420..2870ba26 100644\n--- a/elixir/README.md\n+++ b/elixir/README.md\n@@ -2,160 +2,168 @@\n \n This directory contains the current Elixir/OTP implementation of Symphony, based on\n [`SPEC.md`](../SPEC.md) at the repository root.\n \n > [!WARNING]\n > Symphony Elixir is prototype software intended for evaluation only and is presented as-is.\n > We recommend implementing your own hardened version based on `SPEC.md`.\n \n ## Screenshot\n \n ![Symphony Elixir screenshot](../.github/media/elixir-screenshot.png)\n \n ## How it works\n \n 1. Polls the configured tracker for candidate work (the included production adapter is Linear)\n 2. Creates a workspace per issue\n 3. Launches Codex in [App Server mode](https://developers.openai.com/codex/app-server/) inside the\n    workspace\n 4. Sends a workflow prompt to Codex\n 5. Keeps Codex working on the issue until the work is done\n \n During app-server sessions, the selected tracker adapter may advertise provider-native tools. The\n included Linear adapter serves `linear_graphql` so repo skills can make raw Linear GraphQL calls.\n Symphony executes that tool with its configured auth and removes `LINEAR_API_KEY` from the Codex\n child environment, so the agent does not need a second tracker login.\n \n If a claimed issue moves to a terminal state (`Done`, `Closed`, `Cancelled`, or `Duplicate`),\n Symphony stops the active agent for that issue and cleans up matching workspaces.\n For the BOS `game_api` adapter, startup polls and dispatches Delivery work before historical\n maintenance. Durable AgentRun reconciliation runs every 15 minutes, and terminal workspace cleanup\n is deferred until after the initial poll. Reconciliation is run-scoped and idempotent: a lost\n response returns the original receipt, an active lease is preserved, and Issue closure without\n exact-head proof cannot be promoted to successful completion.\n An individual historical chain that lacks a valid run manifest is returned as a st",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

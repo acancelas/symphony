@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-fce3a948-da4b-4e25-9d25-76f94db1f6e6",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641726358_1256",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:35:26.358Z",
+  "command": "/bin/bash -lc \"sed -n '1,360p' elixir/lib/symphony_elixir/goal_execution.ex && git diff origin/main...HEAD -- elixir/lib/symphony_elixir/game_api/client.ex elixir/lib/symphony_elixir/delivery_coordinator.ex elixir/lib/symphony_elixir/agent_runner.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.GoalExecution do\n  @moduledoc \"\"\"\n  Evaluates the immutable authorization granted by a single Goal approval.\n\n  The gateway remains authoritative for authorization and aggregate consumption.\n  Every new turn inherits the exact approved proposal and asks the gateway to\n  check the shared execution window and ceilings. The local evaluation is a\n  fail-fast guard; it never replenishes or reserves budget on process restart.\n  \"\"\"\n\n  @freeze_ratio 0.75\n\n  @type task_kind :: :included_issue | :derived_repair\n  @type decision :: :unmanaged | {:ok, map()} | {:pause, atom() | String.t(), map()}\n\n  @spec check(module(), map(), task_kind(), map()) :: decision() | {:error, term()}\n  def check(client, issue, task_kind, requested \\\\ %{})\n\n  @spec check(module(), map(), task_kind(), map()) :: decision() | {:error, term()}\n  def check(client, %{native_ref: native_ref}, task_kind, requested) when is_map(native_ref) do\n    if function_exported?(client, :fetch_goal_execution, 2) do\n      with repository_id when is_binary(repository_id) <- native_ref[\"repositoryId\"],\n           issue_number when is_integer(issue_number) <- native_ref[\"issueNumber\"],\n           {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number),\n           decision <- evaluate(projection, issue_number, task_kind, requested),\n           {:ok, decision} <- authorize(client, native_ref, projection, issue_number, task_kind, requested, decision) do\n        decision\n      else\n        nil -> :unmanaged\n        {:error, reason} -> {:error, reason}\n        _ -> {:error, :invalid_goal_execution_identity}\n      end\n    else\n      :unmanaged\n    end\n  end\n\n  def check(_client, _issue, _task_kind, _requested), do: :unmanaged\n\n  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, decision)\n       when decision != :unmanaged and elem(decision, 0) != :ok,\n       do: {:ok, decision}\n\n  defp authorize(_client, _native_ref, _projection, _issue_number",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
