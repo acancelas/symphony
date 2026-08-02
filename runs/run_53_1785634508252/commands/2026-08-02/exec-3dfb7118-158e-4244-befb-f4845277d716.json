@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3dfb7118-158e-4244-befb-f4845277d716",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643244990_1912",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:00:44.877Z",
+  "command": "/bin/bash -lc \"grep -RIn \\\"defmodule SymphonyElixir.Tracker.Issue\\\\|native_ref\\\" elixir/lib/symphony_elixir/tracker* elixir/lib/symphony_elixir | head -160\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/tracker/issue.ex:1:defmodule SymphonyElixir.Tracker.Issue do\nelixir/lib/symphony_elixir/tracker/issue.ex:7:  board or project entry. `native_ref` carries non-secret [REDACTED] identifiers\nelixir/lib/symphony_elixir/tracker/issue.ex:14:    :native_ref,\nelixir/lib/symphony_elixir/tracker/issue.ex:32:          native_ref: map() | nil,\nelixir/lib/symphony_elixir/tracker/issue.ex:65:  BOS issues expose it explicitly through `native_ref`. The stable dispatch ID\nelixir/lib/symphony_elixir/tracker/issue.ex:71:  def repository_id(%__MODULE__{native_ref: native_ref, id: id}) do\nelixir/lib/symphony_elixir/tracker/issue.ex:73:      if is_map(native_ref) do\nelixir/lib/symphony_elixir/tracker/issue.ex:74:        Map.get(native_ref, \"repositoryId\") || Map.get(native_ref, :repository_id)\nelixir/lib/symphony_elixir/goal_execution.ex:29:  defp check_managed(client, %{native_ref: native_ref}, task_kind, requested, check_key) when is_map(native_ref) do\nelixir/lib/symphony_elixir/goal_execution.ex:30:    with repository_id when is_binary(repository_id) <- native_ref[\"repositoryId\"],\nelixir/lib/symphony_elixir/goal_execution.ex:32:         issue_number when is_integer(issue_number) and issue_number > 0 <- native_ref[\"issueNumber\"],\nelixir/lib/symphony_elixir/goal_execution.ex:36:           authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, decision) do\nelixir/lib/symphony_elixir/goal_execution.ex:47:  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, _check_key, decision)\nelixir/lib/symphony_elixir/goal_execution.ex:51:  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, _check_key, :unmanaged),\nelixir/lib/symphony_elixir/goal_execution.ex:54:  defp authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, {:ok, snapshot}) do\nelixir/lib/symphony_elixir/goal_execution.ex:57:      with {:ok, identity} <- authorization_i",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
