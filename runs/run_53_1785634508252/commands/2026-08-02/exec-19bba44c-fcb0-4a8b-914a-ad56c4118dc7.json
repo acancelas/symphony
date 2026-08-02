@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-19bba44c-fcb0-4a8b-914a-ad56c4118dc7",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643414933_1965",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:03:34.816Z",
+  "command": "/bin/bash -lc 'git ls-remote --heads origin refs/heads/bos/issue-53 && git diff --unified=3 origin/main...HEAD -- elixir/lib/symphony_elixir/agent_runner.ex elixir/lib/symphony_elixir/delivery_coordinator.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/lib/symphony_elixir/goal_execution.ex elixir/README.md'",
+  "durationMs": 1646,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "aed939a508bf0ae1aca96532bf35a39dc3254b19\trefs/heads/bos/issue-53\ndiff --git a/elixir/README.md b/elixir/README.md\nindex edb3b420..2870ba26 100644\n--- a/elixir/README.md\n+++ b/elixir/README.md\n@@ -79,6 +79,14 @@ session, so Symphony resets its comparison watermark—not its cumulative totals\n role starts a fresh session. Operational token budgets should use uncached input while retaining\n the full totals for capacity and audit reporting.\n \n+Goal-authorized work reuses one exact approved proposal for every included Issue and strictly\n+derived repair. Before each implementation turn or repair cycle, Symphony idempotently inherits\n+that authorization and asks `game-api` to enforce the shared execution window and aggregate\n+attempt, token, and cost ceilings. At 75 percent consumption the scope is frozen; at 100 percent\n+no new turn starts. Restarts and provider pauses re-read the confirmed projection, so they cannot\n+replenish remaining authorization. New scope, a larger ceiling, or a new window stays paused at\n+one Goal-level decision boundary. Specialist delivery remains bounded to two repair cycles.\n+\n Tests that start operating-system processes own their complete lifecycle. Long-running shell, Git,\n Codex, FIFO, SSH, and helper commands are tagged with a unique test owner and register an `on_exit`\n callback before launch. Teardown sends TERM, waits for a bounded interval, escalates to KILL, and\ndiff --git a/elixir/lib/symphony_elixir/agent_runner.ex b/elixir/lib/symphony_elixir/agent_runner.ex\nindex 9222794d..9dee885b 100644\n--- a/elixir/lib/symphony_elixir/agent_runner.ex\n+++ b/elixir/lib/symphony_elixir/agent_runner.ex\n@@ -10,6 +10,7 @@ defmodule SymphonyElixir.AgentRunner do\n   alias SymphonyElixir.{\n     Config,\n     DeliveryCoordinator,\n+    GoalExecution,\n     GoalPlanningCoordinator,\n     PostApprovalCoordinator,\n     PromptBuilder,\n@@ -203,6 +204,42 @@ defmodule SymphonyElixir.AgentRunner do\n   end\n \n   defp do_run_codex_turns(app_session, workspace, issue, cod",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
