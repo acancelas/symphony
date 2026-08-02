@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-42846b74-6bc7-44d2-8974-620468244835",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642514514_1601",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:48:34.424Z",
+  "command": "/bin/bash -lc 'rg -n \"invalid|malformed|missing|version|pending|strictly_derived|operationId|authorizationId|75|exhaust|window|gateway|unmanaged\" elixir/test/symphony_elixir/goal_execution_test.exs elixir/test/symphony_elixir/delivery_coordinator_test.exs elixir/test/symphony_elixir/agent_runner_test.exs && git show --stat --oneline HEAD && git log --oneline origin/main..HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "long"
+  }
+}
