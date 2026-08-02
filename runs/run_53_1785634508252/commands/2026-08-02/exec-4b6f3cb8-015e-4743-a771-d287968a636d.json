@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-4b6f3cb8-015e-4743-a771-d287968a636d",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643446503_1969",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:04:06.502Z",
+  "command": "/bin/bash -lc \"grep -RInE 'reviewId|reviewType|subjectId|bos_record_review' .bos elixir README.md SPEC.md WORKFLOW.md --include='*.md' --include='*.ex' --include='*.exs' --include='*.yaml' | head -80\"",
+  "durationMs": 184,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/test/symphony_elixir/delivery_coordinator_test.exs:20:        [_, review_id] = Regex.run(~r/reviewId `([^`]+)`/, prompt)\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:40:        \"reviewId\" => review_id,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:41:        \"reviewType\" => role,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:66:        [_, review_id] = Regex.run(~r/reviewId `([^`]+)`/, prompt)\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:71:            \"reviewId\" => review_id,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:72:            \"reviewType\" => \"functional\",\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:338:        \"reviewId\" => \"review_run_001_1_functional_#{String.slice(current_head, 0, 12)}\",\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:339:        \"reviewType\" => \"functional\",\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:461:      \"reviewId\" => \"review_run_001_1_#{role}_#{String.slice(head_sha, 0, 12)}\",\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:462:      \"reviewType\" => role,\nelixir/test/symphony_elixir/audit/outbox_test.exs:523:             \"subjectId\" => \"implementation-agent\"\nelixir/test/symphony_elixir/audit/outbox_test.exs:528:             \"subjectId\" => \"x1\"\nelixir/test/symphony_elixir/audit/outbox_test.exs:533:             \"subjectId\" => \"security-reviewer\"\nelixir/test/symphony_elixir/goal_planning_coordinator_test.exs:23:         \"review\" => %{\"reviewId\" => \"review_001\", \"status\" => \"passed\"}\nelixir/lib/symphony_elixir/audit/outbox.ex:1264:      %{\"type\" => \"agent\", \"subjectId\" => implementation_agent_id()}\nelixir/lib/symphony_elixir/audit/outbox.ex:1266:      %{\"type\" => \"runner\", \"subjectId\" => runner_id()}\nelixir/lib/symphony_elixir/audit/outbox.ex:1275:      %{\"type\" => \"agent\", \"subjectId\" => actor}\nelixir/lib/symphony_elixir/game_api/client.ex:541:               \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
