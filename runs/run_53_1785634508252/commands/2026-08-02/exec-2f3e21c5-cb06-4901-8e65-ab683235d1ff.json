@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-2f3e21c5-cb06-4901-8e65-ab683235d1ff",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642637277_1634",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:50:37.187Z",
+  "command": "/bin/bash -lc \"nl -ba elixir/lib/symphony_elixir/goal_execution.ex | sed -n '15,48p'; nl -ba elixir/test/symphony_elixir/goal_execution_test.exs | sed -n '130,165p'; git diff --check origin/main...HEAD\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "    15\t\n    16\t  @spec check(module(), map(), task_kind(), map(), String.t()) :: decision() | {:error, term()}\n    17\t  def check(client, issue, task_kind, requested \\\\ %{}, check_key \\\\ \"default\")\n    18\t\n    19\t  def check(client, %{native_ref: native_ref}, task_kind, requested, check_key)\n    20\t      when is_map(native_ref) and is_binary(check_key) do\n    21\t    if function_exported?(client, :fetch_goal_execution, 2) do\n    22\t      with repository_id when is_binary(repository_id) <- native_ref[\"repositoryId\"],\n    23\t           issue_number when is_integer(issue_number) <- native_ref[\"issueNumber\"],\n    24\t           {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number),\n    25\t           decision <- evaluate(projection, issue_number, task_kind, requested),\n    26\t           {:ok, decision} <-\n    27\t             authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, decision) do\n    28\t        decision\n    29\t      else\n    30\t        nil -> :unmanaged\n    31\t        {:error, reason} -> {:error, reason}\n    32\t        _ -> {:error, :invalid_goal_execution_identity}\n    33\t      end\n    34\t    else\n    35\t      :unmanaged\n    36\t    end\n    37\t  end\n    38\t\n    39\t  def check(_client, _issue, _task_kind, _requested, _check_key), do: :unmanaged\n    40\t\n    41\t  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, _check_key, decision)\n    42\t       when decision != :unmanaged and elem(decision, 0) != :ok,\n    43\t       do: {:ok, decision}\n    44\t\n    45\t  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, _check_key, :unmanaged),\n    46\t    do: {:ok, :unmanaged}\n    47\t\n    48\t  defp authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, {:ok, snapshot}) do\n   130\t             GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n   131\t\n   132\t    Process.put(:goal_inherit_result, ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
