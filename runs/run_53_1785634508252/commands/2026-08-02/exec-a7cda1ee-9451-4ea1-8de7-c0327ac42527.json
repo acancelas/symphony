@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-a7cda1ee-9451-4ea1-8de7-c0327ac42527",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643135149_1861",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:58:54.957Z",
+  "command": "/bin/bash -lc 'git diff --unified=40 origin/main...HEAD -- elixir/lib/symphony_elixir/goal_execution.ex elixir/lib/symphony_elixir/agent_runner.ex elixir/lib/symphony_elixir/delivery_coordinator.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/test/symphony_elixir/goal_execution_test.exs elixir/test/symphony_elixir/delivery_coordinator_test.exs elixir/README.md'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "diff --git a/elixir/README.md b/elixir/README.md\nindex edb3b420..2870ba26 100644\n--- a/elixir/README.md\n+++ b/elixir/README.md\n@@ -42,80 +42,88 @@ Cleanup is fail-closed for Git workspaces: if `git status` reports uncommitted c\n state cannot be read reliably, Symphony preserves the workspace for recovery and logs the\n reason. A clean worktree is not sufficient: its `HEAD` must also be reachable from the configured\n upstream, so local commits that have not been pushed survive cleanup. A later attempt reuses that\n directory. Only clean, remotely durable terminal workspaces are disposable.\n Codex `turn/diff/updated` notifications are treated as durable recovery checkpoints: Symphony\n redacts their unified diff and writes it to the append-only outbox immediately. Checkpoints are\n confirmed in the GitHub audit ledger using the ordinary 50-event or 60-second batch boundary,\n instead of forcing one remote commit per diff notification. Terminal turn completion, failure and\n cancellation events still flush immediately. This preserves the filesystem recovery fast-path and\n the replacement-X1 ledger while avoiding unnecessary GitHub ref/tree/commit pressure.\n Ordinary flush failures use bounded exponential backoff with jitter per AgentRun. A `game-api` or\n GitHub provider rate limit opens the process-wide audit circuit: the internal exponential backoff\n is capped at 15 minutes, while an explicit provider `Retry-After` remains authoritative up to a\n defensive 24-hour ceiling. Symphony adds a positive jitter of at most 10% and 30 seconds without\n ever shortening that provider window, so concurrent X1 workers do not probe in lockstep when the\n circuit reopens. Critical events continue to be written locally, but no pending run flushes until\n the shared circuit permits a probe. An expired retry keeps its attempt counter until a batch\n succeeds, so repeated failures actually progress through the exponential schedule instead of\n restarting at the shortest delay.\n After a batch is con",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
