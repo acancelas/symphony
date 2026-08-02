@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-0779c925-ed23-442e-a060-7eb3043e4835",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637888122_981",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:31:28.042Z",
+  "command": "/bin/bash -lc \"sed -n '1,45p' lib/symphony_elixir/candidate_head.ex; sed -n '1,25p' lib/symphony_elixir/prompt_builder.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.CandidateHead do\n  @moduledoc \"\"\"\n  Confirms that the exact clean candidate commit is durably reachable from the\n  issue branch before reviews or evidence are allowed to reference it.\n\n  The push is deliberately non-forcing. A divergent remote branch fails closed\n  so recovery cannot silently replace work accepted by another runner.\n  \"\"\"\n\n  alias SymphonyElixir.Tracker.Issue\n\n  @type confirmation :: %{\n          branch: String.t(),\n          head_sha: String.t(),\n          remote_sha: String.t()\n        }\n\n  @spec confirm(Path.t(), Issue.t(), String.t() | nil, keyword()) ::\n          {:ok, confirmation()} | {:error, term()}\n  def confirm(workspace, %Issue{} = issue, worker_host \\\\ nil, opts \\\\ [])\n      when is_binary(workspace) do\n    with :ok <- require_local_worker(worker_host),\n         command_runner <- Keyword.get(opts, :command_runner, &run_command/4),\n         {:ok, status} <- git(command_runner, workspace, worker_host, [\"status\", \"--porcelain\", \"--untracked-files=no\"]),\n         :ok <- require_clean(status),\n         {:ok, head_sha} <- git(command_runner, workspace, worker_host, [\"rev-parse\", \"HEAD\"]),\n         {:ok, branch} <- git(command_runner, workspace, worker_host, [\"symbolic-ref\", \"--short\", \"HEAD\"]),\n         :ok <- require_issue_branch(issue, branch),\n         {:ok, remote_sha} <- ensure_remote_head(command_runner, workspace, worker_host, branch, head_sha) do\n      {:ok, %{branch: branch, head_sha: head_sha, remote_sha: remote_sha}}\n    end\n  end\n\n  defp require_local_worker(nil), do: :ok\n\n  defp require_local_worker(worker_host),\n    do: {:error, {:candidate_remote_worker_unsupported, worker_host}}\n\n  defp ensure_remote_head(command_runner, workspace, worker_host, branch, head_sha) do\n    case remote_head(command_runner, workspace, worker_host, branch) do\n      {:ok, ^head_sha} ->\n        {:ok, head_sha}\n\n      {:ok, nil} ->\n        push_and_confirm(command_runner, workspace, worker_host, branch, head_sha)\ndefmodule Symph",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
