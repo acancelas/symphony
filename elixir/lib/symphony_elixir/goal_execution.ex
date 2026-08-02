@@ -16,27 +16,33 @@ defmodule SymphonyElixir.GoalExecution do
   @spec check(module(), map(), task_kind(), map(), String.t()) :: decision() | {:error, term()}
   def check(client, issue, task_kind, requested \\ %{}, check_key \\ "default")
 
-  def check(client, %{native_ref: native_ref}, task_kind, requested, check_key)
-      when is_map(native_ref) and is_binary(check_key) do
+  def check(client, issue, task_kind, requested, check_key) when is_binary(check_key) do
     if function_exported?(client, :fetch_goal_execution, 2) do
-      with repository_id when is_binary(repository_id) <- native_ref["repositoryId"],
-           issue_number when is_integer(issue_number) <- native_ref["issueNumber"],
-           {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number),
-           decision <- evaluate(projection, issue_number, task_kind, requested),
-           {:ok, decision} <-
-             authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, decision) do
-        decision
-      else
-        nil -> :unmanaged
-        {:error, reason} -> {:error, reason}
-        _ -> {:error, :invalid_goal_execution_identity}
-      end
+      check_managed(client, issue, task_kind, requested, check_key)
     else
       :unmanaged
     end
   end
 
   def check(_client, _issue, _task_kind, _requested, _check_key), do: :unmanaged
+
+  defp check_managed(client, %{native_ref: native_ref}, task_kind, requested, check_key) when is_map(native_ref) do
+    with repository_id when is_binary(repository_id) <- native_ref["repositoryId"],
+         true <- String.trim(repository_id) != "",
+         issue_number when is_integer(issue_number) and issue_number > 0 <- native_ref["issueNumber"],
+         {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number),
+         decision <- evaluate(projection, issue_number, task_kind, requested),
+         {:ok, decision} <-
+           authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, decision) do
+      decision
+    else
+      {:error, reason} -> {:error, reason}
+      _ -> {:error, :invalid_goal_execution_identity}
+    end
+  end
+
+  defp check_managed(_client, _issue, _task_kind, _requested, _check_key),
+    do: :unmanaged
 
   defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, _check_key, decision)
        when decision != :unmanaged and elem(decision, 0) != :ok,

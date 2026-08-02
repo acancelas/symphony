@@ -146,12 +146,21 @@ defmodule SymphonyElixir.GoalExecutionTest do
   test "invalid and unmanaged identities do not acquire authorization" do
     assert :unmanaged = GoalExecution.check(ConfigurableGatewayClient, %{}, :included_issue)
 
+    assert :unmanaged = GoalExecution.check(__MODULE__, %{}, :included_issue)
+
     Process.put(:goal_fetch_result, {:ok, projection()})
 
-    assert :unmanaged =
+    assert {:error, :invalid_goal_execution_identity} =
              GoalExecution.check(
                ConfigurableGatewayClient,
                %{native_ref: %{"repositoryId" => nil, "issueNumber" => 53}},
+               :included_issue
+             )
+
+    assert {:error, :invalid_goal_execution_identity} =
+             GoalExecution.check(
+               ConfigurableGatewayClient,
+               %{native_ref: %{"repositoryId" => "  ", "issueNumber" => 53}},
                :included_issue
              )
 
