@@ -1,0 +1,19 @@
+{
+  "attemptId": "attempt-release-symphony-v0.1.0-1",
+  "runId": "release-symphony-v0.1.0-20260802",
+  "number": 1,
+  "status": "passed",
+  "actor": {
+    "type": "agent",
+    "subjectId": "release-manager"
+  },
+  "startedAt": "2026-08-02T13:16:35Z",
+  "completedAt": "2026-08-02T13:22:33Z",
+  "summary": "Exact merge commit certified by complete QA and dependency audit.",
+  "metrics": {
+    "tests": 395,
+    "failures": 0,
+    "skipped": 2,
+    "coveragePercent": 100
+  }
+}
