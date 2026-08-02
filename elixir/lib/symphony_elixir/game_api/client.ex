@@ -147,6 +147,14 @@ defmodule SymphonyElixir.GameApi.Client do
     end
   end
 
+  @spec fetch_goal_execution(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}
+  def fetch_goal_execution(repository_id, issue_number)
+      when is_binary(repository_id) and is_integer(issue_number) and issue_number > 0 do
+    with {:ok, repository} <- find_repository(repository_id) do
+      request(:get, "/v1/internal/bos/delivery/goals/execution", params: repository_query(repository) ++ [{"issueNumber", issue_number}])
+    end
+  end
+
   @spec request_goal_breakdown_approval(Issue.t()) :: {:ok, map()} | {:error, term()}
   def request_goal_breakdown_approval(%Issue{native_ref: native_ref}) do
     with {:ok, repository} <- find_repository(native_ref["repositoryId"]) do

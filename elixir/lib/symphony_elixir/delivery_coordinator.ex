@@ -13,10 +13,11 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   alias SymphonyElixir.CandidateHead
   alias SymphonyElixir.Codex.AppServer
   alias SymphonyElixir.GameApi.Client
+  alias SymphonyElixir.GoalExecution
   alias SymphonyElixir.Tracker.Issue
 
   @review_roles ~w(functional architecture security quality visual)
-  @max_repair_cycles 3
+  @max_repair_cycles 2
   @max_review_record_attempts 2
   @max_review_lookup_attempts 3
   @review_sandbox_policy %{"type" => "readOnly", "networkAccess" => true}
@@ -70,6 +71,15 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   end
 
   defp run_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints) do
+    case GoalExecution.check(context.client, context.issue, :derived_repair) do
+      :unmanaged -> run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints)
+      {:ok, _authorization} -> run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints)
+      {:pause, reason, authorization} -> {:error, {:goal_execution_paused, reason, authorization}}
+      {:error, reason} -> {:error, {:goal_execution_check_failed, reason}}
+    end
+  end
+
+  defp run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints) do
     case review_and_repair(context, cycle, max_cycles) do
       {:ok, reviewed_candidate} ->
         confirm_reviewed_candidate(context, reviewed_candidate, cycle, max_cycles, dirty_fingerprints)

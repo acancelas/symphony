@@ -10,6 +10,7 @@ defmodule SymphonyElixir.AgentRunner do
   alias SymphonyElixir.{
     Config,
     DeliveryCoordinator,
+    GoalExecution,
     GoalPlanningCoordinator,
     PostApprovalCoordinator,
     PromptBuilder,
@@ -203,6 +204,24 @@ defmodule SymphonyElixir.AgentRunner do
   end
 
   defp do_run_codex_turns(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
+    client = Keyword.get(opts, :game_api_client_module, SymphonyElixir.GameApi.Client)
+
+    case GoalExecution.check(client, issue, :included_issue, %{"attempts" => 1}) do
+      :unmanaged ->
+        run_codex_turn(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns)
+
+      {:ok, _authorization} ->
+        run_codex_turn(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns)
+
+      {:pause, reason, authorization} ->
+        {:paused, %{pause_reason: reason, goal_authorization: authorization}}
+
+      {:error, reason} ->
+        {:error, {:goal_execution_check_failed, reason}}
+    end
+  end
+
+  defp run_codex_turn(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
     prompt = build_turn_prompt(issue, opts, turn_number, max_turns)
 
     case AppServer.run_turn(
