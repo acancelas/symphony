@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3a19481c-4730-447e-b59c-d43e52345aaf",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643361028_1935",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:02:40.931Z",
+  "command": "/bin/bash -lc \"grep -nE \\\"run_codex_turns\\\\(|goal_execution|\\\\{:paused|DeliveryCoordinator.run\\\" elixir/lib/symphony_elixir/agent_runner.ex elixir/test/symphony_elixir/agent_runner_test.exs elixir/test/symphony_elixir/delivery_coordinator_test.exs .bos/project.yaml\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 2,
+  "outputSummary": "grep: elixir/test/symphony_elixir/agent_runner_test.exs: No such file or directory\nelixir/lib/symphony_elixir/agent_runner.ex:93:      run_codex_turns(workspace, issue, recipient, opts, worker_host)\nelixir/lib/symphony_elixir/agent_runner.ex:100:    DeliveryCoordinator.run(workspace, issue, recipient, delivery_context_opts(opts), worker_host)\nelixir/lib/symphony_elixir/agent_runner.ex:104:    implementation_result = run_codex_turns(workspace, issue, recipient, opts, worker_host)\nelixir/lib/symphony_elixir/agent_runner.ex:107:      DeliveryCoordinator.run(workspace, issue, recipient, delivery_context_opts(opts), worker_host)\nelixir/lib/symphony_elixir/agent_runner.ex:127:      {:paused, budget} ->\nelixir/lib/symphony_elixir/agent_runner.ex:184:  defp run_codex_turns(workspace, issue, codex_update_recipient, opts, worker_host) do\nelixir/lib/symphony_elixir/agent_runner.ex:199:        do_run_codex_turns(session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, 1, max_turns)\nelixir/lib/symphony_elixir/agent_runner.ex:206:  defp do_run_codex_turns(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do\nelixir/lib/symphony_elixir/agent_runner.ex:235:        {:paused, %{pause_reason: reason, goal_authorization: [REDACTED]}}\nelixir/lib/symphony_elixir/agent_runner.ex:238:        {:error, {:goal_execution_check_failed, reason}}\nelixir/lib/symphony_elixir/agent_runner.ex:253:        {:paused, budget}\nelixir/lib/symphony_elixir/agent_runner.ex:262:            do_run_codex_turns(\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:161:             DeliveryCoordinator.run(\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:195:             DeliveryCoordinator.run(\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:219:             DeliveryCoordinator.run(\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:240:             DeliveryCoordinator.run(\nelixir/test/symphony_elixir/delive",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "long"
+  }
+}
