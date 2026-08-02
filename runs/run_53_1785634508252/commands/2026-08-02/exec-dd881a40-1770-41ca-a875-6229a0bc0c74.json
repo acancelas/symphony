@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-dd881a40-1770-41ca-a875-6229a0bc0c74",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642763720_1698",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:52:43.624Z",
+  "command": "/bin/bash -lc \"git grep -n -E 'reviewId|reviewType|subjectId|bos_record_review' -- ':\"'!elixir/deps/**'\"' ':\"'!elixir/_build/**'\"' | head -120\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/audit/outbox.ex:1264:      %{\"type\" => \"agent\", \"subjectId\" => implementation_agent_id()}\nelixir/lib/symphony_elixir/audit/outbox.ex:1266:      %{\"type\" => \"runner\", \"subjectId\" => runner_id()}\nelixir/lib/symphony_elixir/audit/outbox.ex:1275:      %{\"type\" => \"agent\", \"subjectId\" => actor}\nelixir/lib/symphony_elixir/delivery_coordinator.ex:315:         artifact[\"reviewId\"] == expected_id and artifact[\"commitSha\"] == candidate.head_sha\nelixir/lib/symphony_elixir/delivery_coordinator.ex:338:      artifact[\"reviewId\"] == expected_id and artifact[\"commitSha\"] == expected_sha\nelixir/lib/symphony_elixir/delivery_coordinator.ex:481:    bos_record_review with reviewId `#{review_id(issue, role, cycle, candidate)}`, runId\nelixir/lib/symphony_elixir/delivery_coordinator.ex:482:    `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type\nelixir/lib/symphony_elixir/delivery_coordinator.ex:483:    `agent` and subjectId `#{role}-reviewer`, the exact HEAD SHA, a status of\nelixir/lib/symphony_elixir/delivery_coordinator.ex:494:    \"A prior reviewer session ended without the required durable Review. This is record attempt #{record_attempt}; call bos_record_review and confirm its receipt before doing anything else.\"\nelixir/lib/symphony_elixir/delivery_coordinator.ex:499:      \"#{review[\"reviewType\"]}: #{review[\"status\"]} — #{review[\"summary\"]}\\n#{inspect(review[\"findings\"] || [])}\"\nelixir/lib/symphony_elixir/game_api/client.ex:541:               \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\nelixir/lib/symphony_elixir/game_api/client.ex:645:      \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:100:    #{native_ref[\"issueNumber\"]}, runId #{native_ref[\"runId\"]}, reviewId\nelixir/test/symphony_elixir/audit/outbox_test.exs:523:             \"subjectId\" => \"implementation-agent\"\nelixir/test/symphony_elixir/audit/outbox_test.exs:528:             \"subjectId\" => \"x1\"\ne",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
