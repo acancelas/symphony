@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-892a3d06-3746-4836-b9c9-13dabb1c8169",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641552556_1151",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:32:32.467Z",
+  "command": "/bin/bash -lc \"git log --all -S'EvidenceReport' --oneline -- elixir | head -n 20 && git grep -n 'evidence_report\\\\|EvidenceReport\\\\|evidenceId' \"'$(git rev-list --all | head -n 200) -- 2>/dev/null | head -n 80'",
+  "durationMs": 299,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "c76711aaa1c85728377695c67b607bedab162dba:WORKFLOW.md:11:Long Codex turns are bounded by role-specific wall-clock and uncached-input budgets. At a soft limit, preserve the current AgentRun, Attempt, workspace, branch, PR, and durable checkpoint; at a hard limit, interrupt the turn and return control to Symphony. A resumed execution must reuse those identities and must not duplicate Reviews or EvidenceReports. Provider rate limiting is a separate pause state and must respect its retry window.\nc76711aaa1c85728377695c67b607bedab162dba:elixir/lib/symphony_elixir/codex/app_server.ex:687:    end this turn. Reuse existing PRs, Reviews and EvidenceReports; do not create\nc76711aaa1c85728377695c67b607bedab162dba:elixir/lib/symphony_elixir/delivery_coordinator.ex:412:    EvidenceReport and Attempt outcome, then request only the next transition\ne7fdbe958982f9e65f4a0631c78e98ee325ccf31:WORKFLOW.md:11:Long Codex turns are bounded by role-specific wall-clock and uncached-input budgets. At a soft limit, preserve the current AgentRun, Attempt, workspace, branch, PR, and durable checkpoint; at a hard limit, interrupt the turn and return control to Symphony. A resumed execution must reuse those identities and must not duplicate Reviews or EvidenceReports. Provider rate limiting is a separate pause state and must respect its retry window.\ne7fdbe958982f9e65f4a0631c78e98ee325ccf31:elixir/lib/symphony_elixir/codex/app_server.ex:687:    end this turn. Reuse existing PRs, Reviews and EvidenceReports; do not create\ne7fdbe958982f9e65f4a0631c78e98ee325ccf31:elixir/lib/symphony_elixir/delivery_coordinator.ex:412:    EvidenceReport and Attempt outcome, then request only the next transition\n1c5ff7657f1642661761801fbb588148652581f9:issues/symphony#6/event-batches/2026-07-20/batch_eecf362b8be69224ff575c30da.ndjson:1:{\"schemaVersion\":\"1.0\",\"eventId\":\"event_eecf362b8be69224ff575c30da\",\"occurredAt\":\"2026-07-20T23:56:50.049Z\",\"scopeType\":\"issue\",\"scopeId\":\"symphony#6\",\"sequence\":1,\"eventHash\":\"sha256:b8",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
