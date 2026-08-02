@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9db731e4-e5d7-4884-b9da-2e44a303910e",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785638010446_1014",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:33:30.367Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format && mise exec -- mix lint && mise exec -- mix test test/symphony_elixir/goal_execution_test.exs test/symphony_elixir/delivery_coordinator_test.exs'",
+  "durationMs": 4995,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Compiling 3 files (.ex)\nGenerated symphony_elixir app\nspecs.check: all public functions have @spec or exemption\nChecking 83 source files (this might take a while) ...\n\nPlease report incorrect results: https://github.com/rrrene/credo/issues\n\nAnalysis took 1.6 seconds (0.06s to load, 1.5s running 69 checks on 83 files)\n1932 mods/funs, found no issues.\n\nUse `mix credo explain` to explain issues, `mix credo --help` for options.\nCompiling 3 files (.ex)\nGenerated symphony_elixir app\nRunning ExUnit with seed: 192154, max_cases: 20\n\n.................\nFinished in 0.2 seconds (0.2s async, 0.02s sync)\n17 tests, 0 failures\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
