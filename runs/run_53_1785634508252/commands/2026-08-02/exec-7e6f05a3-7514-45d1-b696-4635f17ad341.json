@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-7e6f05a3-7514-45d1-b696-4635f17ad341",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642887260_1747",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:54:47.163Z",
+  "command": "/bin/bash -lc 'git status --short && git diff --check && git diff -- elixir/lib/symphony_elixir/goal_execution.ex elixir/test/symphony_elixir/goal_execution_test.exs'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": " M elixir/lib/symphony_elixir/goal_execution.ex\n M elixir/test/symphony_elixir/goal_execution_test.exs\ndiff --git a/elixir/lib/symphony_elixir/goal_execution.ex b/elixir/lib/symphony_elixir/goal_execution.ex\nindex 00b3e26c..8b4a8805 100644\n--- a/elixir/lib/symphony_elixir/goal_execution.ex\n+++ b/elixir/lib/symphony_elixir/goal_execution.ex\n@@ -16,21 +16,9 @@ defmodule SymphonyElixir.GoalExecution do\n   @spec check(module(), map(), task_kind(), map(), String.t()) :: decision() | {:error, term()}\n   def check(client, issue, task_kind, requested \\\\ %{}, check_key \\\\ \"default\")\n \n-  def check(client, %{native_ref: native_ref}, task_kind, requested, check_key)\n-      when is_map(native_ref) and is_binary(check_key) do\n+  def check(client, issue, task_kind, requested, check_key) when is_binary(check_key) do\n     if function_exported?(client, :fetch_goal_execution, 2) do\n-      with repository_id when is_binary(repository_id) <- native_ref[\"repositoryId\"],\n-           issue_number when is_integer(issue_number) <- native_ref[\"issueNumber\"],\n-           {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number),\n-           decision <- evaluate(projection, issue_number, task_kind, requested),\n-           {:ok, decision} <-\n-             authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, decision) do\n-        decision\n-      else\n-        nil -> :unmanaged\n-        {:error, reason} -> {:error, reason}\n-        _ -> {:error, :invalid_goal_execution_identity}\n-      end\n+      check_managed(client, issue, task_kind, requested, check_key)\n     else\n       :unmanaged\n     end\n@@ -38,6 +26,23 @@ defmodule SymphonyElixir.GoalExecution do\n \n   def check(_client, _issue, _task_kind, _requested, _check_key), do: :unmanaged\n \n+  defp check_managed(client, %{native_ref: native_ref}, task_kind, requested, check_key) when is_map(native_ref) do\n+    with repository_id when is_binary(repository_id) <- native_ref[\"repositoryId\"],\n+    ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
