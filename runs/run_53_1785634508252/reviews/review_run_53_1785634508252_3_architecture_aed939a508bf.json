@@ -1,0 +1,30 @@
+{
+  "reviewId": "review_run_53_1785634508252_3_architecture_aed939a508bf",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "reviewType": "architecture",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "commitSha": "aed939a508bf0ae1aca96532bf35a39dc3254b19",
+  "status": "passed",
+  "findings": [
+    {
+      "severity": "info",
+      "title": "Goal authorization remains gateway-authoritative and fail-closed",
+      "detail": "Each managed implementation turn and bounded delivery cycle re-fetches canonical Goal execution state, inherits the exact approved proposal, and checks the shared execution window and aggregate requested consumption through GameApi.Client; malformed managed identity/projection, missing gateway contract, provider errors, and invalid gateway decisions prevent work from starting."
+    },
+    {
+      "severity": "info",
+      "title": "Single-decision scope and budget boundaries are preserved",
+      "detail": "Included work is restricted to includedIssueNumbers, derived repair requires strictly_derived policy, pending scope changes and closed windows pause, 75 percent consumption exposes scope_frozen, and exhausted or over-requested aggregate ceilings stop new work without local budget replenishment."
+    },
+    {
+      "severity": "info",
+      "title": "Repair orchestration is bounded and exact-commit evidence is affirmative",
+      "detail": "The default specialist repair limit is reduced from three to two cycles. Local HEAD and remote bos/issue-53 both equal aed939a508bf0ae1aca96532bf35a39dc3254b19; exact-commit evidence reports formatting, git diff checks, 385 tests with 0 failures and 2 skipped, and 11 focused Goal execution tests with 0 failures."
+    }
+  ],
+  "summary": "Passed: the exact commit implements gateway-owned single-Goal authorization, fail-closed managed identity and projection handling, shared execution-window and aggregate-budget enforcement, restart-safe rechecks, and a two-cycle repair bound; local and remote candidate SHAs match and exact-commit validation evidence is affirmative."
+}
