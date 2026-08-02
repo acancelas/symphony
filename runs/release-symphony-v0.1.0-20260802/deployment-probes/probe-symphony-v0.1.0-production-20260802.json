@@ -1,0 +1,100 @@
+{
+  "probeId": "probe-symphony-v0.1.0-production-20260802",
+  "deploymentId": "symphony-v0.1.0-production",
+  "repositoryId": "symphony",
+  "commitSha": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3",
+  "environment": "production",
+  "target": {
+    "provider": "vps",
+    "url": "https://api2.gamificationapi.com/health",
+    "targetId": "bos-orchestrator-production",
+    "serverId": "x1",
+    "localObservabilityUrl": "http://127.0.0.1:8210/api/v1/state"
+  },
+  "status": "passed",
+  "externalAvailability": {
+    "url": "https://api2.gamificationapi.com/health",
+    "status": "passed",
+    "httpStatus": 200,
+    "purpose": "BOS control-plane dependency",
+    "tls": true
+  },
+  "deployedVersion": {
+    "binarySha256": "4296f9672b12f551ecca4f88623ce5b08d51364918ae818604972e95062ca7c9",
+    "commitSha": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3",
+    "tag": "v0.1.0"
+  },
+  "runtimeHealth": {
+    "subState": "running",
+    "restarts": 0,
+    "systemdUnit": "bos-orchestrator.service",
+    "activeState": "active",
+    "status": "passed",
+    "mainPid": 907584
+  },
+  "smokeTests": [
+    {
+      "name": "systemd active",
+      "status": "passed"
+    },
+    {
+      "status": "passed",
+      "httpStatus": 200,
+      "name": "local observability API /api/v1/state"
+    }
+  ],
+  "functionalTests": [
+    {
+      "status": "passed",
+      "countsPresent": true,
+      "name": "orchestration state projection"
+    },
+    {
+      "status": "passed",
+      "httpStatus": 200,
+      "name": "BOS Delivery dependency"
+    }
+  ],
+  "browserDiagnostics": {
+    "applicability": "headless system service; HTTP API validated directly",
+    "status": "passed",
+    "consoleErrors": 0,
+    "networkErrors": 0
+  },
+  "serverDiagnostics": {
+    "binarySha256": "4296f9672b12f551ecca4f88623ce5b08d51364918ae818604972e95062ca7c9",
+    "status": "passed",
+    "errors": 0,
+    "unit": "bos-orchestrator.service"
+  },
+  "criticalDependencies": [
+    {
+      "status": "passed",
+      "url": "https://api2.gamificationapi.com/health",
+      "name": "game-api BOS control plane"
+    },
+    {
+      "status": "passed",
+      "evidence": "tag v0.1.0 and deployment 5714437390 created",
+      "name": "GitHub"
+    }
+  ],
+  "stability": {
+    "restarts": 0,
+    "status": "passed",
+    "observationSeconds": 300
+  },
+  "residualRisk": [],
+  "evidenceReferences": [
+    {
+      "id": "5714437390",
+      "type": "github-deployment"
+    },
+    {
+      "type": "pull-request",
+      "url": "https://github.com/acancelas/symphony/pull/56"
+    }
+  ],
+  "startedAt": "2026-08-02T14:07:24Z",
+  "completedAt": "2026-08-02T14:13:50Z"
+}
