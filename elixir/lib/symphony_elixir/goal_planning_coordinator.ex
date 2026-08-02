@@ -11,7 +11,7 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
   alias SymphonyElixir.GameApi.Client
   alias SymphonyElixir.Tracker.Issue
 
-  @max_cycles 3
+  @max_cycles 2
 
   @spec run(Path.t(), Issue.t(), pid() | nil, keyword(), String.t() | nil) ::
           :ok | {:error, term()}
@@ -37,11 +37,15 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
     end
   end
 
-  defp evaluate_review(context, %{"proposal" => proposal, "review" => review}, cycle)
-       when is_map(proposal) and is_map(review) do
+  defp evaluate_review(
+         context,
+         %{"proposal" => proposal, "review" => review, "executionProposal" => execution_proposal},
+         cycle
+       )
+       when is_map(proposal) and is_map(review) and is_map(execution_proposal) do
     case review["status"] do
       "passed" ->
-        request_human_decision(context)
+        confirm_decision_queue(context)
 
       status when status in ["changes_requested", "inconclusive"] and cycle < context.max_cycles ->
         plan(context, cycle + 1)
@@ -69,16 +73,25 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
     BOS state. Produce the simplest complete delivery decomposition that fulfils
     the Goal without reducing scope or introducing temporary contracts.
 
-    Persist exactly one new proposal with bos_propose_goal_breakdown using:
+    Persist exactly one new decomposition with bos_propose_goal_breakdown using:
     issueNumber #{native_ref["issueNumber"]}, runId #{native_ref["runId"]}, and a
     unique operationId ending in cycle #{cycle}. Each capability must contain a
     stable key, title, context, expectedOutcome, scope, outOfScope,
     acceptanceCriteria, risk, autonomy, and an issues array. Each issue must
     contain a stable key, title, context, expectedOutcome, scope, outOfScope,
     acceptanceCriteria, dependencies (stable issue keys), risk and autonomy.
-    Include explicit rationale, cross-capability dependencies and risks. Do not
-    create Capabilities or Issues yet, modify product code, approve the proposal,
-    or transition the Goal. End only after the durable receipt is confirmed.
+    Include explicit rationale, cross-capability dependencies and risks.
+
+    Then persist exactly one versioned bos_propose_goal_execution for the same
+    Goal with proposalVersion #{cycle}. It must cover the complete product
+    outcome, scope and exclusions, all capabilities and issues, dependencies,
+    repositories, expected and maximum duration, expected and maximum total
+    tokens, confidence, risk tags, required validations, risk-adaptive reviewers,
+    execution window and every irreversible boundary. Estimate the complete Goal,
+    including implementation, reviews, repairs, validation, evidence and MCP
+    coordination. A short safe proposal may be autoapproved by policy; never
+    approve it yourself. Do not create work items, modify product code or reduce
+    scope. End only after both durable receipts are confirmed.
     """
 
     run_role(context, "goal-analyst", prompt)
@@ -91,7 +104,8 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
     prompt = """
     You are the independent BOS Goal proposal reviewer for #{issue.identifier},
     review cycle #{cycle}. Start a fresh analysis: retrieve the latest proposal
-    with bos_get_goal_planning, inspect the repository and challenge duplication,
+    with bos_get_goal_planning and retrieve the Goal execution proposal with
+    bos_get_goal_execution. Inspect the repository and challenge duplication,
     simpler alternatives, compatibility, security, reversibility, missing scope,
     unverifiable acceptance criteria, dependency order and over-engineering.
     Do not modify files or the proposal.
@@ -111,16 +125,33 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
   defp fetch_planning(context) do
     native_ref = context.issue.native_ref || %{}
 
-    context.client.fetch_goal_planning(
-      native_ref["repositoryId"],
-      native_ref["issueNumber"]
-    )
+    with {:ok, planning} <-
+           context.client.fetch_goal_planning(
+             native_ref["repositoryId"],
+             native_ref["issueNumber"]
+           ),
+         {:ok, execution} <-
+           context.client.fetch_goal_execution(
+             native_ref["repositoryId"],
+             native_ref["issueNumber"]
+           ) do
+      {:ok,
+       Map.merge(planning, %{
+         "executionProposal" => execution["proposal"],
+         "executionApproval" => execution["approval"]
+       })}
+    end
   end
 
-  defp request_human_decision(context) do
-    case context.client.request_goal_breakdown_approval(context.issue) do
-      {:ok, %{"status" => "completed"}} -> :ok
-      {:ok, response} -> {:error, {:goal_approval_request_rejected, response}}
+  defp confirm_decision_queue(context) do
+    native_ref = context.issue.native_ref || %{}
+
+    case context.client.fetch_goal_execution(
+           native_ref["repositoryId"],
+           native_ref["issueNumber"]
+         ) do
+      {:ok, %{"proposal" => proposal}} when is_map(proposal) -> :ok
+      {:ok, response} -> {:error, {:goal_execution_proposal_missing, response}}
       {:error, reason} -> {:error, reason}
     end
   end
