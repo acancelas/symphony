@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d24e31cc-fbc0-48b1-a6e6-fc8f6afdac88",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634585181_320",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:36:24.982Z",
+  "command": "/bin/bash -lc \"sed -n '1,155p' elixir/lib/symphony_elixir/game_api/adapter.ex && sed -n '155,230p' elixir/lib/symphony_elixir/game_api/adapter.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "defmodule SymphonyElixir.GameApi.Adapter do\n  @moduledoc \"\"\"\n  BOS tracker adapter backed exclusively by `game-api`.\n  \"\"\"\n\n  @behaviour SymphonyElixir.Tracker\n\n  alias SymphonyElixir.GameApi.Client\n  alias SymphonyElixir.Tracker.Issue\n\n  @spec validate_config(map()) :: :ok | {:error, term()}\n  def validate_config(tracker_settings), do: client_module().validate_config(tracker_settings)\n\n  @spec fetch_issues_by_states([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}\n  def fetch_issues_by_states(states) do\n    with {:ok, issues} <- client_module().fetch_issues_by_states(states) do\n      {:ok, Enum.map(issues, &normalize_issue/1)}\n    end\n  end\n\n  @spec reconcile_terminal_runs() :: {:ok, [map()]} | {:error, term()}\n  def reconcile_terminal_runs, do: client_module().reconcile_terminal_runs()\n\n  @spec fetch_issues_by_ids([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}\n  def fetch_issues_by_ids(issue_ids) do\n    issue_ids\n    |> Enum.reduce_while({:ok, []}, fn issue_id, {:ok, issues} ->\n      with {:ok, {repository_id, issue_number}} <- issue_locator(issue_id),\n           {:ok, payload} <- client_module().fetch_issue(repository_id, issue_number) do\n        {:cont, {:ok, [normalize_issue(payload) | issues]}}\n      else\n        {:error, {:game_api_http_error, 404}} -> {:cont, {:ok, issues}}\n        {:error, reason} -> {:halt, {:error, reason}}\n      end\n    end)\n    |> case do\n      {:ok, issues} -> {:ok, Enum.reverse(issues)}\n      error -> error\n    end\n  end\n\n  @spec claim_issue(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}\n  def claim_issue(%Issue{} = issue) do\n    issue_number = issue.native_ref[\"issueNumber\"]\n    repository_id = issue.native_ref[\"repositoryId\"]\n    existing_run_id = issue.native_ref[\"runId\"]\n\n    with {:ok, result} <- client_module().claim_issue(repository_id, issue_number, existing_run_id),\n         \"completed\" <- result[\"status\"] do\n      claim = result[\"claim\"] || %{}\n\n      native_ref =\n        (issue.native_ref || %{})\n        |>",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

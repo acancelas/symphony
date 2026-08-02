@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-e16f5895-1dfe-487c-aea2-3f43a49db6cf",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634726159_384",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:38:46.159Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format --check-formatted && mise exec -- mix test test/symphony_elixir/goal_execution_test.exs test/symphony_elixir/delivery_coordinator_test.exs test/symphony_elixir/turn_budget_test.exs'",
+  "durationMs": 725,
+  "environmentPolicy": "restricted",
+  "exitCode": 1,
+  "outputSummary": "** (Mix) mix format failed due to --check-formatted.\nThe following files are not formatted:\n\n\u001b[1m\u001b[31m$WORKSPACE/.bos/worktrees/symphony-53/elixir/lib/symphony_elixir/game_api/client.ex\n\u001b[0m\n         |\n152 152  |      when is_binary(repository_id) and is_integer(issue_number) and issue_number > 0 do\n153 153  |    with {:ok, repository} <- find_repository(repository_id) do\n154     -|      request(:get, \"/v1/internal/bos/delivery/goals/execution\",\n155     -|        params: repository_query(repository) ++ [{\"issueNumber\", issue_number}]\n156     -|      )\n    154 +|      request(:get, \"/v1/internal/bos/delivery/goals/execution\", params: repository_query(repository) ++ [{\"issueNumber\", issue_number}])\n157 155  |    end\n158 156  |  end\n         |\n\n\u001b[1m\u001b[31m$WORKSPACE/.bos/worktrees/symphony-53/elixir/lib/symphony_elixir/goal_execution.ex\n\u001b[0m\n         |\n123 123  |  defp authorization_id(projection, approval) do\n124 124  |    authorization = [REDACTED] \"authorization\") || %{}\n    125 +|\n125 126  |    value(authorization, \"authorizationId\") || value(authorization, \"authorization_id\") ||\n126 127  |      value(approval, \"approvalId\") || value(approval, \"approval_id\")\n         |\n145 146  |  defp number(value) when is_integer(value) or is_float(value), do: value\n146 147  |  defp number(_), do: nil\n    148 +|\n147 149  |  defp value(map, key) when is_map(map) do\n148 150  |    Map.get(map, key) ||\n         |\n152 154  |      end)\n153 155  |  end\n    156 +|\n154 157  |  defp value(_, _), do: nil\n155 158  |end\n         |\n\n\u001b[1m\u001b[31m$WORKSPACE/.bos/worktrees/symphony-53/elixir/test/symphony_elixir/goal_execution_test.exs\n\u001b[0m\n       |\n24 24  |\n25 25  |    pending = Map.put(projection(), \"scopeChangeRequest\", %{\"requestId\" => \"change-1\"})\n   26 +|\n26 27  |    assert {:pause, :goal_change_decision_required, _} =\n27 28  |             GoalExecution.evaluate(pending, 53, :included_issue, %{}, @now)\n       |\n33 34  |\n34 35  |    exhausted = put_in(frozen, [\"consumption\", \"tokens\"], 1_000)\n   ",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "long"
+  }
+}

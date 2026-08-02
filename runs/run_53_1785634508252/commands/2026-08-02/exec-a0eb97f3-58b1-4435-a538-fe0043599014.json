@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-a0eb97f3-58b1-4435-a538-fe0043599014",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634556911_306",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:35:56.815Z",
+  "command": "/bin/bash -lc 'find elixir/lib elixir/test -type f -print | sort | xargs grep -nEi \"goal[_ ]execution|authorization|repair[_ ]cycle|75 percent|budget|approval\"'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/agent_runner.ex:14:    PostApprovalCoordinator,\nelixir/lib/symphony_elixir/agent_runner.ex:65:            post_approval_issue?(issue) ->\nelixir/lib/symphony_elixir/agent_runner.ex:66:              PostApprovalCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)\nelixir/lib/symphony_elixir/agent_runner.ex:126:      {:paused, budget} ->\nelixir/lib/symphony_elixir/agent_runner.ex:127:        Logger.info(\"Paused bounded implementation turn for #{issue_context(issue)} reason=#{budget.pause_reason}\")\nelixir/lib/symphony_elixir/agent_runner.ex:215:      {:ok, %{result: %{status: :budget_paused, budget: budget}}} ->\nelixir/lib/symphony_elixir/agent_runner.ex:216:        {:paused, budget}\nelixir/lib/symphony_elixir/agent_runner.ex:337:  defp post_approval_issue?(%Issue{state: state}) when is_binary(state) do\nelixir/lib/symphony_elixir/agent_runner.ex:341:  defp post_approval_issue?(_issue), do: false\nelixir/lib/symphony_elixir/audit/outbox.ex:22:  @sensitive_key ~r/(authorization|cookie|credential|password|secret|token)/i\nelixir/lib/symphony_elixir/audit/outbox.ex:27:  @sensitive_assignment ~r/(?i)\\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|AUTHORIZATION|API[_-]?KEY)[A-Z0-9_]*)(\\s*=\\s*)(?:\"[^\"]*\"|'[^']*'|[^\\s]+)/\nelixir/lib/symphony_elixir/audit/outbox.ex:28:  @sensitive_json_pair ~r/(?i)([\"']?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)[\"']?\\s*:\\s*)(?:\"[^\"]*\"|'[^']*'|[^\\s,}\\]]+)/\nelixir/lib/symphony_elixir/audit/outbox.ex:29:  @sensitive_flag ~r/(?i)(--?(?:authorization|cookie|credential|password|secret|token|api[_-]?key)(?:=|\\s+))(?:\"[^\"]*\"|'[^']*'|[^\\s]+)/\nelixir/lib/symphony_elixir/codex/app_server.ex:7:  alias SymphonyElixir.{Codex.CommandPolicy, Codex.DynamicTool, Codex.TurnBudget, Config, PathSafety, SSH}\nelixir/lib/symphony_elixir/codex/app_server.ex:21:          approval_policy: String.t() | map(),\nelixir/lib/symphony_elixir/codex/app_server.ex:60:           approval_policy: sessi",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

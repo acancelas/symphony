@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-08490ef1-9251-4f36-a250-88b6da644838",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634584029_315",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:36:23.830Z",
+  "command": "/bin/bash -lc \"sed -n '35,145p' elixir/lib/symphony_elixir/agent_runner.ex && sed -n '300,390p' elixir/lib/symphony_elixir/agent_runner.ex && sed -n '1,240p' elixir/test/symphony_elixir/delivery_coordinator_test.exs && sed -n '1,140p' elixir/test/symphony_elixir/agent_runner_test.exs 2>/dev/null || true\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\n    # The orchestrator owns host retries so one worker lifetime never hops machines.\n    worker_host = selected_worker_host(Keyword.get(opts, :worker_host), Config.settings!().worker.ssh_hosts)\n\n    Logger.info(\"Starting agent run for #{issue_context(issue)} worker_host=#{worker_host_for_log(worker_host)}\")\n\n    case run_on_worker_host(issue, codex_update_recipient, opts, worker_host) do\n      :ok ->\n        :ok\n\n      {:error, reason} ->\n        Logger.error(\"Agent run failed for #{issue_context(issue)}: #{inspect(reason)}\")\n        raise RuntimeError, \"Agent run failed for #{issue_context(issue)}: #{inspect(reason)}\"\n    end\n  end\n\n  defp run_on_worker_host(issue, codex_update_recipient, opts, worker_host) do\n    Logger.info(\"Starting worker attempt for #{issue_context(issue)} worker_host=#{worker_host_for_log(worker_host)}\")\n    attempt_number = normalize_attempt_number(Keyword.get(opts, :attempt))\n\n    with {:ok, issue} <- Tracker.start_execution(issue, attempt_number),\n         {:ok, workspace} <- Workspace.create_for_issue(issue, worker_host) do\n      send_worker_runtime_info(codex_update_recipient, issue, worker_host, workspace)\n\n      try do\n        with :ok <- Workspace.run_before_run_hook(workspace, issue, worker_host) do\n          cond do\n            goal_planning_issue?(issue) ->\n              GoalPlanningCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)\n\n            post_approval_issue?(issue) ->\n              PostApprovalCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)\n\n            true ->\n              run_implementation_or_resume_reviews(\n                workspace,\n                issue,\n                codex_update_recipient,\n                opts,\n                worker_host\n              )\n          end\n        end\n      after\n        Workspace.run_after_run_hook(workspace, issue, worker_host)\n      end\n    else\n      {:error, reason} -> {:error, reason}\n    end\n  end\n\n  defp run_implementatio",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

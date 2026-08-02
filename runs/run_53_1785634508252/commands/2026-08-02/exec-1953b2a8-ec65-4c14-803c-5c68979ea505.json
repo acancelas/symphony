@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-1953b2a8-ec65-4c14-803c-5c68979ea505",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634795026_421",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:39:54.929Z",
+  "command": "/bin/bash -lc 'mise exec -- mix test test/symphony_elixir/goal_execution_test.exs test/symphony_elixir/delivery_coordinator_test.exs test/symphony_elixir/turn_budget_test.exs'",
+  "durationMs": 48347,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "==> file_system\nCompiling 7 files (.ex)\nGenerated file_system app\n==> floki\nCompiling 1 file (.xrl)\nCompiling 2 files (.erl)\nCompiling 30 files (.ex)\nGenerated floki app\n==> mime\nCompiling 1 file (.ex)\nGenerated mime app\n==> nimble_options\nCompiling 3 files (.ex)\nGenerated nimble_options app\n==> fine\nCompiling 1 file (.ex)\nGenerated fine app\n==> bunt\nCompiling 2 files (.ex)\nGenerated bunt app\n==> plug_crypto\nCompiling 5 files (.ex)\nGenerated plug_crypto app\n==> kday\nCompiling 1 file (.ex)\nGenerated kday app\n==> hpax\nCompiling 4 files (.ex)\nGenerated hpax app\n==> mint\nCompiling 1 file (.erl)\nCompiling 19 files (.ex)\nGenerated mint app\n==> symphony_elixir\n===> Analyzing applications...\n===> Compiling yamerl\n==> date_time_parser\nCompiling 15 files (.ex)\nCompiling lib/combinators.ex (it's taking more than 10s)\nGenerated date_time_parser app\n==> elixir_make\nCompiling 8 files (.ex)\nGenerated elixir_make app\n==> decimal\nCompiling 4 files (.ex)\nGenerated decimal app\n==> jason\nCompiling 10 files (.ex)\nGenerated jason app\n==> solid\nCompiling 49 files (.ex)\nGenerated solid app\n==> yaml_elixir\nCompiling 6 files (.ex)\nGenerated yaml_elixir app\n==> symphony_elixir\n===> Analyzing applications...\n===> Compiling telemetry\n==> ecto\nCompiling 56 files (.ex)\nGenerated ecto app\n==> thousand_island\nCompiling 18 files (.ex)\nGenerated thousand_island app\n==> phoenix_html\nCompiling 6 files (.ex)\nGenerated phoenix_html app\n==> phoenix_template\nCompiling 4 files (.ex)\nGenerated phoenix_template app\n==> phoenix_pubsub\nCompiling 12 files (.ex)\nGenerated phoenix_pubsub app\n==> credo\nCompiling 257 files (.ex)\nGenerated credo app\n==> plug\nCompiling 1 file (.erl)\nCompiling 42 files (.ex)\nGenerated plug app\n==> nimble_pool\nCompiling 2 files (.ex)\nGenerated nimble_pool app\n==> finch\nCompiling 23 files (.ex)\nGenerated finch app\n==> req\nCompiling 21 files (.ex)\nGenerated req app\n==> cc_precompiler\nCompiling 3 files (.ex)\nGenerated cc_precompiler app\n==> lazy_html\nCompiling 3 files (.ex)\nGenerated lazy_",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}

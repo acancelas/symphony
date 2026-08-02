@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-bd7e3de2-5fd1-4a22-96f7-1e816c559992",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634584045_318",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:36:23.845Z",
+  "command": "/bin/bash -lc \"grep -Rni \\\"native_ref\\\" elixir/lib/symphony_elixir/game_api_tracker_adapter.ex elixir/lib/symphony_elixir | head -n 80 && sed -n '1,260p' elixir/lib/symphony_elixir/game_api_tracker_adapter.ex\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 2,
+  "outputSummary": "grep: elixir/lib/symphony_elixir/game_api_tracker_adapter.ex: No such file or directory\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:36:  defp prepare_readiness_intent(client, workspace, %Issue{native_ref: native_ref}) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:37:    repository_id = native_ref[\"repositoryId\"]\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:38:    run_id = native_ref[\"runId\"]\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:41:         {:ok, identity} <- readiness_identity(native_ref, run) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:46:  defp readiness_identity(native_ref, run) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:49:    run_id = native_ref[\"runId\"]\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:63:           \"repositoryId\" => native_ref[\"repositoryId\"],\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:64:           \"issueNumber\" => native_ref[\"issueNumber\"],\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:250:  defp load_probe_request(workspace, %Issue{native_ref: native_ref}) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:258:         :ok <- validate_probe_identity(probe, native_ref) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:263:           \"repositoryId\" => native_ref[\"repositoryId\"],\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:264:           \"owner\" => native_ref[\"repositoryOwner\"],\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:265:           \"repo\" => native_ref[\"repositoryName\"]\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:267:         \"issueNumber\" => native_ref[\"issueNumber\"],\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:268:         \"runId\" => native_ref[\"runId\"],\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:277:  defp validate_probe_identity(probe, native_ref) do\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:279:      probe[\"repositoryId\"] != nati",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "long"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-12d2ca2a-31f8-42e4-815d-9639fead1d43",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "eventId": "event_1785634567353_311",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T01:36:07.257Z",
+  "command": "/bin/bash -lc \"find . -type f -not -path './.git/*' -print | xargs grep -nE \\\"goals/execution|scope-change|inherit.*authorization|requestedConsumption|maxAttempts|maxTokens\\\"\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 123,
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "long"
+  }
+}
