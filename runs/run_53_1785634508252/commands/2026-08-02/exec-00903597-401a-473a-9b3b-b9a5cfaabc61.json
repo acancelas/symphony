@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-00903597-401a-473a-9b3b-b9a5cfaabc61",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642168084_1448",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:42:48.002Z",
+  "command": "/bin/bash -lc 'git diff --check && cd elixir && mise exec -- mix format --check-formatted && mise exec -- mix test test/symphony_elixir/goal_execution_test.exs'",
+  "durationMs": 561,
+  "environmentPolicy": "restricted",
+  "exitCode": 1,
+  "outputSummary": "** (Mix) mix format failed due to --check-formatted.\nThe following files are not formatted:\n\n\u001b[1m\u001b[31m$WORKSPACE/.bos/worktrees/symphony-53/elixir/test/symphony_elixir/goal_execution_test.exs\n\u001b[0m\n         |\n114 114  |\n115 115  |    Process.put(:goal_fetch_result, {:ok, %{\"proposal\" => nil}})\n    116 +|\n116 117  |    assert {:pause, :invalid_goal_execution_projection, _} =\n117 118  |             GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n         |\n186 187  |\n187 188  |    atom_projection = %{proposal: nil, consumption: %{}}\n    189 +|\n188 190  |    assert {:pause, :invalid_goal_execution_projection, _} =\n189 191  |             GoalExecution.evaluate(atom_projection, 53, :included_issue, %{}, @now)\n         |\n\n\n\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "long"
+  }
+}

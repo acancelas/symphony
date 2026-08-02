@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-779fe04b-7186-42ec-92ff-2c23dc488ca3",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642168105_1452",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:42:48.023Z",
+  "command": "/bin/bash -lc 'cd elixir && mise exec -- mix format lib/symphony_elixir/goal_execution.ex lib/symphony_elixir/agent_runner.ex lib/symphony_elixir/delivery_coordinator.ex test/symphony_elixir/goal_execution_test.exs && mise exec -- mix test test/symphony_elixir/goal_execution_test.exs'",
+  "durationMs": 2454,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "Compiling 4 files (.ex)\n     warning: the following clause will never match:\n\n         :unmanaged\n\n     because it attempts to match on the result of:\n\n         pause_reason\n\n     which has type:\n\n         dynamic(\n           :goal_approval_required or :goal_budget_exhausted or :goal_change_decision_required or\n             :goal_execution_window_closed or :goal_scope_change_required or\n             :invalid_goal_execution_projection or nil\n         )\n\n     typing violation found at:\n     │\n 161 │       :unmanaged ->\n     │       ~~~~~~~~~~~~~\n     │\n     └─ lib/symphony_elixir/goal_execution.ex:161: SymphonyElixir.GoalExecution.evaluate/5\n\nGenerated symphony_elixir app\nRunning ExUnit with seed: 297179, max_cases: 20\n\n...........\nFinished in 0.2 seconds (0.2s async, 0.00s sync)\n11 tests, 0 failures\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
