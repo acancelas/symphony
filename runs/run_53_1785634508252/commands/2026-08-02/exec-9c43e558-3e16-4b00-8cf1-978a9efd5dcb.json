@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9c43e558-3e16-4b00-8cf1-978a9efd5dcb",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641673660_1231",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:34:33.350Z",
+  "command": "/bin/bash -lc \"grep -RIn \\\"reviewId\\\\|reviewType\\\\|subjectId\\\\|bos_record_review\\\" README.md SPEC.md WORKFLOW.md elixir/lib elixir/test | head -n 240\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/audit/outbox.ex:1264:      %{\"type\" => \"agent\", \"subjectId\" => implementation_agent_id()}\nelixir/lib/symphony_elixir/audit/outbox.ex:1266:      %{\"type\" => \"runner\", \"subjectId\" => runner_id()}\nelixir/lib/symphony_elixir/audit/outbox.ex:1275:      %{\"type\" => \"agent\", \"subjectId\" => actor}\nelixir/lib/symphony_elixir/game_api/client.ex:541:               \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\nelixir/lib/symphony_elixir/game_api/client.ex:645:      \"actor\" => %{\"type\" => \"runner\", \"subjectId\" => runner_id()},\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex:100:    #{native_ref[\"issueNumber\"]}, runId #{native_ref[\"runId\"]}, reviewId\nelixir/lib/symphony_elixir/delivery_coordinator.ex:315:         artifact[\"reviewId\"] == expected_id and artifact[\"commitSha\"] == candidate.head_sha\nelixir/lib/symphony_elixir/delivery_coordinator.ex:338:      artifact[\"reviewId\"] == expected_id and artifact[\"commitSha\"] == expected_sha\nelixir/lib/symphony_elixir/delivery_coordinator.ex:481:    bos_record_review with reviewId `#{review_id(issue, role, cycle, candidate)}`, runId\nelixir/lib/symphony_elixir/delivery_coordinator.ex:482:    `#{run_id}`, attemptId `#{attempt_id}`, reviewType `#{role}`, actor type\nelixir/lib/symphony_elixir/delivery_coordinator.ex:483:    `agent` and subjectId `#{role}-reviewer`, the exact HEAD SHA, a status of\nelixir/lib/symphony_elixir/delivery_coordinator.ex:494:    \"A prior reviewer session ended without the required durable Review. This is record attempt #{record_attempt}; call bos_record_review and confirm its receipt before doing anything else.\"\nelixir/lib/symphony_elixir/delivery_coordinator.ex:499:      \"#{review[\"reviewType\"]}: #{review[\"status\"]} — #{review[\"summary\"]}\\n#{inspect(review[\"findings\"] || [])}\"\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:20:        [_, review_id] = Regex.run(~r/reviewId `([^`]+)`/, prompt)\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:40:    ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
