@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-daa87c1f-703b-4733-88d6-cf93b6972d23",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643561474_1994",
+  "actor": {
+    "type": "agent",
+    "subjectId": "delivery-coordinator"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:06:01.474Z",
+  "command": "/bin/bash -lc \"sed -n '990,1045p' elixir/lib/symphony_elixir/orchestrator.ex; grep -RIn \\\"def block_issue\\\\|block_issue(\\\" elixir/lib | head -40\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "\n    :ok\n  end\n\n  defp stop_and_block_issue(%State{} = state, issue_id, running_entry, error) do\n    stop_running_task(\n      Map.get(running_entry, :pid),\n      Map.get(running_entry, :ref),\n      state.task_supervisor\n    )\n\n    block_issue_from_entry(state, issue_id, running_entry, error)\n  end\n\n  defp block_issue_from_entry(%State{} = state, issue_id, running_entry, error) do\n    blocked_entry = %{\n      issue_id: issue_id,\n      identifier: Map.get(running_entry, :identifier, issue_id),\n      issue: Map.get(running_entry, :issue),\n      worker_host: Map.get(running_entry, :worker_host),\n      workspace_path: Map.get(running_entry, :workspace_path),\n      session_id: running_entry_session_id(running_entry),\n      error: error,\n      blocked_at: DateTime.utc_now(),\n      last_codex_message: Map.get(running_entry, :last_codex_message),\n      last_codex_event: Map.get(running_entry, :last_codex_event),\n      last_codex_timestamp: Map.get(running_entry, :last_codex_timestamp)\n    }\n\n    state = reserve_issue_claim(state, Map.get(running_entry, :issue))\n\n    %{\n      state\n      | running: Map.delete(state.running, issue_id),\n        retry_attempts: Map.delete(state.retry_attempts, issue_id),\n        blocked: Map.put(state.blocked, issue_id, blocked_entry)\n    }\n  end\n\n  defp choose_issues(issues, state) do\n    active_states = active_state_set()\n    terminal_states = terminal_state_set()\n\n    issues\n    |> sort_issues_for_dispatch(state)\n    |> Enum.reduce(state, fn issue, state_acc ->\n      if should_dispatch_issue?(issue, state_acc, active_states, terminal_states) do\n        dispatch_issue(state_acc, issue)\n      else\n        maybe_queue_capacity_candidate(state_acc, issue, active_states, terminal_states)\n      end\n    end)\n  end\n\n  defp maybe_queue_capacity_candidate(state, issue, active_states, terminal_states) do\n    if capacity_candidate_issue?(issue, state, active_states, terminal_states) and\nelixir/lib/symphony_elixir/orchestrator.ex:868:        |> stop_and_b",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

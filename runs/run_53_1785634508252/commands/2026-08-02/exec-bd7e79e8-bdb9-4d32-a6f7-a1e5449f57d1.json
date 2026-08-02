@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-bd7e79e8-bdb9-4d32-a6f7-a1e5449f57d1",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643558206_1992",
+  "actor": {
+    "type": "agent",
+    "subjectId": "delivery-coordinator"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:05:58.206Z",
+  "command": "/bin/bash -lc 'grep -RIn -E \"bos_block_issue|block_issue|fromState\" . --exclude-dir=.git | head -80'",
+  "durationMs": 667,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "grep: ./elixir/_build/test/phoenix-colocated/symphony_elixir/node_modules: No such file or directory\n./elixir/lib/symphony_elixir/orchestrator.ex:302:    block_issue_from_entry(state, issue_id, running_entry, error)\n./elixir/lib/symphony_elixir/orchestrator.ex:868:        |> stop_and_block_issue(issue_id, running_entry, error)\n./elixir/lib/symphony_elixir/orchestrator.ex:994:  defp stop_and_block_issue(%State{} = state, issue_id, running_entry, error) do\n./elixir/lib/symphony_elixir/orchestrator.ex:1001:    block_issue_from_entry(state, issue_id, running_entry, error)\n./elixir/lib/symphony_elixir/orchestrator.ex:1004:  defp block_issue_from_entry(%State{} = state, issue_id, running_entry, error) do\n./elixir/lib/symphony_elixir/goal_planning_coordinator.ex:132:    durable blocker through bos_block_issue containing this exact unresolved\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:185:    candidate. Record a durable blocker through bos_block_issue. Include fingerprint\n./elixir/lib/symphony_elixir/delivery_coordinator.ex:424:    through bos_block_issue with the concrete unresolved findings below. Do not\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
