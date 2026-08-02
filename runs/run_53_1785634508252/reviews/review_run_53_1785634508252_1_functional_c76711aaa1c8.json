@@ -1,0 +1,40 @@
+{
+  "reviewId": "review_run_53_1785634508252_1_functional_c76711aaa1c8",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "reviewType": "functional",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "commitSha": "c76711aaa1c85728377695c67b607bedab162dba",
+  "status": "passed",
+  "findings": [
+    {
+      "criterion": "All included subtasks run without new approval",
+      "status": "passed",
+      "finding": "AgentRunner re-fetches Goal execution state before every implementation turn, idempotently inherits the exact approved proposal authorization, and asks game-api to authorize shared consumption before starting Codex."
+    },
+    {
+      "criterion": "Derived repairs inherit authorization",
+      "status": "passed",
+      "finding": "DeliveryCoordinator checks derived_repair authorization at each bounded delivery cycle; GoalExecution supplies taskKind derived_repair and derivedFromIssueNumber, with the default repair limit reduced to two cycles."
+    },
+    {
+      "criterion": "New scope and higher ceilings pause for one Goal decision",
+      "status": "passed",
+      "finding": "GoalExecution rejects non-included issues, pending Goal change requests, closed windows, and aggregate ceiling exhaustion before a turn, while game-api remains the authoritative check."
+    },
+    {
+      "criterion": "Pause and resume preserve remaining authorization",
+      "status": "passed",
+      "finding": "Every turn reads the confirmed Goal projection and uses its proposal version, approval identity, execution window, and aggregate consumption; no local reset or budget replenishment path was introduced."
+    },
+    {
+      "criterion": "Exact candidate validation",
+      "status": "passed",
+      "finding": "Local HEAD and origin/bos/issue-53 both equal c76711aaa1c85728377695c67b607bedab162dba with a clean worktree. Existing exact-commit evidence records mix test passing with 383 tests, 0 failures, 2 skipped, plus format and diff checks."
+    }
+  ],
+  "summary": "Passed: exact candidate identity is confirmed locally and remotely, all four acceptance criteria have affirmative implementation and test evidence, and the required exact-commit validation is green."
+}
