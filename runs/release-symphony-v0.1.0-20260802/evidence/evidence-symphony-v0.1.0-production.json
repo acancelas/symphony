@@ -1,0 +1,73 @@
+{
+  "evidenceId": "evidence-symphony-v0.1.0-production",
+  "runId": "release-symphony-v0.1.0-20260802",
+  "commitSha": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "status": "passed",
+      "evidence": "395 tests, 0 failures, 2 external tests skipped by design, 100% coverage; format, specs, Credo strict, Dialyzer and Hex audit passed.",
+      "criterion": "Complete QA suite passes"
+    },
+    {
+      "status": "passed",
+      "evidence": "Goal #57 reserved tag v0.1.0 and GitHub deployment 5714437390 for exact commit aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3.",
+      "criterion": "Single Goal-owned deployment is reserved"
+    },
+    {
+      "status": "passed",
+      "evidence": "bos-orchestrator.service active with zero restarts, binary SHA-256 4296f9672b12f551ecca4f88623ce5b08d51364918ae818604972e95062ca7c9, local observability API HTTP 200.",
+      "criterion": "Production X1 runtime serves exact artifact"
+    },
+    {
+      "status": "passed",
+      "evidence": "GitHub Actions run 30751321394 passed all four builds, all four smoke jobs and published eight assets.",
+      "criterion": "Cross-platform release artifacts pass smoke tests"
+    }
+  ],
+  "checks": [
+    {
+      "status": "passed",
+      "name": "complete local QA",
+      "coveragePercent": 100,
+      "testsPassed": 395
+    },
+    {
+      "status": "passed",
+      "probeId": "probe-symphony-v0.1.0-production-20260802",
+      "name": "production runtime probe",
+      "receipt": "receipt_28064ce99ee0c633c823ea8217"
+    },
+    {
+      "status": "passed",
+      "name": "burrito-release",
+      "runId": 30751321394
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "url": "https://github.com/acancelas/symphony/pull/56"
+    },
+    {
+      "sha": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3",
+      "type": "commit"
+    },
+    {
+      "deploymentId": "symphony-v0.1.0-production",
+      "githubDeploymentId": "5714437390",
+      "type": "deployment"
+    },
+    {
+      "type": "release",
+      "url": "https://github.com/acancelas/symphony/releases/tag/v0.1.0"
+    },
+    {
+      "sha256": "4296f9672b12f551ecca4f88623ce5b08d51364918ae818604972e95062ca7c9",
+      "runtimePath": "/home/dev-agent/.local/lib/bos/symphony.escript",
+      "type": "escript"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Symphony v0.1.0 is deployed on the X1 production user-systemd runtime, stable on the exact merged commit, and published as a cross-platform GitHub release. Functional delivery is complete."
+}
