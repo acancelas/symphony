@@ -1,0 +1,23 @@
+{
+  "reviewId": "review_run_53_1785634508252_3_quality_aed939a508bf",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "reviewType": "quality",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "commitSha": "aed939a508bf0ae1aca96532bf35a39dc3254b19",
+  "status": "changes_requested",
+  "findings": [
+    {
+      "severity": "high",
+      "file": "elixir/lib/symphony_elixir/agent_runner.ex",
+      "line": 122,
+      "title": "Goal execution check errors crash at the implementation/coordinator boundary",
+      "detail": "do_run_codex_turns/9 can now return {:error, {:goal_execution_check_failed, reason}}, but continue_after_implementation/3 matches only :ok and {:paused, budget}. A fetch, inherit, gateway-contract, or execution-check failure therefore raises CaseClauseError instead of returning the structured error to the orchestrator for normal retry and audit handling.",
+      "recommendation": "Add an explicit {:error, reason} branch that returns the error unchanged, and cover the GoalExecution failure path through continue_after_implementation_for_test/3."
+    }
+  ],
+  "summary": "Changes requested: exact local and remote bos/issue-53 HEADs match and exact-commit validations pass, but the newly reachable Goal authorization error path is not handled at the implementation-stage boundary and crashes with CaseClauseError."
+}
