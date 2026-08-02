@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8528a7b9-1ec9-4e9d-a1ef-de5d049e450f",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641548674_1145",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:32:28.674Z",
+  "command": "/bin/bash -lc \"find $WORKSPACE -type f \\\\( -name '*.ts' -o -name '*.js' -o -name '*.json' -o -name '*.md' \\\\) 2>/dev/null | xargs grep -l \\\"bos_record_evidence\\\" 2>/dev/null | head -n 30\"",
+  "durationMs": 14936,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "$WORKSPACE/.bos/install/bos-orchestrator-main/WORKFLOW.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-orchestrator/WORKFLOW.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/dist/delivery/tools.js\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/dist/delivery/tools.test.js\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/README.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/src/delivery/tools.test.ts\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/src/delivery/tools.ts\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-orchestrator/WORKFLOW.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-mcp/README.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-mcp/src/delivery/tools.test.ts\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-mcp/src/delivery/tools.ts\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-closure/dist/delivery/tools.js\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-closure/dist/delivery/tools.test.js\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-closure/README.md\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-closure/src/delivery/tools.test.ts\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-closure/src/delivery/tools.ts\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-recovery-main-integration/dist/delivery/tools.js\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-recovery-main-integration/dist/delivery/tools.test.js\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-recovery-main-integration/README.md\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-recovery-main-integration/src/delivery/tools.test.ts\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-recovery-main-integration/src/delivery/tools.ts\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-final-convergence-20260722/README.md\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-final-convergence-20260722/src/delivery/tools.test.ts\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-final-convergence-20260722/src/delivery/tools.ts\n$WORKSPACE/.bos/integration-w",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
