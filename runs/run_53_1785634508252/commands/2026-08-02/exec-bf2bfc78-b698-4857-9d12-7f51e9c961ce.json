@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-bf2bfc78-b698-4857-9d12-7f51e9c961ce",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641822950_1276",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:37:02.950Z",
+  "command": "/bin/bash -lc 'grep -RInE \"goal execution|goal_execution|authorizationId|requestedConsumption|operationId\" SPEC.md WORKFLOW.md README.md elixir/lib elixir/test | head -n 240'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/goal_execution.ex:21:    if function_exported?(client, :fetch_goal_execution, 2) do\nelixir/lib/symphony_elixir/goal_execution.ex:24:           {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number),\nelixir/lib/symphony_elixir/goal_execution.ex:31:        _ -> {:error, :invalid_goal_execution_identity}\nelixir/lib/symphony_elixir/goal_execution.ex:49:         function_exported?(client, :check_goal_execution, 1) do\nelixir/lib/symphony_elixir/goal_execution.ex:54:             client.check_goal_execution(%{\nelixir/lib/symphony_elixir/goal_execution.ex:56:               \"authorizationId\" => authorization_id,\nelixir/lib/symphony_elixir/goal_execution.ex:60:               \"operationId\" => operation_id(native_ref, task_kind, \"check\"),\nelixir/lib/symphony_elixir/goal_execution.ex:61:               \"requestedConsumption\" => requested\nelixir/lib/symphony_elixir/goal_execution.ex:66:        _ -> {:error, :invalid_goal_execution_check}\nelixir/lib/symphony_elixir/goal_execution.ex:69:      {:error, :goal_execution_gateway_contract_unavailable}\nelixir/lib/symphony_elixir/goal_execution.ex:74:    value(inherited, \"authorizationId\") || value(inherited, \"authorization_id\") || identity[\"authorizationId\"]\nelixir/lib/symphony_elixir/goal_execution.ex:83:      \"authorizationId\" => authorization_id(projection, approval),\nelixir/lib/symphony_elixir/goal_execution.ex:87:      \"operationId\" => operation_id(native_ref, task_kind, \"inherit\"),\nelixir/lib/symphony_elixir/goal_execution.ex:118:        reason = value(checked, \"reason\") || value(checked, \"code\") || \"goal_execution_paused\"\nelixir/lib/symphony_elixir/goal_execution.ex:122:        {:error, :invalid_goal_execution_check}\nelixir/lib/symphony_elixir/goal_execution.ex:128:    \"goal_execution_#{action}_#{run_id}_#{task_kind}\"\nelixir/lib/symphony_elixir/goal_execution.ex:192:      outside_window?(proposal, now) -> :goal_execution_window_closed\nelixir/lib/symphony_elixir/goal_execution.ex:257:",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

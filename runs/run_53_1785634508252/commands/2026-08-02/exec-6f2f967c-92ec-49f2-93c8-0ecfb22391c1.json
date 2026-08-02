@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-6f2f967c-92ec-49f2-93c8-0ecfb22391c1",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641822971_1280",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:37:02.971Z",
+  "command": "/bin/bash -lc \"nl -ba elixir/lib/symphony_elixir/goal_execution.ex | sed -n '45,135p;175,255p' && nl -ba elixir/test/symphony_elixir/goal_execution_test.exs | sed -n '160,195p'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "    45\t    do: {:ok, :unmanaged}\n    46\t\n    47\t  defp authorize(client, native_ref, projection, issue_number, task_kind, requested, {:ok, snapshot}) do\n    48\t    if function_exported?(client, :inherit_goal_authorization, 1) and\n    49\t         function_exported?(client, :check_goal_execution, 1) do\n    50\t      with {:ok, identity} <- authorization_identity(projection, native_ref, issue_number, task_kind),\n    51\t           {:ok, inherited} <- client.inherit_goal_authorization(identity),\n    52\t           authorization_id <- inherited_authorization_id(inherited, identity),\n    53\t           {:ok, checked} <-\n    54\t             client.check_goal_execution(%{\n    55\t               \"repositoryId\" => identity[\"repositoryId\"],\n    56\t               \"authorizationId\" => authorization_id,\n    57\t               \"checkedAt\" => DateTime.utc_now() |> DateTime.to_iso8601(),\n    58\t               \"goalIssueNumber\" => identity[\"goalIssueNumber\"],\n    59\t               \"issueNumber\" => issue_number,\n    60\t               \"operationId\" => operation_id(native_ref, task_kind, \"check\"),\n    61\t               \"requestedConsumption\" => requested\n    62\t             }) do\n    63\t        gateway_decision(checked, Map.put(snapshot, :authorization_id, authorization_id))\n    64\t      else\n    65\t        {:error, reason} -> {:error, reason}\n    66\t        _ -> {:error, :invalid_goal_execution_check}\n    67\t      end\n    68\t    else\n    69\t      {:error, :goal_execution_gateway_contract_unavailable}\n    70\t    end\n    71\t  end\n    72\t\n    73\t  defp inherited_authorization_id(inherited, identity) do\n    74\t    value(inherited, \"authorizationId\") || value(inherited, \"authorization_id\") || identity[\"authorizationId\"]\n    75\t  end\n    76\t\n    77\t  defp authorization_identity(projection, native_ref, issue_number, task_kind) do\n    78\t    proposal = value(projection, \"proposal\") || %{}\n    79\t    approval = value(projection, \"approval\") || %{}\n    80\t\n    81\t    identity = %{\n    82\t      \"reposi",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
