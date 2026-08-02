@@ -2,26 +2,29 @@ defmodule SymphonyElixir.GoalExecution do
   @moduledoc """
   Evaluates the immutable authorization granted by a single Goal approval.
 
-  The gateway remains authoritative for persistence and aggregate consumption.
-  This module deliberately makes no local budget reservation: every new turn is
-  checked against the latest confirmed projection, so process restarts and
-  pause/resume cannot replenish an execution window or token ceiling.
+  The gateway remains authoritative for authorization and aggregate consumption.
+  Every new turn inherits the exact approved proposal and asks the gateway to
+  check the shared execution window and ceilings. The local evaluation is a
+  fail-fast guard; it never replenishes or reserves budget on process restart.
   """
 
   @freeze_ratio 0.75
 
   @type task_kind :: :included_issue | :derived_repair
-  @type decision :: :unmanaged | {:ok, map()} | {:pause, atom(), map()}
+  @type decision :: :unmanaged | {:ok, map()} | {:pause, atom() | String.t(), map()}
 
   @spec check(module(), map(), task_kind(), map()) :: decision() | {:error, term()}
   def check(client, issue, task_kind, requested \\ %{})
 
+  @spec check(module(), map(), task_kind(), map()) :: decision() | {:error, term()}
   def check(client, %{native_ref: native_ref}, task_kind, requested) when is_map(native_ref) do
     if function_exported?(client, :fetch_goal_execution, 2) do
       with repository_id when is_binary(repository_id) <- native_ref["repositoryId"],
            issue_number when is_integer(issue_number) <- native_ref["issueNumber"],
-           {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number) do
-        evaluate(projection, issue_number, task_kind, requested)
+           {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number),
+           decision <- evaluate(projection, issue_number, task_kind, requested),
+           {:ok, decision} <- authorize(client, native_ref, projection, issue_number, task_kind, requested, decision) do
+        decision
       else
         nil -> :unmanaged
         {:error, reason} -> {:error, reason}
@@ -34,6 +37,110 @@ defmodule SymphonyElixir.GoalExecution do
 
   def check(_client, _issue, _task_kind, _requested), do: :unmanaged
 
+  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, decision)
+       when decision != :unmanaged and elem(decision, 0) != :ok,
+       do: {:ok, decision}
+
+  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, :unmanaged),
+    do: {:ok, :unmanaged}
+
+  defp authorize(client, native_ref, projection, issue_number, task_kind, requested, {:ok, snapshot}) do
+    if function_exported?(client, :inherit_goal_authorization, 1) and
+         function_exported?(client, :check_goal_execution, 1) do
+      with {:ok, identity} <- authorization_identity(projection, native_ref, issue_number, task_kind),
+           {:ok, inherited} <- client.inherit_goal_authorization(identity),
+           authorization_id <- inherited_authorization_id(inherited, identity),
+           {:ok, checked} <-
+             client.check_goal_execution(%{
+               "repositoryId" => identity["repositoryId"],
+               "authorizationId" => authorization_id,
+               "checkedAt" => DateTime.utc_now() |> DateTime.to_iso8601(),
+               "goalIssueNumber" => identity["goalIssueNumber"],
+               "issueNumber" => issue_number,
+               "operationId" => operation_id(native_ref, task_kind, "check"),
+               "requestedConsumption" => requested
+             }) do
+        gateway_decision(checked, Map.put(snapshot, :authorization_id, authorization_id))
+      else
+        {:error, reason} -> {:error, reason}
+        _ -> {:error, :invalid_goal_execution_check}
+      end
+    else
+      {:error, :goal_execution_gateway_contract_unavailable}
+    end
+  end
+
+  defp inherited_authorization_id(inherited, identity) do
+    value(inherited, "authorizationId") || value(inherited, "authorization_id") || identity["authorizationId"]
+  end
+
+  defp authorization_identity(projection, native_ref, issue_number, task_kind) do
+    proposal = value(projection, "proposal") || %{}
+    approval = value(projection, "approval") || %{}
+
+    identity = %{
+      "repositoryId" => native_ref["repositoryId"],
+      "authorizationId" => authorization_id(projection, approval),
+      "approvalId" => first_value([{approval, "approvalId"}, {approval, "approval_id"}]),
+      "goalIssueNumber" => goal_issue_number(projection, proposal),
+      "issueNumber" => issue_number,
+      "operationId" => operation_id(native_ref, task_kind, "inherit"),
+      "proposalId" => first_value([{proposal, "proposalId"}, {proposal, "proposal_id"}]),
+      "proposalVersion" => value(proposal, "version"),
+      "taskKind" => Atom.to_string(task_kind)
+    }
+
+    identity =
+      if task_kind == :derived_repair,
+        do: Map.put(identity, "derivedFromIssueNumber", issue_number),
+        else: identity
+
+    required = ~w(repositoryId approvalId goalIssueNumber proposalId proposalVersion)
+
+    if Enum.all?(required, &(not is_nil(identity[&1]))) do
+      {:ok, identity}
+    else
+      {:error, :invalid_goal_authorization_identity}
+    end
+  end
+
+  defp gateway_decision(checked, snapshot) do
+    status = value(checked, "status") || value(checked, "decision")
+
+    cond do
+      status in ["authorized", "approved", "allowed", "ok"] ->
+        {:ok, {:ok, snapshot}}
+
+      value(checked, "authorized") == true ->
+        {:ok, {:ok, snapshot}}
+
+      status in ["paused", "blocked", "denied", "exhausted"] ->
+        reason = value(checked, "reason") || value(checked, "code") || "goal_execution_paused"
+        {:ok, {:pause, reason, snapshot}}
+
+      true ->
+        {:error, :invalid_goal_execution_check}
+    end
+  end
+
+  defp operation_id(native_ref, task_kind, action) do
+    run_id = native_ref["runId"] || "unknown_run"
+    "goal_execution_#{action}_#{run_id}_#{task_kind}"
+  end
+
+  defp goal_issue_number(projection, proposal) do
+    first_value([
+      {projection, "goalIssueNumber"},
+      {projection, "goal_issue_number"},
+      {proposal, "issueNumber"},
+      {proposal, "issue_number"}
+    ])
+  end
+
+  defp first_value(candidates) do
+    Enum.find_value(candidates, fn {map, key} -> value(map, key) end)
+  end
+
   @spec evaluate(map(), pos_integer(), task_kind(), map(), DateTime.t()) :: decision()
   def evaluate(projection, issue_number, task_kind, requested \\ %{}, now \\ DateTime.utc_now())
       when is_map(projection) and is_integer(issue_number) and
@@ -41,30 +148,50 @@ defmodule SymphonyElixir.GoalExecution do
     proposal = value(projection, "proposal")
     approval = value(projection, "approval")
 
-    cond do
-      not is_map(proposal) ->
+    pause_reason =
+      if is_map(proposal) do
+        authorization_pause_reason(projection, proposal, approval, issue_number, task_kind) ||
+          resource_pause_reason(projection, proposal, requested, now)
+      else
+        :unmanaged
+      end
+
+    case pause_reason do
+      :unmanaged ->
         :unmanaged
 
-      not approved?(approval, proposal) ->
-        {:pause, :goal_approval_required, snapshot(projection)}
-
-      pending_change?(projection) ->
-        {:pause, :goal_change_decision_required, snapshot(projection)}
-
-      not authorized_task?(proposal, issue_number, task_kind) ->
-        {:pause, :goal_scope_change_required, snapshot(projection)}
-
-      outside_window?(proposal, now) ->
-        {:pause, :goal_execution_window_closed, snapshot(projection)}
-
-      exceeds?(proposal, projection, requested) ->
-        {:pause, :goal_budget_exhausted, snapshot(projection)}
-
-      true ->
+      nil ->
         {:ok,
          snapshot(projection)
          |> Map.put(:authorization_id, authorization_id(projection, approval))
          |> Map.put(:scope_frozen, at_freeze_threshold?(proposal, projection))}
+
+      reason ->
+        {:pause, reason, snapshot(projection)}
+    end
+  end
+
+  defp authorization_pause_reason(projection, proposal, approval, issue_number, task_kind) do
+    cond do
+      not approved?(approval, proposal) ->
+        :goal_approval_required
+
+      pending_change?(projection) ->
+        :goal_change_decision_required
+
+      not authorized_task?(proposal, issue_number, task_kind) ->
+        :goal_scope_change_required
+
+      true ->
+        nil
+    end
+  end
+
+  defp resource_pause_reason(projection, proposal, requested, now) do
+    cond do
+      outside_window?(proposal, now) -> :goal_execution_window_closed
+      exceeds?(proposal, projection, requested) -> :goal_budget_exhausted
+      true -> nil
     end
   end
 

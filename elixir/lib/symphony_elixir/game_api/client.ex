@@ -155,6 +155,30 @@ defmodule SymphonyElixir.GameApi.Client do
     end
   end
 
+  @spec inherit_goal_authorization(map()) :: {:ok, map()} | {:error, term()}
+  def inherit_goal_authorization(authorization) when is_map(authorization) do
+    with {:ok, repository} <- find_repository(authorization["repositoryId"]) do
+      request(:post, "/v1/internal/bos/delivery/goals/execution/authorizations",
+        json:
+          authorization
+          |> Map.take(~w(approvalId derivedFromIssueNumber goalIssueNumber issueNumber operationId proposalId proposalVersion taskKind))
+          |> Map.put("repository", repository_body(repository))
+      )
+    end
+  end
+
+  @spec check_goal_execution(map()) :: {:ok, map()} | {:error, term()}
+  def check_goal_execution(check) when is_map(check) do
+    with {:ok, repository} <- find_repository(check["repositoryId"]) do
+      request(:post, "/v1/internal/bos/delivery/goals/execution/checks",
+        json:
+          check
+          |> Map.take(~w(authorizationId checkedAt goalIssueNumber issueNumber operationId requestedConsumption))
+          |> Map.put("repository", repository_body(repository))
+      )
+    end
+  end
+
   @spec request_goal_breakdown_approval(Issue.t()) :: {:ok, map()} | {:error, term()}
   def request_goal_breakdown_approval(%Issue{native_ref: native_ref}) do
     with {:ok, repository} <- find_repository(native_ref["repositoryId"]) do

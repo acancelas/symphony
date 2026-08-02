@@ -3,6 +3,36 @@ defmodule SymphonyElixir.GoalExecutionTest do
 
   alias SymphonyElixir.GoalExecution
 
+  defmodule GatewayClient do
+    def fetch_goal_execution("symphony", 53),
+      do: {:ok, SymphonyElixir.GoalExecutionTest.projection_for_gateway()}
+
+    def inherit_goal_authorization(payload) do
+      send(self(), {:inherit_goal_authorization, payload})
+      {:ok, %{"authorizationId" => "authorization-1"}}
+    end
+
+    def check_goal_execution(payload) do
+      send(self(), {:check_goal_execution, payload})
+      {:ok, %{"status" => "authorized"}}
+    end
+  end
+
+  defmodule ConfigurableGatewayClient do
+    def fetch_goal_execution(_repository_id, _issue_number),
+      do: Process.get(:goal_fetch_result)
+
+    def inherit_goal_authorization(payload) do
+      send(self(), {:configurable_inherit, payload})
+      Process.get(:goal_inherit_result, {:ok, %{"authorizationId" => "authorization-1"}})
+    end
+
+    def check_goal_execution(payload) do
+      send(self(), {:configurable_check, payload})
+      Process.get(:goal_check_result, {:ok, %{"status" => "authorized"}})
+    end
+  end
+
   @now ~U[2026-08-02 12:00:00Z]
 
   test "one exact approval authorizes every included issue and strictly-derived repair" do
@@ -58,9 +88,119 @@ defmodule SymphonyElixir.GoalExecutionTest do
              GoalExecution.evaluate(%{"proposal" => nil, "consumption" => %{}}, 53, :included_issue, %{}, @now)
   end
 
+  test "inherits once and checks the shared gateway budget before an authorized turn" do
+    issue = %{native_ref: %{"repositoryId" => "symphony", "issueNumber" => 53, "runId" => "run-53"}}
+
+    assert {:ok, %{authorization_id: "authorization-1"}} =
+             GoalExecution.check(GatewayClient, issue, :included_issue, %{"attempts" => 1})
+
+    assert_received {:inherit_goal_authorization, inherited}
+    assert inherited["goalIssueNumber"] == 22
+    assert inherited["proposalId"] == "proposal-1"
+    assert inherited["taskKind"] == "included_issue"
+
+    assert_received {:check_goal_execution, checked}
+    assert checked["authorizationId"] == "authorization-1"
+    assert checked["requestedConsumption"] == %{"attempts" => 1}
+  end
+
+  test "gateway checks fail closed and preserve pause decisions" do
+    issue = gateway_issue()
+
+    Process.put(:goal_fetch_result, {:ok, Map.put(projection(), "scopeChangeRequest", %{"requestId" => "change"})})
+    assert {:pause, :goal_change_decision_required, _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+    refute_received {:configurable_inherit, _}
+
+    Process.put(:goal_fetch_result, {:ok, %{"proposal" => nil}})
+    assert :unmanaged = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+
+    Process.put(:goal_fetch_result, {:error, :provider_down})
+    assert {:error, :provider_down} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+
+    Process.put(:goal_fetch_result, {:ok, projection()})
+    Process.put(:goal_inherit_result, {:error, :inherit_failed})
+    assert {:error, :inherit_failed} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+
+    Process.put(:goal_inherit_result, :invalid_response)
+
+    assert {:error, :invalid_goal_execution_check} =
+             GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+
+    Process.put(:goal_inherit_result, {:ok, %{"authorizationId" => "authorization-1"}})
+    Process.put(:goal_check_result, {:ok, %{"authorized" => true}})
+    assert {:ok, _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+
+    Process.put(:goal_check_result, {:ok, %{"status" => "paused", "reason" => "window_closed"}})
+    assert {:pause, "window_closed", _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+
+    Process.put(:goal_check_result, {:ok, %{}})
+    assert {:error, :invalid_goal_execution_check} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+
+    Process.put(:goal_check_result, {:ok, :invalid_response})
+    assert {:error, :invalid_goal_execution_check} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+  end
+
+  test "invalid and unmanaged identities do not acquire authorization" do
+    assert :unmanaged = GoalExecution.check(ConfigurableGatewayClient, %{}, :included_issue)
+
+    Process.put(:goal_fetch_result, {:ok, projection()})
+
+    assert :unmanaged =
+             GoalExecution.check(
+               ConfigurableGatewayClient,
+               %{native_ref: %{"repositoryId" => nil, "issueNumber" => 53}},
+               :included_issue
+             )
+
+    assert {:error, :invalid_goal_execution_identity} =
+             GoalExecution.check(
+               ConfigurableGatewayClient,
+               %{native_ref: %{"repositoryId" => "symphony", "issueNumber" => "53"}},
+               :included_issue
+             )
+
+    invalid = put_in(projection(), ["proposal", "proposalId"], nil)
+    Process.put(:goal_fetch_result, {:ok, invalid})
+
+    assert {:error, :invalid_goal_authorization_identity} =
+             GoalExecution.check(ConfigurableGatewayClient, gateway_issue(), :included_issue)
+  end
+
+  test "covers rejected approvals, malformed dates, atom keys, and derived repair identity" do
+    rejected = put_in(projection(), ["approval", "status"], "rejected")
+
+    assert {:pause, :goal_approval_required, _} =
+             GoalExecution.evaluate(rejected, 53, :included_issue, %{}, @now)
+
+    missing_approval = Map.put(projection(), "approval", nil)
+
+    assert {:pause, :goal_approval_required, _} =
+             GoalExecution.evaluate(missing_approval, 53, :included_issue, %{}, @now)
+
+    malformed_window = put_in(projection(), ["proposal", "executionWindow"], %{"startsAt" => "bad"})
+    assert {:ok, _} = GoalExecution.evaluate(malformed_window, 53, :included_issue, %{}, @now)
+
+    atom_projection = %{proposal: nil, consumption: %{}}
+    assert :unmanaged = GoalExecution.evaluate(atom_projection, 53, :included_issue, %{}, @now)
+
+    Process.put(:goal_fetch_result, {:ok, projection()})
+    Process.delete(:goal_inherit_result)
+    Process.put(:goal_check_result, {:ok, %{"status" => "authorized"}})
+    assert {:ok, _} = GoalExecution.check(ConfigurableGatewayClient, gateway_issue(), :derived_repair)
+    assert_received {:configurable_inherit, %{"derivedFromIssueNumber" => 53}}
+  end
+
+  @doc false
+  def projection_for_gateway, do: projection()
+
+  defp gateway_issue do
+    %{native_ref: %{"repositoryId" => "symphony", "issueNumber" => 53, "runId" => "run-53"}}
+  end
+
   defp projection do
     %{
       "proposal" => %{
+        "issueNumber" => 22,
         "proposalId" => "proposal-1",
         "version" => 4,
         "includedIssueNumbers" => [53, 54],

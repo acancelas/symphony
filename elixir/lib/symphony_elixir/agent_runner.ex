@@ -208,10 +208,28 @@ defmodule SymphonyElixir.AgentRunner do
 
     case GoalExecution.check(client, issue, :included_issue, %{"attempts" => 1}) do
       :unmanaged ->
-        run_codex_turn(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns)
+        run_codex_turn(
+          app_session,
+          workspace,
+          issue,
+          codex_update_recipient,
+          opts,
+          issue_state_fetcher,
+          turn_number,
+          max_turns
+        )
 
       {:ok, _authorization} ->
-        run_codex_turn(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns)
+        run_codex_turn(
+          app_session,
+          workspace,
+          issue,
+          codex_update_recipient,
+          opts,
+          issue_state_fetcher,
+          turn_number,
+          max_turns
+        )
 
       {:pause, reason, authorization} ->
         {:paused, %{pause_reason: reason, goal_authorization: authorization}}
