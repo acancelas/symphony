@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-20391dd1-1126-48f8-989d-0771eeed4dfd",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642036700_1387",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:40:36.622Z",
+  "command": "/bin/bash -lc \"git diff --unified=0 origin/main...HEAD -- elixir/lib/symphony_elixir/agent_runner.ex elixir/lib/symphony_elixir/delivery_coordinator.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/lib/symphony_elixir/goal_execution.ex | grep -E '\"'^(diff --git|@@|'\"\\\\+[\"'^+].*(render|html|css|template|view|component|visual)|'\"\\\\+ *def |\\\\+ *@)' || true\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "diff --git a/elixir/lib/symphony_elixir/agent_runner.ex b/elixir/lib/symphony_elixir/agent_runner.ex\n@@ -12,0 +13 @@ defmodule SymphonyElixir.AgentRunner do\n@@ -205,0 +207,36 @@ defmodule SymphonyElixir.AgentRunner do\ndiff --git a/elixir/lib/symphony_elixir/delivery_coordinator.ex b/elixir/lib/symphony_elixir/delivery_coordinator.ex\n@@ -15,0 +16 @@ defmodule SymphonyElixir.DeliveryCoordinator do\n@@ -19 +20 @@ defmodule SymphonyElixir.DeliveryCoordinator do\n+  @max_repair_cycles 2\n@@ -72,0 +74,9 @@ defmodule SymphonyElixir.DeliveryCoordinator do\ndiff --git a/elixir/lib/symphony_elixir/game_api/client.ex b/elixir/lib/symphony_elixir/game_api/client.ex\n@@ -149,0 +150,32 @@ defmodule SymphonyElixir.GameApi.Client do\n+  @spec fetch_goal_execution(String.t(), pos_integer()) :: {:ok, map()} | {:error, term()}\n+  def fetch_goal_execution(repository_id, issue_number)\n+  @spec inherit_goal_authorization(map()) :: {:ok, map()} | {:error, term()}\n+  def inherit_goal_authorization(authorization) when is_map(authorization) do\n+  @spec check_goal_execution(map()) :: {:ok, map()} | {:error, term()}\n+  def check_goal_execution(check) when is_map(check) do\ndiff --git a/elixir/lib/symphony_elixir/goal_execution.ex b/elixir/lib/symphony_elixir/goal_execution.ex\n@@ -0,0 +1,289 @@\n+  @moduledoc \"\"\"\n+  @freeze_ratio 0.75\n+  @type task_kind :: :included_issue | :derived_repair\n+  @type decision :: :unmanaged | {:ok, map()} | {:pause, atom() | String.t(), map()}\n+  @spec check(module(), map(), task_kind(), map()) :: decision() | {:error, term()}\n+  def check(client, issue, task_kind, requested \\\\ %{})\n+  @spec check(module(), map(), task_kind(), map()) :: decision() | {:error, term()}\n+  def check(client, %{native_ref: native_ref}, task_kind, requested) when is_map(native_ref) do\n+  def check(_client, _issue, _task_kind, _requested), do: :unmanaged\n+  @spec evaluate(map(), pos_integer(), task_kind(), map(), DateTime.t()) :: decision()\n+  def evaluate(projection, issue_number, task_kind, req",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
