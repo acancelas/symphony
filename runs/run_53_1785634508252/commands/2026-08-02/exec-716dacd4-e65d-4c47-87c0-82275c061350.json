@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-716dacd4-e65d-4c47-87c0-82275c061350",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642082206_1417",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:41:22.206Z",
+  "command": "/bin/bash -lc \"grep -RIn \\\"GoalExecution.check\\\" elixir/lib elixir/test; grep -RIn 'requestedConsumption\\\\|requested_consumption\\\\|runId.*native_ref' elixir/lib/symphony_elixir | head -160; git log -5 --oneline\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/agent_runner.ex:209:    case GoalExecution.check(client, issue, :included_issue, %{\"attempts\" => 1}) do\nelixir/lib/symphony_elixir/delivery_coordinator.ex:74:    case GoalExecution.check(context.client, context.issue, :derived_repair) do\nelixir/test/symphony_elixir/goal_execution_test.exs:95:             GoalExecution.check(GatewayClient, issue, :included_issue, %{\"attempts\" => 1})\nelixir/test/symphony_elixir/goal_execution_test.exs:111:    assert {:pause, :goal_change_decision_required, _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:115:    assert :unmanaged = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:118:    assert {:error, :provider_down} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:122:    assert {:error, :inherit_failed} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:127:             GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:131:    assert {:ok, _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:134:    assert {:pause, \"window_closed\", _} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:137:    assert {:error, :invalid_goal_execution_check} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:140:    assert {:error, :invalid_goal_execution_check} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\nelixir/test/symphony_elixir/goal_execution_test.exs:144:    assert :unmanaged = GoalExecution.check(Conf",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
