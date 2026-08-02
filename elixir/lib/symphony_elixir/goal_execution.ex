@@ -13,17 +13,18 @@ defmodule SymphonyElixir.GoalExecution do
   @type task_kind :: :included_issue | :derived_repair
   @type decision :: :unmanaged | {:ok, map()} | {:pause, atom() | String.t(), map()}
 
-  @spec check(module(), map(), task_kind(), map()) :: decision() | {:error, term()}
-  def check(client, issue, task_kind, requested \\ %{})
+  @spec check(module(), map(), task_kind(), map(), String.t()) :: decision() | {:error, term()}
+  def check(client, issue, task_kind, requested \\ %{}, check_key \\ "default")
 
-  @spec check(module(), map(), task_kind(), map()) :: decision() | {:error, term()}
-  def check(client, %{native_ref: native_ref}, task_kind, requested) when is_map(native_ref) do
+  def check(client, %{native_ref: native_ref}, task_kind, requested, check_key)
+      when is_map(native_ref) and is_binary(check_key) do
     if function_exported?(client, :fetch_goal_execution, 2) do
       with repository_id when is_binary(repository_id) <- native_ref["repositoryId"],
            issue_number when is_integer(issue_number) <- native_ref["issueNumber"],
            {:ok, projection} <- client.fetch_goal_execution(repository_id, issue_number),
            decision <- evaluate(projection, issue_number, task_kind, requested),
-           {:ok, decision} <- authorize(client, native_ref, projection, issue_number, task_kind, requested, decision) do
+           {:ok, decision} <-
+             authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, decision) do
         decision
       else
         nil -> :unmanaged
@@ -35,16 +36,16 @@ defmodule SymphonyElixir.GoalExecution do
     end
   end
 
-  def check(_client, _issue, _task_kind, _requested), do: :unmanaged
+  def check(_client, _issue, _task_kind, _requested, _check_key), do: :unmanaged
 
-  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, decision)
+  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, _check_key, decision)
        when decision != :unmanaged and elem(decision, 0) != :ok,
        do: {:ok, decision}
 
-  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, :unmanaged),
+  defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, _check_key, :unmanaged),
     do: {:ok, :unmanaged}
 
-  defp authorize(client, native_ref, projection, issue_number, task_kind, requested, {:ok, snapshot}) do
+  defp authorize(client, native_ref, projection, issue_number, task_kind, requested, check_key, {:ok, snapshot}) do
     if function_exported?(client, :inherit_goal_authorization, 1) and
          function_exported?(client, :check_goal_execution, 1) do
       with {:ok, identity} <- authorization_identity(projection, native_ref, issue_number, task_kind),
@@ -57,7 +58,7 @@ defmodule SymphonyElixir.GoalExecution do
                "checkedAt" => DateTime.utc_now() |> DateTime.to_iso8601(),
                "goalIssueNumber" => identity["goalIssueNumber"],
                "issueNumber" => issue_number,
-               "operationId" => operation_id(native_ref, task_kind, "check"),
+               "operationId" => operation_id(native_ref, task_kind, "check_#{check_key}"),
                "requestedConsumption" => requested
              }) do
         gateway_decision(checked, Map.put(snapshot, :authorization_id, authorization_id))
@@ -153,13 +154,10 @@ defmodule SymphonyElixir.GoalExecution do
         authorization_pause_reason(projection, proposal, approval, issue_number, task_kind) ||
           resource_pause_reason(projection, proposal, requested, now)
       else
-        :unmanaged
+        :invalid_goal_execution_projection
       end
 
     case pause_reason do
-      :unmanaged ->
-        :unmanaged
-
       nil ->
         {:ok,
          snapshot(projection)
@@ -189,6 +187,7 @@ defmodule SymphonyElixir.GoalExecution do
 
   defp resource_pause_reason(projection, proposal, requested, now) do
     cond do
+      not valid_resource_projection?(proposal, projection, requested) -> :invalid_goal_execution_projection
       outside_window?(proposal, now) -> :goal_execution_window_closed
       exceeds?(proposal, projection, requested) -> :goal_budget_exhausted
       true -> nil
@@ -219,11 +218,44 @@ defmodule SymphonyElixir.GoalExecution do
   end
 
   defp outside_window?(proposal, now) do
-    window = value(proposal, "executionWindow") || value(proposal, "execution_window") || %{}
+    window = value(proposal, "executionWindow") || value(proposal, "execution_window")
     starts_at = parse_datetime(value(window, "startsAt") || value(window, "starts_at"))
     ends_at = parse_datetime(value(window, "endsAt") || value(window, "ends_at"))
-    (starts_at && DateTime.before?(now, starts_at)) || (ends_at && not DateTime.before?(now, ends_at))
+    DateTime.before?(now, starts_at) || not DateTime.before?(now, ends_at)
   end
+
+  defp valid_resource_projection?(proposal, projection, requested) do
+    window = value(proposal, "executionWindow") || value(proposal, "execution_window")
+    starts_at = parse_datetime(value(window, "startsAt") || value(window, "starts_at"))
+    ends_at = parse_datetime(value(window, "endsAt") || value(window, "ends_at"))
+    limits = value(proposal, "budget")
+    used = value(projection, "consumption")
+
+    is_map(window) and is_struct(starts_at, DateTime) and is_struct(ends_at, DateTime) and
+      DateTime.before?(starts_at, ends_at) and is_map(limits) and is_map(used) and
+      valid_positive_number?(value(limits, "maxAttempts")) and
+      valid_optional_positive_number?(value(limits, "maxTokens")) and
+      valid_optional_positive_number?(value(limits, "maxCostUsd")) and
+      valid_consumption?(limits, used) and valid_requested_consumption?(requested)
+  end
+
+  defp valid_consumption?(limits, used) do
+    Enum.all?([{"maxAttempts", "attempts"}, {"maxTokens", "tokens"}, {"maxCostUsd", "costUsd"}], fn
+      {limit_key, used_key} ->
+        is_nil(value(limits, limit_key)) or valid_nonnegative_number?(value(used, used_key))
+    end)
+  end
+
+  defp valid_requested_consumption?(requested) do
+    Enum.all?(~w(attempts tokens costUsd), fn key ->
+      is_nil(value(requested, key)) or valid_nonnegative_number?(value(requested, key))
+    end)
+  end
+
+  defp valid_positive_number?(value), do: is_number(value) and value > 0
+  defp valid_optional_positive_number?(nil), do: true
+  defp valid_optional_positive_number?(value), do: valid_positive_number?(value)
+  defp valid_nonnegative_number?(value), do: is_number(value) and value >= 0
 
   defp exceeds?(proposal, projection, requested) do
     limits = value(proposal, "budget") || %{}

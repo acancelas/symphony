@@ -206,7 +206,7 @@ defmodule SymphonyElixir.AgentRunner do
   defp do_run_codex_turns(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
     client = Keyword.get(opts, :game_api_client_module, SymphonyElixir.GameApi.Client)
 
-    case GoalExecution.check(client, issue, :included_issue, %{"attempts" => 1}) do
+    case GoalExecution.check(client, issue, :included_issue, %{"attempts" => 1}, "turn_#{turn_number}") do
       :unmanaged ->
         run_codex_turn(
           app_session,

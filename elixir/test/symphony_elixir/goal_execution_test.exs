@@ -83,8 +83,8 @@ defmodule SymphonyElixir.GoalExecutionTest do
              GoalExecution.evaluate(projection(), 53, :included_issue, %{}, @now)
   end
 
-  test "ordinary issues without a Goal proposal remain unmanaged" do
-    assert :unmanaged =
+  test "a fetched projection without a Goal proposal fails closed" do
+    assert {:pause, :invalid_goal_execution_projection, _} =
              GoalExecution.evaluate(%{"proposal" => nil, "consumption" => %{}}, 53, :included_issue, %{}, @now)
   end
 
@@ -102,6 +102,7 @@ defmodule SymphonyElixir.GoalExecutionTest do
     assert_received {:check_goal_execution, checked}
     assert checked["authorizationId"] == "authorization-1"
     assert checked["requestedConsumption"] == %{"attempts" => 1}
+    assert checked["operationId"] == "goal_execution_check_default_run-53_included_issue"
   end
 
   test "gateway checks fail closed and preserve pause decisions" do
@@ -112,7 +113,9 @@ defmodule SymphonyElixir.GoalExecutionTest do
     refute_received {:configurable_inherit, _}
 
     Process.put(:goal_fetch_result, {:ok, %{"proposal" => nil}})
-    assert :unmanaged = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
+
+    assert {:pause, :invalid_goal_execution_projection, _} =
+             GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
 
     Process.put(:goal_fetch_result, {:error, :provider_down})
     assert {:error, :provider_down} = GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)
@@ -178,16 +181,53 @@ defmodule SymphonyElixir.GoalExecutionTest do
              GoalExecution.evaluate(missing_approval, 53, :included_issue, %{}, @now)
 
     malformed_window = put_in(projection(), ["proposal", "executionWindow"], %{"startsAt" => "bad"})
-    assert {:ok, _} = GoalExecution.evaluate(malformed_window, 53, :included_issue, %{}, @now)
+
+    assert {:pause, :invalid_goal_execution_projection, _} =
+             GoalExecution.evaluate(malformed_window, 53, :included_issue, %{}, @now)
 
     atom_projection = %{proposal: nil, consumption: %{}}
-    assert :unmanaged = GoalExecution.evaluate(atom_projection, 53, :included_issue, %{}, @now)
+
+    assert {:pause, :invalid_goal_execution_projection, _} =
+             GoalExecution.evaluate(atom_projection, 53, :included_issue, %{}, @now)
 
     Process.put(:goal_fetch_result, {:ok, projection()})
     Process.delete(:goal_inherit_result)
     Process.put(:goal_check_result, {:ok, %{"status" => "authorized"}})
     assert {:ok, _} = GoalExecution.check(ConfigurableGatewayClient, gateway_issue(), :derived_repair)
     assert_received {:configurable_inherit, %{"derivedFromIssueNumber" => 53}}
+  end
+
+  test "malformed budgets and consumption fail closed" do
+    for invalid <- ["many", nil, -1] do
+      malformed = put_in(projection(), ["proposal", "budget", "maxAttempts"], invalid)
+
+      assert {:pause, :invalid_goal_execution_projection, _} =
+               GoalExecution.evaluate(malformed, 53, :included_issue, %{}, @now)
+    end
+
+    malformed = put_in(projection(), ["consumption", "tokens"], "100")
+
+    assert {:pause, :invalid_goal_execution_projection, _} =
+             GoalExecution.evaluate(malformed, 53, :included_issue, %{}, @now)
+
+    assert {:pause, :invalid_goal_execution_projection, _} =
+             GoalExecution.evaluate(projection(), 53, :included_issue, %{"tokens" => "1"}, @now)
+  end
+
+  test "successive logical turns use distinct stable gateway check operation IDs" do
+    Process.put(:goal_fetch_result, {:ok, projection()})
+
+    assert {:ok, _} =
+             GoalExecution.check(ConfigurableGatewayClient, gateway_issue(), :included_issue, %{}, "turn_1")
+
+    assert_received {:configurable_check, first}
+
+    assert {:ok, _} =
+             GoalExecution.check(ConfigurableGatewayClient, gateway_issue(), :included_issue, %{}, "turn_2")
+
+    assert_received {:configurable_check, second}
+    assert first["operationId"] == "goal_execution_check_turn_1_run-53_included_issue"
+    assert second["operationId"] == "goal_execution_check_turn_2_run-53_included_issue"
   end
 
   @doc false

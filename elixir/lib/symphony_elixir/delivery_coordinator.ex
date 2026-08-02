@@ -71,7 +71,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   end
 
   defp run_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints) do
-    case GoalExecution.check(context.client, context.issue, :derived_repair) do
+    case GoalExecution.check(context.client, context.issue, :derived_repair, %{}, "cycle_#{cycle}") do
       :unmanaged -> run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints)
       {:ok, _authorization} -> run_authorized_delivery_cycle(context, cycle, max_cycles, dirty_fingerprints)
       {:pause, reason, authorization} -> {:error, {:goal_execution_paused, reason, authorization}}
