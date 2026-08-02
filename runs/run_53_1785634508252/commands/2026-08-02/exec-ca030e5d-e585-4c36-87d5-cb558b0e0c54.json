@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-ca030e5d-e585-4c36-87d5-cb558b0e0c54",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641908724_1315",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:38:28.644Z",
+  "command": "/bin/bash -lc 'grep -RInE \"ReviewSchema|reviewSchema|reviewId.*attemptId|findings.*summary\" $WORKSPACE/.bos/install/bos-front-main/src $WORKSPACE/.bos/worktrees/bos-front-22/src --exclude-dir=node_modules | head -n 240'",
+  "durationMs": 213,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

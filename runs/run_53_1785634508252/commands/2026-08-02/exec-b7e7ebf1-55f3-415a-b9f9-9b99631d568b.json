@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b7e7ebf1-55f3-415a-b9f9-9b99631d568b",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641908713_1313",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:38:28.633Z",
+  "command": "/bin/bash -lc \"grep -nA90 -B30 \\\"bos_record_review\\\" $WORKSPACE/.bos/runtime-builds/bos-mcp-main-f425c91/src/delivery/tools.ts | head -n 180 && grep -nA80 -B20 \\\"reviewSchema\\\\|ReviewSchema\\\\|reviewType\\\" $WORKSPACE/.bos/runtime-builds/bos-mcp-main-f425c91/src/delivery/tools.ts | head -n 220\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "322-      required: [\"issueNumber\", \"operationId\", \"runId\", \"deploymentId\", \"expectedProjectId\", \"expectedCommitSha\", \"expectedEnvironment\"],\n323-      additionalProperties: false,\n324-    },\n325-  },\n326-  {\n327-    name: \"bos_inspect_vps_deployment\",\n328-    description: \"Ask game-api and the outbound allowlisted VPS agent to inspect the exact release, runtime, proxy, containers, migrations, resources, logs, and public URL.\",\n329-    inputSchema: {\n330-      type: \"object\",\n331-      properties: {\n332-        issueNumber: { type: \"integer\", minimum: 1 },\n333-        operationId: { type: \"string\", minLength: 8 },\n334-        runId: { type: \"string\", minLength: 1 },\n335-        deploymentId: { type: \"string\", minLength: 1 },\n336-        serverId: { type: \"string\", minLength: 1 },\n337-        targetId: { type: \"string\", minLength: 1 },\n338-        expectedCommitSha: { type: \"string\", pattern: \"^[0-9a-f]{7,40}$\" },\n339-        expectedEnvironment: { type: \"string\", minLength: 1 },\n340-        url: { type: \"string\", minLength: 1 },\n341-        expectedReleaseId: { type: \"string\", minLength: 1 },\n342-        expectedImage: { type: \"string\", minLength: 1 },\n343-      },\n344-      required: [\"issueNumber\", \"operationId\", \"runId\", \"deploymentId\", \"serverId\", \"targetId\", \"expectedCommitSha\", \"expectedEnvironment\", \"url\"],\n345-      additionalProperties: false,\n346-    },\n347-  },\n348-  ...[\n349-    [\"bos_start_agent_run\", \"Persist or resume the canonical AgentRun manifest.\"],\n350-    [\"bos_start_attempt\", \"Persist the immutable started record for an Attempt.\"],\n351-    [\"bos_complete_attempt\", \"Persist the immutable completed record for an Attempt.\"],\n352:    [\"bos_record_review\", \"Persist a specialized agent Review for the exact commit.\"],\n353-    [\"bos_record_evidence\", \"Persist an EvidenceReport for the exact verified commit.\"],\n354-    [\"bos_finalize_run\", \"Persist the terminal AgentRun projection.\"],\n355-    [\"bos_record_learning\", \"Persist a delivery Learning linked t",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

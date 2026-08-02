@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-4bcf17cc-5baf-423b-b606-184022b6d453",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641908739_1318",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:38:28.659Z",
+  "command": "/bin/bash -lc 'grep -RInE \"attempt_completed|kind.*review|artifacts/reviews|reviews/\" $WORKSPACE/.bos/install/bos-front-main/src $WORKSPACE/.bos/runtime-builds/bos-mcp-main-f425c91/src --exclude-dir=node_modules | head -n 240'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "$WORKSPACE/.bos/runtime-builds/bos-mcp-main-f425c91/src/delivery/tools.ts:454:    bos_start_agent_run: \"run\", bos_start_attempt: \"attempt_started\", bos_complete_attempt: \"attempt_completed\",\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}

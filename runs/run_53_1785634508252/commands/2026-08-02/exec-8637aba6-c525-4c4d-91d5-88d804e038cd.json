@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8637aba6-c525-4c4d-91d5-88d804e038cd",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641908677_1304",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:38:28.597Z",
+  "command": "/bin/bash -lc \"find $WORKSPACE -type f \\\\( -name '*.ts' -o -name '*.js' -o -name '*.ex' -o -name '*.md' \\\\) -not -path '*/node_modules/*' -not -path '*/.git/*' -print 2>/dev/null | xargs grep -l \\\"record_review\\\\|recordReview\\\\|reviews.*artifact\\\\|reviewType\\\" 2>/dev/null | head -n 100\"",
+  "durationMs": 29591,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "$WORKSPACE/.codex/.tmp/plugins/plugins/codex-security/skills/deep-security-scan/SKILL.md\n$WORKSPACE/.codex/.tmp/plugins/plugins/codex-security/skills/propose-security-hardening/SKILL.md\n$WORKSPACE/.bos/install/bos-orchestrator-main/WORKFLOW.md\n$WORKSPACE/.bos/install/bos-front-main/docs/progress/current.md\n$WORKSPACE/.bos/install/bos-front-main/src/services/bos-delivery.service.ts\n$WORKSPACE/.bos/install/symphony-main/elixir/lib/symphony_elixir/delivery_coordinator.ex\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/symphony/elixir/lib/symphony_elixir/delivery_coordinator.ex\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-orchestrator/WORKFLOW.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/dist/delivery/tools.js\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/dist/delivery/tools.test.js\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/src/delivery/tools.test.ts\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-mcp/src/delivery/tools.ts\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-front/dist/assets/index-CIA0sqW8.js\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-front/docs/progress/current.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-full/bos-front/src/services/bos-delivery.service.ts\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/symphony/elixir/lib/symphony_elixir/delivery_coordinator.ex\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-orchestrator/WORKFLOW.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-mcp/src/delivery/tools.test.ts\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-mcp/src/delivery/tools.ts\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-front/docs/progress/current.md\n$WORKSPACE/.bos/recovery-drill/2026-07-22-github-app/bos-front/src/services/bos-delivery.service.ts\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-closure/dist/delivery/tools.js\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-closure/dist/delivery/tools.test.js\n$WORKSPACE/.bos/integration-worktrees/bos-mcp-cl",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
