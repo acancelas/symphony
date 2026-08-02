@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d71fe2b4-a640-4842-8120-d5c15c31e58d",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642335403_1533",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:45:35.306Z",
+  "command": "/bin/bash -lc 'grep -RInE \"goal_execution|GoalExecution|derived_repair|game_api_client_module\" elixir/test/symphony_elixir/agent_runner_test.exs elixir/test/symphony_elixir/delivery_coordinator_test.exs | head -n 240 && git show --stat --oneline HEAD && git log --oneline --decorate -4'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "grep: elixir/test/symphony_elixir/agent_runner_test.exs: No such file or directory\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:168:                 game_api_client_module: FakeClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:202:                 game_api_client_module: FakeClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:226:                 game_api_client_module: FakeClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:247:                 game_api_client_module: FakeClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:268:                 game_api_client_module: RateLimitedReviewClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:283:             DeliveryCoordinator.review_stage_started?(issue(), game_api_client_module: FakeClient)\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:293:                 game_api_client_module: FakeClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:306:             DeliveryCoordinator.review_stage_started?(issue(), game_api_client_module: FakeClient)\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:323:                 game_api_client_module: FakeClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:355:                 game_api_client_module: FakeClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:385:                 game_api_client_module: FakeClient,\nelixir/test/symphony_elixir/delivery_coordinator_test.exs:418:                 game_api_client_module: FakeClient,\n39d62e93 fix(goal): fail closed on invalid authorization state\n elixir/lib/symphony_elixir/agent_runner.ex         |  2 +-\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  2 +-\n elixir/lib/symphony_elixir/goal_execution.ex       | 64 ++++++++++++++++------\n .../test/symphony_elixir/goal_execution_test.exs   | 50 +++++++++++++++--\n 4 files changed, 95 insertions(+), 23 deletions(-)\n39d62e93 (HEAD -> bos/issue-53, origin/b",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
