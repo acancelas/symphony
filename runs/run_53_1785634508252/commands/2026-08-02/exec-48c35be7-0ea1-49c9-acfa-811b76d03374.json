@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-48c35be7-0ea1-49c9-acfa-811b76d03374",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642420720_1580",
+  "actor": {
+    "type": "agent",
+    "subjectId": "architecture-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:47:00.720Z",
+  "command": "/bin/bash -lc 'grep -RInE \"reviewId|reviewType|subjectId|bos_record_review|record_review\" . --exclude-dir=deps --exclude-dir=_build --exclude-dir=.git | head -120'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./elixir/test/symphony_elixir/delivery_coordinator_test.exs:20:        [_, review_id] = Regex.run(~r/reviewId `([^`]+)`/, prompt)\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:40:        \"reviewId\" => review_id,\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:41:        \"reviewType\" => role,\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:66:        [_, review_id] = Regex.run(~r/reviewId `([^`]+)`/, prompt)\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:71:            \"reviewId\" => review_id,\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:72:            \"reviewType\" => \"functional\",\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:338:        \"reviewId\" => \"review_run_001_1_functional_#{String.slice(current_head, 0, 12)}\",\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:339:        \"reviewType\" => \"functional\",\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:461:      \"reviewId\" => \"review_run_001_1_#{role}_#{String.slice(head_sha, 0, 12)}\",\n./elixir/test/symphony_elixir/delivery_coordinator_test.exs:462:      \"reviewType\" => role,\n./elixir/test/symphony_elixir/audit/outbox_test.exs:523:             \"subjectId\" => \"implementation-agent\"\n./elixir/test/symphony_elixir/audit/outbox_test.exs:528:             \"subjectId\" => \"x1\"\n./elixir/test/symphony_elixir/audit/outbox_test.exs:533:             \"subjectId\" => \"security-reviewer\"\n./elixir/test/symphony_elixir/goal_planning_coordinator_test.exs:23:         \"review\" => %{\"reviewId\" => \"review_001\", \"status\" => \"passed\"}\n./elixir/lib/symphony_elixir/audit/outbox.ex:1264:      %{\"type\" => \"agent\", \"subjectId\" => implementation_agent_id()}\n./elixir/lib/symphony_elixir/audit/outbox.ex:1266:      %{\"type\" => \"runner\", \"subjectId\" => runner_id()}\n./elixir/lib/symphony_elixir/audit/outbox.ex:1275:      %{\"type\" => \"agent\", \"subjectId\" => actor}\n./elixir/lib/symphony_elixir/game_api/client.ex:541:               \"actor\" => %{\"type\" =",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
