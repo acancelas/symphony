@@ -1,0 +1,13 @@
+{
+  "deploymentId": "symphony-v0.1.0-production",
+  "githubDeploymentId": "5714437390",
+  "runId": "release-symphony-v0.1.0-20260802",
+  "issueNumber": 58,
+  "goalIssueNumber": 57,
+  "action": "deploy",
+  "rollbackOfDeploymentId": null,
+  "commitSha": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3",
+  "releaseTag": "v0.1.0",
+  "environment": "production",
+  "status": "pending_verification"
+}
