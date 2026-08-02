@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9b8117dd-b44b-49d4-aa0e-aa027424c592",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643420546_1967",
+  "actor": {
+    "type": "agent",
+    "subjectId": "visual-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:03:40.429Z",
+  "command": "/bin/bash -lc \"rg -n 'reviewId|reviewType|subjectId|bos_record_review' .bos elixir README.md SPEC.md WORKFLOW.md -g '*.md' -g '*.ex' -g '*.exs' -g '*.yaml' | head -80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
