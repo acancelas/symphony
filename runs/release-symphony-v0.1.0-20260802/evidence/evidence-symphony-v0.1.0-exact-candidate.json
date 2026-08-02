@@ -1,0 +1,68 @@
+{
+  "evidenceId": "evidence-symphony-v0.1.0-exact-candidate",
+  "runId": "release-symphony-v0.1.0-20260802",
+  "commitSha": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "main resolves to exact merge commit",
+      "status": "passed",
+      "evidence": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3"
+    },
+    {
+      "criterion": "complete QA suite passes",
+      "status": "passed",
+      "evidence": "395 tests, 0 failures, 2 external tests skipped by design, 100% coverage"
+    },
+    {
+      "criterion": "static quality gates pass",
+      "status": "passed",
+      "evidence": "format, specs.check, Credo strict and Dialyzer all passed"
+    },
+    {
+      "criterion": "dependency audit passes",
+      "status": "passed",
+      "evidence": "mix hex.audit: no retired or security advisory packages"
+    },
+    {
+      "criterion": "release version and repository state are valid",
+      "status": "passed",
+      "evidence": "mix version 0.1.0; detached exact-commit worktree clean"
+    }
+  ],
+  "checks": [
+    {
+      "name": "make-all",
+      "status": "passed"
+    },
+    {
+      "name": "mix-hex-audit",
+      "status": "passed"
+    },
+    {
+      "name": "git-diff-check",
+      "status": "passed"
+    },
+    {
+      "name": "github-ci-make-all",
+      "status": "passed"
+    },
+    {
+      "name": "github-pr-description",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "pull_request",
+      "url": "https://github.com/acancelas/symphony/pull/56"
+    },
+    {
+      "type": "escript",
+      "path": "elixir/bin/symphony",
+      "sha256": "4296f9672b12f551ecca4f88623ce5b08d51364918ae818604972e95062ca7c9"
+    }
+  ],
+  "residualRisk": [],
+  "summary": "Exact merged Symphony v0.1.0 candidate passed the complete local and remote quality gates and is ready for its single Goal-owned production deployment."
+}
