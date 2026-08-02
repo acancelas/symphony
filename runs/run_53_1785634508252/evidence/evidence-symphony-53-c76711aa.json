@@ -1,0 +1,60 @@
+{
+  "evidenceId": "evidence-symphony-53-c76711aa",
+  "runId": "run_53_1785634508252",
+  "commitSha": "c76711aaa1c85728377695c67b607bedab162dba",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "All included subtasks run without new approval",
+      "status": "passed",
+      "evidence": "AgentRunner checks and idempotently inherits the approved Goal authorization before each included implementation turn."
+    },
+    {
+      "criterion": "Derived repairs inherit authorization",
+      "status": "passed",
+      "evidence": "DeliveryCoordinator performs a derived_repair authorization check before each bounded repair cycle and sends derivedFromIssueNumber."
+    },
+    {
+      "criterion": "New scope and higher ceilings pause for one Goal decision",
+      "status": "passed",
+      "evidence": "Local fail-fast evaluation pauses pending changes, out-of-scope issues, exhausted ceilings, and closed windows; gateway remains authoritative."
+    },
+    {
+      "criterion": "Pause and resume preserve remaining authorization",
+      "status": "passed",
+      "evidence": "Every turn re-fetches the confirmed Goal projection and checks aggregate gateway consumption without local budget reset or reservation."
+    }
+  ],
+  "checks": [
+    {
+      "name": "mix format --check-formatted",
+      "status": "passed"
+    },
+    {
+      "name": "mix test",
+      "status": "passed",
+      "summary": "383 tests, 0 failures, 2 skipped"
+    },
+    {
+      "name": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "c76711aaa1c85728377695c67b607bedab162dba"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-53"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "Independent specialist review and remote candidate publication are intentionally owned by the subsequent Symphony delivery coordinator.",
+      "mitigation": "Keep this implementation turn non-terminal and hand off the clean exact commit to the configured review pipeline."
+    }
+  ],
+  "summary": "Exact commit implements single Goal authorization inheritance, gateway-owned shared budgets and execution windows, 75 percent scope freeze, 100 percent turn stop, and bounded derived repairs."
+}
