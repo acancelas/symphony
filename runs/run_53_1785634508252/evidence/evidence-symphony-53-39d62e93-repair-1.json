@@ -1,0 +1,60 @@
+{
+  "evidenceId": "evidence-symphony-53-39d62e93-repair-1",
+  "runId": "run_53_1785634508252",
+  "commitSha": "39d62e9344e89094b448b3f57f30fcd12310841b",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "criterion": "All included subtasks run without new approval",
+      "status": "passed",
+      "evidence": "AgentRunner re-fetches confirmed Goal execution state before every implementation turn, inherits the exact approval, and uses a stable per-turn gateway authorization check identity."
+    },
+    {
+      "criterion": "Derived repairs inherit authorization",
+      "status": "passed",
+      "evidence": "DeliveryCoordinator checks strictly-derived authorization before each bounded repair cycle with a distinct stable cycle identity."
+    },
+    {
+      "criterion": "New scope and higher ceilings pause for one Goal decision",
+      "status": "passed",
+      "evidence": "Missing proposals and malformed or incomplete execution windows, budget ceilings, aggregate consumption, and requested consumption now fail closed; pending changes, out-of-scope work, and exhaustion continue to pause."
+    },
+    {
+      "criterion": "Pause and resume preserve remaining authorization",
+      "status": "passed",
+      "evidence": "Each logical turn/cycle re-reads canonical aggregate consumption; deterministic turn/cycle operation IDs preserve retry idempotency without replaying decisions across later checks."
+    }
+  ],
+  "checks": [
+    {
+      "name": "mix format --check-formatted",
+      "status": "passed"
+    },
+    {
+      "name": "mix test",
+      "status": "passed",
+      "summary": "385 tests, 0 failures, 2 skipped"
+    },
+    {
+      "name": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "commit",
+      "sha": "39d62e9344e89094b448b3f57f30fcd12310841b"
+    },
+    {
+      "type": "branch",
+      "name": "bos/issue-53"
+    }
+  ],
+  "residualRisk": [
+    {
+      "risk": "The repaired commit is locally ahead of origin until the orchestrator publishes the candidate branch.",
+      "mitigation": "Keep the exact committed workspace intact; publication and fresh independent review remain owned by the subsequent Symphony delivery coordinator."
+    }
+  ],
+  "summary": "Repair cycle 1 closes Goal authorization fail-open paths for absent or malformed canonical state and gives successive gateway checks distinct stable logical-turn identities."
+}
