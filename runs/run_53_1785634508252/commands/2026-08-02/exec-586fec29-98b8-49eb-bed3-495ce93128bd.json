@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-586fec29-98b8-49eb-bed3-495ce93128bd",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642960786_1783",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:56:00.786Z",
+  "command": "/bin/bash -lc 'git commit -F /tmp/symphony-53-repair-2-commit-message && git status --short --branch && git show --stat --oneline --decorate --no-renames HEAD'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "[bos/issue-53 aed939a5] fix(goal): reject missing managed repository identity\n 2 files changed, 30 insertions(+), 15 deletions(-)\n## bos/issue-53...origin/bos/issue-53 [ahead 1]\naed939a5 (HEAD -> bos/issue-53) fix(goal): reject missing managed repository identity\n elixir/lib/symphony_elixir/goal_execution.ex       | 34 +++++++++++++---------\n .../test/symphony_elixir/goal_execution_test.exs   | 11 ++++++-\n 2 files changed, 30 insertions(+), 15 deletions(-)\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
