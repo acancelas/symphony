@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-19aafcae-dcc4-4edb-b257-fc90bea775a2",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785638042401_1022",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:34:02.401Z",
+  "command": "/bin/bash -lc \"find cover -type f | grep -i goal | head; grep -n \\\"line-not-covered\\\\|class=.uncovered\\\\|data-hits=\\\\\\\"0\\\\\\\"\\\" cover/Elixir.SymphonyElixir.GoalExecution.html | head -120\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "cover/Elixir.SymphonyElixir.GoalExecution.html\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}

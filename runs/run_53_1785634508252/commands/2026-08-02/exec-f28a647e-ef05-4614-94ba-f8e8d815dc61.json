@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f28a647e-ef05-4614-94ba-f8e8d815dc61",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785638047515_1027",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:34:07.515Z",
+  "command": "/bin/bash -lc \"grep -n \\\"uncovered\\\\|not_covered\\\\|line-.*0\\\\|<td class=\\\\\\\"h\\\" cover/Elixir.SymphonyElixir.GoalExecution.html | head -100\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "148:<td class=\"hits\"></td>\n153:<td class=\"hits\"></td>\n158:<td class=\"hits\"></td>\n163:<td class=\"hits\"></td>\n168:<td class=\"hits\"></td>\n173:<td class=\"hits\"></td>\n178:<td class=\"hits\"></td>\n183:<td class=\"hits\"></td>\n188:<td class=\"hits\"></td>\n193:<td class=\"hits\"></td>\n198:<td class=\"hits\"></td>\n203:<td class=\"hits\"></td>\n208:<td class=\"hits\"></td>\n213:<td class=\"hits\"></td>\n218:<td class=\"hits\"></td>\n223:<td class=\"hits\"></td>\n228:<td class=\"hits\">11</td>\n233:<td class=\"hits\"></td>\n238:<td class=\"hits\"></td>\n243:<td class=\"hits\"></td>\n248:<td class=\"hits\">12</td>\n253:<td class=\"hits\">1</td>\n258:<td class=\"hits\">1</td>\n263:<td class=\"hits\">1</td>\n268:<td class=\"hits\">1</td>\n273:<td class=\"hits\">1</td>\n278:<td class=\"hits\">1</td>\n283:<td class=\"hits\"></td>\n288:<td class=\"hits\"><pre style=\"display: inline;\">:-(</pre></td>\n293:<td class=\"hits\"><pre style=\"display: inline;\">:-(</pre></td>\n298:<td class=\"hits\"><pre style=\"display: inline;\">:-(</pre></td>\n303:<td class=\"hits\"></td>\n308:<td class=\"hits\"></td>\n313:<td class=\"hits\"></td>\n318:<td class=\"hits\"></td>\n323:<td class=\"hits\"></td>\n328:<td class=\"hits\"></td>\n333:<td class=\"hits\">6</td>\n338:<td class=\"hits\"></td>\n343:<td class=\"hits\"><pre style=\"display: inline;\">:-(</pre></td>\n348:<td class=\"hits\"></td>\n353:<td class=\"hits\"></td>\n358:<td class=\"hits\"></td>\n363:<td class=\"hits\"><pre style=\"display: inline;\">:-(</pre></td>\n368:<td class=\"hits\"></td>\n373:<td class=\"hits\"></td>\n378:<td class=\"hits\"></td>\n383:<td class=\"hits\">1</td>\n388:<td class=\"hits\">1</td>\n393:<td class=\"hits\">1</td>\n398:<td class=\"hits\">1</td>\n403:<td class=\"hits\">1</td>\n408:<td class=\"hits\">1</td>\n413:<td class=\"hits\">1</td>\n418:<td class=\"hits\"></td>\n423:<td class=\"hits\"></td>\n428:<td class=\"hits\"></td>\n433:<td class=\"hits\"></td>\n438:<td class=\"hits\"></td>\n443:<td class=\"hits\"></td>\n448:<td class=\"hits\"></td>\n453:<td class=\"hits\"></td>\n458:<td class=\"hits\"></td>\n463:<td class=\"hits\">1</td>\n468:<td class=\"hits\"></td>\n473:<td class=\"hits\"><pre style",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}

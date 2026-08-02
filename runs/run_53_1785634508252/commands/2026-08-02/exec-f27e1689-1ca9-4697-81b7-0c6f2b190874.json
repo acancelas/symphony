@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f27e1689-1ca9-4697-81b7-0c6f2b190874",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785638053261_1030",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:34:13.185Z",
+  "command": "/bin/bash -lc \"awk 'BEGIN{RS=\\\"</tr>\\\"} /:-\\\\(/ {gsub(/<[\"'^>]*>/,\" \"); gsub(/&quot;/,\"'\"\\\\\\\"\\\"); gsub(/&gt;/,\\\"> \\\"); gsub(/&lt;/,\\\"<\\\"); gsub(/&amp;/,\\\"\\\\&\\\"); print}' cover/Elixir.SymphonyElixir.GoalExecution.html\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "awk: cmd. line:1: warning: escape sequence `\\&' treated as plain `&'\n\n \n  29  \n  :-(  \n          nil ->  :unmanaged  \n\n\n \n  30  \n  :-(  \n          {:error, reason} ->  {:error, reason}  \n\n\n \n  31  \n  :-(  \n          _ ->  {:error, :invalid_goal_execution_identity}  \n\n\n \n  40  \n  :-(  \n    defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, decision)  \n\n\n \n  44  \n  :-(  \n    defp authorize(_client, _native_ref, _projection, _issue_number, _task_kind, _requested, :unmanaged),  \n\n\n \n  66  \n  :-(  \n          nil ->  {:error, :missing_goal_authorization_id}  \n\n\n \n  67  \n  :-(  \n          {:error, reason} ->  {:error, reason}  \n\n\n \n  68  \n  :-(  \n          _ ->  {:error, :invalid_goal_execution_check}  \n\n\n \n  93  \n  :-(  \n          do: Map.put(identity, \"derivedFromIssueNumber\", issue_number),  \n\n\n \n  112  \n  :-(  \n        value(checked, \"authorized\") == true ->   \n\n\n \n  115  \n  :-(  \n        status in [\"paused\", \"blocked\", \"denied\", \"exhausted\"] ->   \n\n\n \n  116  \n  :-(  \n          reason = value(checked, \"reason\") || value(checked, \"code\") || \"goal_execution_paused\"  \n\n\n \n  119  \n  :-(  \n        true ->   \n\n\n \n  174  \n  :-(  \n        not approved?(approval, proposal) ->   \n\n\n \n  203  \n  :-(  \n    defp approved?(_, _), do: false  \n\n\n \n  270  \n  :-(  \n        _ ->  nil  \n\n\n \n  274  \n  :-(  \n    defp parse_datetime(_), do: nil  \n\n\n \n  281  \n  :-(  \n          {map_key, value} when is_atom(map_key) ->  if Atom.to_string(map_key) == key, do: value  \n\n\n \n  286  \n  :-(  \n    defp value(_, _), do: nil  \n\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
