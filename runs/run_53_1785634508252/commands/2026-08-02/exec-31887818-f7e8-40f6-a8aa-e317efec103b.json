@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-31887818-f7e8-40f6-a8aa-e317efec103b",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785638100022_1047",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:35:00.022Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format && mise exec -- mix test test/symphony_elixir/goal_execution_test.exs --cover'",
+  "durationMs": 3363,
+  "environmentPolicy": "restricted",
+  "exitCode": 3,
+  "outputSummary": "Cover compiling modules ...\nRunning ExUnit with seed: 444441, max_cases: 20\n\n....\n\n  1) test gateway checks fail closed and preserve pause decisions (SymphonyElixir.GoalExecutionTest)\n     test/symphony_elixir/goal_execution_test.exs:107\n     match (=) failed\n     code:  assert {:error, :missing_goal_authorization_id} =\n              GoalExecution.check(ConfigurableGatewayClient, issue, :included_issue)\n     left:  {:error, :missing_goal_authorization_id}\n     right: {:ok,\n             %{\n               proposal: %{\n                 \"budget\" => %{\n                   \"maxAttempts\" => 5,\n                   \"maxCostUsd\" => 10.0,\n                   \"maxTokens\" => 1000\n                 },\n                 \"executionWindow\" => %{\n                   \"endsAt\" => \"2026-08-03T00:00:00Z\",\n                   \"startsAt\" => \"2026-08-02T00:00:00Z\"\n                 },\n                 \"includedIssueNumbers\" => ~c\"56\",\n                 \"issueNumber\" => 22,\n                 \"proposalId\" => \"proposal-1\",\n                 \"repairPolicy\" => \"strictly_derived\",\n                 \"version\" => 4\n               },\n               approval: %{\n                 \"approvalId\" => \"approval-1\",\n                 \"proposalVersion\" => 4,\n                 \"status\" => \"approved\"\n               },\n               consumption: %{\n                 \"attempts\" => 1,\n                 \"costUsd\" => 1.0,\n                 \"tokens\" => 100\n               },\n               scope_frozen: false,\n               authorization_id: \"approval-1\"\n             }}\n     stacktrace:\n       test/symphony_elixir/goal_execution_test.exs:122: (test)\n\n....\nFinished in 0.1 seconds (0.1s async, 0.00s sync)\n9 tests, 1 failure\n\nGenerating cover results ...\n\n| Percentage | Module                                     |\n|------------|--------------------------------------------|\n|      0.00% | Mix.Tasks.PrBody.Check                     |\n|      0.00% | Mix.Tasks.Specs.Check                      |\n|      0.00% | Mix.Tasks.Workspace.BeforeRemo",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
