@@ -1,0 +1,40 @@
+{
+  "reviewId": "review_run_53_1785634508252_3_functional_aed939a508bf",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "reviewType": "functional",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "commitSha": "aed939a508bf0ae1aca96532bf35a39dc3254b19",
+  "status": "passed",
+  "findings": [
+    {
+      "criterion": "All included subtasks run without new approval",
+      "status": "passed",
+      "finding": "Each managed AgentRunner implementation turn re-fetches the canonical Goal execution projection, inherits the exact approved proposal, and obtains a gateway authorization check before starting Codex; malformed managed repository or issue identity fails closed."
+    },
+    {
+      "criterion": "Derived repairs inherit authorization",
+      "status": "passed",
+      "finding": "DeliveryCoordinator gates every bounded repair cycle with taskKind derived_repair, includes derivedFromIssueNumber in inherited authorization, uses a distinct stable cycle check identity, and caps repairs at two cycles."
+    },
+    {
+      "criterion": "New scope and higher ceilings pause for one Goal decision",
+      "status": "passed",
+      "finding": "Local fail-fast evaluation and the authoritative gateway check pause pending scope changes, non-included issues, closed execution windows, exhausted or exceeded aggregate ceilings, and malformed projections; no local path expands scope or ceilings."
+    },
+    {
+      "criterion": "Pause and resume preserve remaining authorization",
+      "status": "passed",
+      "finding": "Every logical turn and repair cycle re-reads canonical aggregate consumption and exact proposal/approval identity; stable per-turn and per-cycle operation IDs make retries idempotent without resetting or replaying budget across later checks."
+    },
+    {
+      "area": "exact_commit_evidence",
+      "status": "passed",
+      "finding": "Local HEAD and remote refs/heads/bos/issue-53 both equal aed939a508bf0ae1aca96532bf35a39dc3254b19; the workspace is clean. Confirmed exact-commit evidence reports mix format --check-formatted, mix test (385 tests, 0 failures, 2 skipped), git diff --check, and the targeted goal_execution_test.exs suite (11 tests, 0 failures) passing."
+    }
+  ],
+  "summary": "Passed: exact local and remote candidate SHA match, the workspace is clean, exact-commit validation is affirmative, and targeted inspection confirms fail-closed single-Goal authorization, inherited bounded repairs, authoritative shared budget/window enforcement, and retry-safe pause/resume behavior."
+}
