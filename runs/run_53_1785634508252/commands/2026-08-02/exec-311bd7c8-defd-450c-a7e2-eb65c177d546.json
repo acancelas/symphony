@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-311bd7c8-defd-450c-a7e2-eb65c177d546",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637799687_949",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:29:59.687Z",
+  "command": "/bin/bash -lc 'mise exec -- mix format lib/symphony_elixir/game_api/client.ex lib/symphony_elixir/goal_execution.ex test/symphony_elixir/goal_execution_test.exs; mise exec -- mix test test/symphony_elixir/goal_execution_test.exs test/symphony_elixir/delivery_coordinator_test.exs'",
+  "durationMs": 2259,
+  "environmentPolicy": "restricted",
+  "exitCode": 2,
+  "outputSummary": "Compiling 3 files (.ex)\n    warning: variable \"authorization\" is unused (if the variable is not meant to be used, prefix it with an underscore)\n    │\n 77 │     authorization = [REDACTED] \"authorization\") || %{}\n    │     ~~~~~~~~~~~~~\n    │\n    └─ lib/symphony_elixir/goal_execution.ex:77:5: SymphonyElixir.GoalExecution.authorization_identity/4\n\nGenerated symphony_elixir app\nRunning ExUnit with seed: 326472, max_cases: 20\n\n..\n\n  1) test inherits once and checks the shared gateway budget before an authorized turn (SymphonyElixir.GoalExecutionTest)\n     test/symphony_elixir/goal_execution_test.exs:75\n     ** (UndefinedFunctionError) function GoalExecutionTest.projection_for_gateway/0 is undefined (module GoalExecutionTest is not available). Did you mean:\n\n           * SymphonyElixir.GoalExecutionTest.projection_for_gateway/0\n\n     code: GoalExecution.check(GatewayClient, issue, :included_issue, %{\"attempts\" => 1})\n     stacktrace:\n       GoalExecutionTest.projection_for_gateway()\n       test/symphony_elixir/goal_execution_test.exs:7: SymphonyElixir.GoalExecutionTest.GatewayClient.fetch_goal_execution/2\n       (symphony_elixir 0.0.1) lib/symphony_elixir/goal_execution.ex:23: SymphonyElixir.GoalExecution.check/4\n       test/symphony_elixir/goal_execution_test.exs:79: (test)\n\n...    warning: GoalExecutionTest.projection_for_gateway/0 is undefined (module GoalExecutionTest is not available or is yet to be defined). Did you mean:\n\n          * SymphonyElixir.GoalExecutionTest.projection_for_gateway/0\n\n    │\n  7 │     def fetch_goal_execution(\"symphony\", 53), do: {:ok, GoalExecutionTest.projection_for_gateway()}\n    │                                                                           ~\n    │\n    └─ test/symphony_elixir/goal_execution_test.exs:7:75: SymphonyElixir.GoalExecutionTest.GatewayClient.fetch_goal_execution/2\n\n...........\nFinished in 0.2 seconds (0.1s async, 0.02s sync)\n17 tests, 1 failure\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "long"
+  }
+}
