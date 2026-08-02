@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-2aa5f079-346f-46dc-b048-a5dfa296e6a8",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642847179_1734",
+  "actor": {
+    "type": "agent",
+    "subjectId": "repair-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:54:07.179Z",
+  "command": "/bin/bash -lc \"sed -n '261,520p' SPEC.md && sed -n '521,900p' SPEC.md && sed -n '241,520p' elixir/README.md && sed -n '521,900p' elixir/README.md && git status --porcelain=v1 && git rev-parse HEAD\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "- `last_reported_input_tokens` (integer)\n- `last_reported_output_tokens` (integer)\n- `last_reported_total_tokens` (integer)\n- `turn_count` (integer)\n  - Number of coding-agent turns started within the current worker lifetime.\n\n#### 4.1.7 Retry Entry\n\nScheduled retry state for an issue.\n\nFields:\n\n- `issue_id`\n- `identifier` (best-effort human ID for status surfaces/logs)\n- `attempt` (integer, 1-based for retry queue)\n- `due_at_ms` (monotonic clock timestamp)\n- `timer_handle` (runtime-specific timer reference)\n- `error` (string or null)\n\n#### 4.1.8 Orchestrator Runtime State\n\nSingle authoritative in-memory state owned by the orchestrator.\n\nFields:\n\n- `poll_interval_ms` (current effective poll interval)\n- `max_concurrent_agents` (current effective global concurrency limit)\n- `running` (map `issue_id -> running entry`)\n- `claimed` (set of issue IDs reserved/running/retrying)\n- `retry_attempts` (map `issue_id -> RetryEntry`)\n- `completed` (set of issue IDs; bookkeeping only, not dispatch gating)\n- `codex_totals` (aggregate tokens + runtime seconds)\n- `codex_rate_limits` (latest rate-limit snapshot from agent events)\n\n### 4.2 Stable Identifiers and Normalization Rules\n\n- `Issue ID`\n  - Use for tracker refresh calls and internal map keys.\n  - Treat it as an opaque dispatch identity; do not assume it is the provider's underlying ticket\n    ID.\n- `Native Ref`\n  - Preserve as opaque non-secret [REDACTED] for provider-native agent tools and prompt rendering.\n  - Never use it as an orchestrator map key or interpret provider-specific fields in core logic.\n- `Issue Identifier`\n  - Use for human-readable logs and workspace naming.\n  - Require uniqueness within the configured tracker scope.\n- `Workspace Key`\n  - Derive from `issue.identifier` by replacing any character not in `[A-Za-z0-9._-]` with `_`.\n  - If sanitization changes the identifier, append a stable hash suffix of the original identifier\n    with at least 64 bits of entropy using only allowed workspace-key characters, m",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
