@@ -1,0 +1,31 @@
+{
+  "reviewId": "review_run_53_1785634508252_1_quality_c76711aaa1c8",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "reviewType": "quality",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "commitSha": "c76711aaa1c85728377695c67b607bedab162dba",
+  "status": "changes_requested",
+  "findings": [
+    {
+      "severity": "high",
+      "code": "execution_window_fail_open",
+      "path": "elixir/lib/symphony_elixir/goal_execution.ex",
+      "line": 221,
+      "summary": "Malformed or incomplete execution-window timestamps authorize work instead of failing closed.",
+      "detail": "parse_datetime/1 maps invalid timestamps to nil and outside_window?/2 treats nil bounds as unrestricted. The added test at goal_execution_test.exs:180-181 explicitly expects authorization for malformed startsAt. Invalid or missing approved-window bounds must pause or error."
+    },
+    {
+      "severity": "high",
+      "code": "reused_gateway_check_operation_id",
+      "path": "elixir/lib/symphony_elixir/goal_execution.ex",
+      "line": 60,
+      "summary": "Successive gateway authorization checks reuse one operationId.",
+      "detail": "The key uses only runId, taskKind, and action although checkedAt and requestedConsumption can change. Distinct turns or repair cycles can replay a stale idempotent result or conflict instead of obtaining a fresh authoritative decision. Use a stable unique identity per logical turn or cycle and test repeated checks."
+    }
+  ],
+  "summary": "Local and remote refs match the exact SHA and exact-commit format, 383-test, and diff-check evidence passes, but execution-window parsing fails open and successive gateway checks are not uniquely identified. Changes are required for reliable Goal authorization enforcement."
+}
