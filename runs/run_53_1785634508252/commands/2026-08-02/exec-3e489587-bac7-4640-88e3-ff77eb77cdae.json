@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-3e489587-bac7-4640-88e3-ff77eb77cdae",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643236832_1909",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:00:36.718Z",
+  "command": "/bin/bash -lc 'grep -RInE \"inherit_goal_authorization|check_goal_execution|requestedConsumption|authorizationId|operationId\" elixir/lib elixir/test SPEC.md elixir/README.md | head -240'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "elixir/lib/symphony_elixir/goal_execution.ex:55:    if function_exported?(client, :inherit_goal_authorization, 1) and\nelixir/lib/symphony_elixir/goal_execution.ex:56:         function_exported?(client, :check_goal_execution, 1) do\nelixir/lib/symphony_elixir/goal_execution.ex:58:           {:ok, inherited} <- client.inherit_goal_authorization(identity),\nelixir/lib/symphony_elixir/goal_execution.ex:61:             client.check_goal_execution(%{\nelixir/lib/symphony_elixir/goal_execution.ex:63:               \"authorizationId\" => authorization_id,\nelixir/lib/symphony_elixir/goal_execution.ex:67:               \"operationId\" => operation_id(native_ref, task_kind, \"check_#{check_key}\"),\nelixir/lib/symphony_elixir/goal_execution.ex:68:               \"requestedConsumption\" => requested\nelixir/lib/symphony_elixir/goal_execution.ex:81:    value(inherited, \"authorizationId\") || value(inherited, \"authorization_id\") || identity[\"authorizationId\"]\nelixir/lib/symphony_elixir/goal_execution.ex:90:      \"authorizationId\" => authorization_id(projection, approval),\nelixir/lib/symphony_elixir/goal_execution.ex:94:      \"operationId\" => operation_id(native_ref, task_kind, \"inherit\"),\nelixir/lib/symphony_elixir/goal_execution.ex:295:    value(authorization, \"authorizationId\") || value(authorization, \"authorization_id\") ||\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:62:           \"operationId\" => \"pr_ready_#{run_id}_#{head_sha}\",\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:105:    Read it, then call bos_mark_pull_request_ready exactly for its operationId,\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:185:      ~w(schemaVersion operationId repositoryId issueNumber runId pullRequestNumber expectedHeadSha),\nelixir/lib/symphony_elixir/post_approval_coordinator.ex:261:         \"operationId\" => \"runtime_probe_#{probe[\"probeId\"]}\",\nelixir/lib/symphony_elixir/audit/outbox.ex:136:        \"operationId\" => \"op_#{event_id}\",\nelixir/lib/symphony_elixir/audit/outbox.ex:1",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
