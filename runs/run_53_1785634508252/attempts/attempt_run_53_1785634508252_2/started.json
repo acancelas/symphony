@@ -1,0 +1,12 @@
+{
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "runId": "run_53_1785634508252",
+  "number": 2,
+  "status": "running",
+  "actor": {
+    "type": "runner",
+    "subjectId": "x1"
+  },
+  "startedAt": "2026-08-02T02:26:28.559000Z",
+  "metrics": {}
+}
