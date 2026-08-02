@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9e4af015-34e8-448c-887d-ba8211fe3224",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785643227962_1906",
+  "actor": {
+    "type": "agent",
+    "subjectId": "security-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T04:00:27.848Z",
+  "command": "/bin/bash -lc 'rg -n \"inherit_goal_authorization|check_goal_execution|requestedConsumption|authorizationId|operationId\" elixir/lib elixir/test SPEC.md elixir/README.md | head -240'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
