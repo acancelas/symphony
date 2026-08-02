@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-227e12e9-ed9e-43a9-8a9e-d0ccafcc0903",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641334578_1103",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:28:54.489Z",
+  "command": "/bin/bash -lc 'git diff --stat && git diff -- elixir/lib/symphony_elixir/goal_execution.ex elixir/lib/symphony_elixir/agent_runner.ex elixir/lib/symphony_elixir/game_api/client.ex elixir/test/symphony_elixir/goal_execution_test.exs elixir/README.md'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": " elixir/README.md                                   |   8 +\n elixir/lib/symphony_elixir/agent_runner.ex         |  22 ++-\n elixir/lib/symphony_elixir/game_api/client.ex      |  24 +++\n elixir/lib/symphony_elixir/goal_execution.ex       | 171 ++++++++++++++++++---\n .../test/symphony_elixir/goal_execution_test.exs   | 140 +++++++++++++++++\n 5 files changed, 341 insertions(+), 24 deletions(-)\ndiff --git a/elixir/README.md b/elixir/README.md\nindex edb3b420..2870ba26 100644\n--- a/elixir/README.md\n+++ b/elixir/README.md\n@@ -79,6 +79,14 @@ session, so Symphony resets its comparison watermark—not its cumulative totals\n role starts a fresh session. Operational token budgets should use uncached input while retaining\n the full totals for capacity and audit reporting.\n \n+Goal-authorized work reuses one exact approved proposal for every included Issue and strictly\n+derived repair. Before each implementation turn or repair cycle, Symphony idempotently inherits\n+that authorization and asks `game-api` to enforce the shared execution window and aggregate\n+attempt, token, and cost ceilings. At 75 percent consumption the scope is frozen; at 100 percent\n+no new turn starts. Restarts and provider pauses re-read the confirmed projection, so they cannot\n+replenish remaining authorization. New scope, a larger ceiling, or a new window stays paused at\n+one Goal-level decision boundary. Specialist delivery remains bounded to two repair cycles.\n+\n Tests that start operating-system processes own their complete lifecycle. Long-running shell, Git,\n Codex, FIFO, SSH, and helper commands are tagged with a unique test owner and register an `on_exit`\n callback before launch. Teardown sends TERM, waits for a bounded interval, escalates to KILL, and\ndiff --git a/elixir/lib/symphony_elixir/agent_runner.ex b/elixir/lib/symphony_elixir/agent_runner.ex\nindex 901c3a41..cde8c41d 100644\n--- a/elixir/lib/symphony_elixir/agent_runner.ex\n+++ b/elixir/lib/symphony_elixir/agent_runner.ex\n@@ -208,10 +208,28 @@ defm",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
