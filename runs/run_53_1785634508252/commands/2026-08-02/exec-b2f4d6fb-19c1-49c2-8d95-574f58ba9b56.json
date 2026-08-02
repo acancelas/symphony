@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b2f4d6fb-19c1-49c2-8d95-574f58ba9b56",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785641973896_1343",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:39:33.813Z",
+  "command": "/bin/bash -lc \"sed -n '740,785p' $WORKSPACE/.bos/install/game-api-main/models/bos_delivery.py && sed -n '930,975p' $WORKSPACE/.bos/install/game-api-main/tests/test_bos_delivery_audit.py && grep -RIn \\\"Artifact.*Request\\\\|artifact.*kind\\\\|record_artifact\\\" $WORKSPACE/.bos/install/game-api-main/models $WORKSPACE/.bos/install/game-api-main/services $WORKSPACE/.bos/install/game-api-main/routers --include='*.py' | head -n 160\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "    started_at: datetime = Field(alias=\"startedAt\")\n    completed_at: datetime | None = Field(default=None, alias=\"completedAt\")\n    branch: str | None = None\n    base_commit: str | None = Field(default=None, alias=\"baseCommit\")\n    head_commit: str | None = Field(default=None, alias=\"headCommit\")\n    pull_request_number: int | None = Field(default=None, alias=\"pullRequestNumber\", ge=1)\n    current_attempt_id: str | None = Field(default=None, alias=\"currentAttemptId\")\n    reconciliation: dict[str, Any] | None = None\n\n\nclass AttemptRecord(DeliveryModel):\n    attempt_id: str = Field(alias=\"attemptId\", min_length=1)\n    run_id: str = Field(alias=\"runId\", min_length=1)\n    number: int = Field(ge=1)\n    status: Literal[\"running\", \"passed\", \"failed\", \"blocked\", \"cancelled\"]\n    actor: AuditActor\n    started_at: datetime = Field(alias=\"startedAt\")\n    completed_at: datetime | None = Field(default=None, alias=\"completedAt\")\n    reason: str | None = Field(default=None, max_length=2000)\n    summary: str | None = Field(default=None, max_length=5000)\n    metrics: dict[str, Any] = Field(default_factory=dict)\n\n\nclass DeliveryReview(DeliveryModel):\n    review_id: str = Field(alias=\"reviewId\", min_length=1)\n    run_id: str = Field(alias=\"runId\", min_length=1)\n    attempt_id: str | None = Field(default=None, alias=\"attemptId\")\n    review_type: Literal[\"functional\", \"architecture\", \"security\", \"quality\", \"visual\"] = Field(alias=\"reviewType\")\n    actor: AuditActor\n    commit_sha: str = Field(alias=\"commitSha\", pattern=r\"^[0-9a-f]{7,40}$\")\n    status: Literal[\"passed\", \"changes_requested\", \"inconclusive\"]\n    findings: list[dict[str, Any]] = Field(default_factory=list)\n    summary: str = Field(min_length=1, max_length=5000)\n\n\nclass EvidenceReport(DeliveryModel):\n    evidence_id: str = Field(alias=\"evidenceId\", min_length=1)\n    run_id: str = Field(alias=\"runId\", min_length=1)\n    commit_sha: str = Field(alias=\"commitSha\", pattern=r\"^[0-9a-f]{7,40}$\")\n    status: Literal[\"passed\", \"fail",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
