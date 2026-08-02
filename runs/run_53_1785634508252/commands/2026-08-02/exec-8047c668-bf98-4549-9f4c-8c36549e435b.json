@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-8047c668-bf98-4549-9f4c-8c36549e435b",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637883044_978",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:31:22.965Z",
+  "command": "/bin/bash -lc \"grep -R \\\"def .*\\\\\\\\\\\\\\\\\\\" -n lib/symphony_elixir | head -20\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "lib/symphony_elixir/prompt_builder.ex:11:  def build_prompt(issue, opts \\\\ []) do\nlib/symphony_elixir/workflow_store.ex:22:  def start_link(opts \\\\ []) do\nlib/symphony_elixir/candidate_head.ex:20:  def confirm(workspace, %Issue{} = issue, worker_host \\\\ nil, opts \\\\ [])\nlib/symphony_elixir/goal_execution.ex:17:  def check(client, issue, task_kind, requested \\\\ %{})\nlib/symphony_elixir/goal_execution.ex:131:  def evaluate(projection, issue_number, task_kind, requested \\\\ %{}, now \\\\ DateTime.utc_now())\nlib/symphony_elixir/cli.ex:39:  def evaluate(args, deps \\\\ runtime_deps()) do\nlib/symphony_elixir/codex/app_server.ex:32:  def run(workspace, prompt, issue, opts \\\\ []) do\nlib/symphony_elixir/codex/app_server.ex:43:  def start_session(workspace, opts \\\\ []) do\nlib/symphony_elixir/codex/turn_budget.ex:27:  def new(role, limits, now_ms \\\\ System.monotonic_time(:millisecond)) do\nlib/symphony_elixir/codex/turn_budget.ex:64:  def actions(state, now_ms \\\\ System.monotonic_time(:millisecond)) do\nlib/symphony_elixir/codex/turn_budget.ex:91:  def snapshot(state, now_ms \\\\ System.monotonic_time(:millisecond)) do\nlib/symphony_elixir/codex/dynamic_tool.ex:9:  def execute(tool, arguments, binding, opts \\\\ []) do\nlib/symphony_elixir/specs_check.ex:13:  def missing_public_specs(paths, opts \\\\ []) do\nlib/symphony_elixir/orchestrator.ex:56:  def start_link(opts \\\\ []) do\nlib/symphony_elixir/audit/outbox.ex:43:  def start_link(opts \\\\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)\nlib/symphony_elixir/audit/outbox.ex:504:  def repair_recovered_chains(runs, root, remote_resolver \\\\ &recover_remote_state/1)\nlib/symphony_elixir/game_api/provider_circuit.ex:20:  def before_request(scope \\\\ :delivery) do\nlib/symphony_elixir/game_api/provider_circuit.ex:43:  def rate_limited(provider_retry_ms \\\\ nil, scope \\\\ :delivery) do\nlib/symphony_elixir/game_api/provider_circuit.ex:81:  def succeeded(scope \\\\ :delivery) do\nlib/symphony_elixir/config.ex:65:  def codex_turn_sandbox_polic",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53/elixir",
+  "retention": {
+    "category": "permanent"
+  }
+}
