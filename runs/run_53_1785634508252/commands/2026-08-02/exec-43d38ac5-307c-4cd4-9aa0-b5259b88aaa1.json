@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-43d38ac5-307c-4cd4-9aa0-b5259b88aaa1",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785637642295_868",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T02:27:22.217Z",
+  "command": "/bin/bash -lc \"pwd && rg --files -g 'AGENTS.md' -g 'README.md' -g 'SPEC.md' -g 'WORKFLOW.md' -g '.bos/project.yaml' -g '*README*' | sort && git status --short --branch && git log -5 --oneline --decorate\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "$WORKSPACE/.bos/worktrees/symphony-53\n/bin/bash: line 1: rg: command not found\n## bos/issue-53\ne7fdbe95 (HEAD -> bos/issue-53) feat(goal): enforce shared execution authorization\n1006d6cf (origin/main, origin/HEAD, main) fix: (#55)\n2aba135c fix: reconcile capacity-waiting claims (#52)\n8c2ec23a Serialize delivery capacity per repository (#50)\n826a2533 Merge pull request #48 from acancelas/bos/trusted-local-mcp\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
