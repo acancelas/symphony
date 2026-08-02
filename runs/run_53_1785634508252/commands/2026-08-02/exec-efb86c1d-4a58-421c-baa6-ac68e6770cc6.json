@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-efb86c1d-4a58-421c-baa6-ac68e6770cc6",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_2",
+  "eventId": "event_1785642629300_1629",
+  "actor": {
+    "type": "agent",
+    "subjectId": "quality-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-02T03:50:29.210Z",
+  "command": "/bin/bash -lc 'git log --oneline --decorate -5 && git merge-base origin/main HEAD && git diff --stat origin/main...HEAD && git diff --unified=40 origin/main...HEAD -- elixir/lib/symphony_elixir/goal_execution.ex elixir/lib/symphony_elixir/agent_runner.ex elixir/lib/symphony_elixir/delivery_coordinator.ex elixir/test/symphony_elixir/goal_execution_test.exs'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "39d62e93 (HEAD -> bos/issue-53, origin/bos/issue-53) fix(goal): fail closed on invalid authorization state\nc76711aa fix(goal): enforce gateway authorization before every turn\ne7fdbe95 feat(goal): enforce shared execution authorization\n1006d6cf (origin/main, origin/HEAD, main) fix: (#55)\n2aba135c fix: reconcile capacity-waiting claims (#52)\n1006d6cf75a4f19f0e39c9e2e538e1f5f5f87f83\n elixir/README.md                                   |   8 +\n elixir/lib/symphony_elixir/agent_runner.ex         |  37 +++\n elixir/lib/symphony_elixir/delivery_coordinator.ex |  12 +-\n elixir/lib/symphony_elixir/game_api/client.ex      |  32 ++\n elixir/lib/symphony_elixir/goal_execution.ex       | 321 +++++++++++++++++++++\n .../symphony_elixir/delivery_coordinator_test.exs  |  22 ++\n .../test/symphony_elixir/goal_execution_test.exs   | 257 +++++++++++++++++\n 7 files changed, 688 insertions(+), 1 deletion(-)\ndiff --git a/elixir/lib/symphony_elixir/agent_runner.ex b/elixir/lib/symphony_elixir/agent_runner.ex\nindex 9222794d..9dee885b 100644\n--- a/elixir/lib/symphony_elixir/agent_runner.ex\n+++ b/elixir/lib/symphony_elixir/agent_runner.ex\n@@ -1,52 +1,53 @@\n defmodule SymphonyElixir.AgentRunner do\n   @moduledoc \"\"\"\n   Executes a single tracker work item in its workspace with Codex.\n   \"\"\"\n \n   require Logger\n   alias SymphonyElixir.Codex.AppServer\n   alias SymphonyElixir.Codex.CommandPolicy\n \n   alias SymphonyElixir.{\n     Config,\n     DeliveryCoordinator,\n+    GoalExecution,\n     GoalPlanningCoordinator,\n     PostApprovalCoordinator,\n     PromptBuilder,\n     Tracker,\n     Workspace\n   }\n \n   alias SymphonyElixir.Tracker.Issue\n \n   @type worker_host :: String.t() | nil\n \n   @doc false\n   @spec continue_with_issue_for_test(Issue.t(), ([String.t()] -> term())) ::\n           {:continue, Issue.t()} | {:done, Issue.t()} | {:error, term()}\n   def continue_with_issue_for_test(%Issue{} = issue, issue_state_fetcher)\n       when is_function(issue_state_fetcher, 1) do\n     continue_with_issue?(issue, issue_s",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-53",
+  "retention": {
+    "category": "permanent"
+  }
+}
