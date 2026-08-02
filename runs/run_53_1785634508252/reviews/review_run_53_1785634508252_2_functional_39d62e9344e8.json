@@ -1,0 +1,40 @@
+{
+  "reviewId": "review_run_53_1785634508252_2_functional_39d62e9344e8",
+  "runId": "run_53_1785634508252",
+  "attemptId": "attempt_run_53_1785634508252_1",
+  "reviewType": "functional",
+  "actor": {
+    "type": "agent",
+    "subjectId": "functional-reviewer"
+  },
+  "commitSha": "39d62e9344e89094b448b3f57f30fcd12310841b",
+  "status": "passed",
+  "findings": [
+    {
+      "criterion": "All included subtasks run without new approval",
+      "status": "passed",
+      "finding": "Every included implementation turn re-fetches canonical Goal execution, inherits the exact approved proposal, and performs a distinct stable gateway authorization/budget check before Codex runs."
+    },
+    {
+      "criterion": "Derived repairs inherit authorization",
+      "status": "passed",
+      "finding": "Each bounded delivery repair cycle checks strictly-derived authorization and supplies derivedFromIssueNumber through the gateway inheritance contract; the default repair limit is two cycles."
+    },
+    {
+      "criterion": "New scope and higher ceilings pause for one Goal decision",
+      "status": "passed",
+      "finding": "Pending Goal changes, excluded issues, closed windows, exhausted aggregate ceilings, and malformed proposal, budget, consumption, or requested-consumption state all fail closed before work proceeds."
+    },
+    {
+      "criterion": "Pause and resume preserve remaining authorization",
+      "status": "passed",
+      "finding": "Checks re-read canonical aggregate consumption for each logical turn or cycle, retain the approved proposal identity, and use retry-stable but turn-distinct operation IDs without locally replenishing budget."
+    },
+    {
+      "criterion": "Exact candidate and affirmative evidence",
+      "status": "passed",
+      "finding": "Local HEAD and the live remote refs/heads/bos/issue-53 both equal 39d62e9344e89094b448b3f57f30fcd12310841b; exact-commit evidence records mix format, 385 tests with 0 failures (2 skipped), and git diff --check passing."
+    }
+  ],
+  "summary": "Passed functional review: the exact candidate enforces one inherited Goal approval, gateway-owned shared limits and windows, fail-closed scope changes, preserved authorization across resume, and no more than two repair cycles, with affirmative exact-commit test evidence."
+}
