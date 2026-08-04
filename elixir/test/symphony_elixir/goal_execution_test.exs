@@ -278,7 +278,7 @@ defmodule SymphonyElixir.GoalExecutionTest do
         "version" => 4,
         "includedIssueNumbers" => [53, 54],
         "repairPolicy" => "strictly_derived",
-        "executionWindow" => %{"startsAt" => "2026-08-02T00:00:00Z", "endsAt" => "2026-08-03T00:00:00Z"},
+        "executionWindow" => %{"startsAt" => "2026-08-02T00:00:00Z", "endsAt" => "2099-08-03T00:00:00Z"},
         "budget" => %{"maxAttempts" => 5, "maxTokens" => 1_000, "maxCostUsd" => 10.0}
       },
       "approval" => %{"approvalId" => "approval-1", "proposalVersion" => 4, "status" => "approved"},
