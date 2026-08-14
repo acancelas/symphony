@@ -1,0 +1,69 @@
+{
+  "evidenceId": "evidence-consolidation-sym-20260814-v2",
+  "runId": "run-60-consolidation-20260814-x1",
+  "commitSha": "18847afc8013a0169aee9536bf9387448e54c914",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "name": "Todos los commits y worktrees sustantivos están integrados sin sobrescritura",
+      "status": "passed"
+    },
+    {
+      "name": "La rama está basada en el último main remoto",
+      "status": "passed"
+    },
+    {
+      "name": "La QA completa pasa en el commit exacto",
+      "status": "passed"
+    },
+    {
+      "name": "El flujo funcional pasa en runtime y navegador integrado",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "complete_qa_suite",
+      "status": "passed",
+      "complete": true,
+      "commands": [
+        "make -C elixir all"
+      ]
+    },
+    {
+      "kind": "local_runtime",
+      "status": "passed",
+      "environment": "local",
+      "healthy": true,
+      "commands": [
+        "BOS_OUTBOX_ROOT=/tmp/bos-goal216-symphony-outbox mix phx.server",
+        "GET http://127.0.0.1:8063"
+      ]
+    },
+    {
+      "kind": "x1_browser_functional",
+      "status": "passed",
+      "runnerId": "x1",
+      "browser": "integrated",
+      "functionalFlowStatus": "passed",
+      "consoleErrors": 0,
+      "networkErrors": 0,
+      "authenticationRequired": false,
+      "authenticatedSession": false
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "pull_request",
+      "status": "passed",
+      "headSha": "18847afc8013a0169aee9536bf9387448e54c914"
+    }
+  ],
+  "residualRisk": [
+    {
+      "checkId": "dependency-audit",
+      "finding": "Phoenix LiveView 1.2.7 mantiene CVE-2026-64941 baja; incidencia BOS MCP #218."
+    }
+  ],
+  "summary": "Consolidación completa del repositorio, QA y flujo funcional verificados en el commit exacto."
+}

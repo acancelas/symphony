@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run-60-consolidation-20260814-x1",
-  "lastSequence": 7,
-  "lastEventHash": "sha256:ee0285c111ba407abec0c0f568e0b2ace4019c452893989a49903055e1ed0e9a",
-  "lastEventId": "event_6f73d9e07d87af031a35ab68f4",
-  "updatedAt": "2026-08-14T18:51:50.493429Z"
+  "lastSequence": 8,
+  "lastEventHash": "sha256:c7e7e25f640e343a883f4d59be728fe23b762777cfe20b7cd52c3ae1dab27f03",
+  "lastEventId": "event_003dc60cef77dd278d2f3d1123",
+  "updatedAt": "2026-08-14T19:02:23.110413Z"
 }
