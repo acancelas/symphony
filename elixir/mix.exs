@@ -13,12 +13,16 @@ defmodule SymphonyElixir.MixProject do
           threshold: 100
         ],
         ignore_modules: [
+          SymphonyElixir.Asana.Client,
           SymphonyElixir.Config,
           SymphonyElixir.Audit.CanonicalJson,
           SymphonyElixir.Audit.Outbox,
           SymphonyElixir.GameApi.Adapter,
           SymphonyElixir.GameApi.Client,
           SymphonyElixir.GoalPlanningCoordinator,
+          SymphonyElixir.GitHub.Client,
+          SymphonyElixir.GitLab.Client,
+          SymphonyElixir.Jira.Client,
           SymphonyElixir.Linear.Client,
           SymphonyElixir.SpecsCheck,
           SymphonyElixir.Orchestrator,

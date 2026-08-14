@@ -587,7 +587,7 @@ defmodule SymphonyElixir.Orchestrator do
     cond do
       terminal_issue_state?(issue.state, terminal_states) ->
         Logger.info("Blocked issue moved to terminal state: #{issue_context(issue)} state=#{issue.state}; releasing block")
-        cleanup_issue_workspace(issue, blocked_issue_worker_host(state, issue.id))
+        cleanup_issue_workspace(issue, Map.get(state.blocked, issue.id, %{}))
         release_issue_claim(state, issue.id)
 
       !issue_routable?(issue) ->
@@ -813,13 +813,12 @@ defmodule SymphonyElixir.Orchestrator do
 
       %{pid: pid, ref: ref, identifier: identifier} = running_entry ->
         state = record_session_completion_totals(state, running_entry)
-        worker_host = Map.get(running_entry, :worker_host)
-
-        if cleanup_workspace do
-          cleanup_issue_workspace(Map.get(running_entry, :issue, identifier), worker_host)
-        end
 
         stop_running_task(pid, ref, state.task_supervisor)
+
+        if cleanup_workspace do
+          cleanup_issue_workspace(Map.get(running_entry, :issue, identifier), running_entry)
+        end
 
         %{
           state
@@ -1292,22 +1291,35 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp dispatch_revalidated_issue(state, issue, attempt, preferred_worker_host) do
-    case revalidate_issue_for_dispatch(issue, &Tracker.fetch_issues_by_ids/1, terminal_state_set()) do
+    case refresh_issue_for_dispatch(issue) do
       {:ok, %Issue{} = refreshed_issue} ->
         do_dispatch_issue(state, refreshed_issue, attempt, preferred_worker_host)
 
+      {:skip, _reason} ->
+        state
+
+      {:error, _reason} ->
+        state
+    end
+  end
+
+  defp refresh_issue_for_dispatch(issue) do
+    case revalidate_issue_for_dispatch(issue, &Tracker.fetch_issues_by_ids/1, terminal_state_set()) do
+      {:ok, %Issue{} = refreshed_issue} ->
+        {:ok, refreshed_issue}
+
       {:skip, :missing} ->
         Logger.info("Skipping dispatch; issue no longer active or visible: #{issue_context(issue)}")
-        state
+        {:skip, :missing}
 
       {:skip, %Issue{} = refreshed_issue} ->
         Logger.info("Skipping stale dispatch after issue refresh: #{issue_context(refreshed_issue)} state=#{inspect(refreshed_issue.state)} blocked_by=#{length(refreshed_issue.blocked_by)}")
 
-        state
+        {:skip, refreshed_issue}
 
       {:error, reason} ->
         Logger.warning("Skipping dispatch; issue refresh failed for #{issue_context(issue)}: #{inspect(reason)}")
-        state
+        {:error, reason}
     end
   end
 
@@ -1518,7 +1530,7 @@ defmodule SymphonyElixir.Orchestrator do
       terminal_issue_state?(issue.state, terminal_states) ->
         Logger.info("Issue state is terminal: issue_id=#{issue_id} issue_identifier=#{issue.identifier} state=#{issue.state}; removing associated workspace")
 
-        cleanup_issue_workspace(issue, metadata[:worker_host])
+        cleanup_issue_workspace(issue, metadata)
         {:noreply, release_issue_claim(state, issue_id)}
 
       retry_candidate_issue?(issue, terminal_states) ->
@@ -1538,6 +1550,16 @@ defmodule SymphonyElixir.Orchestrator do
 
   defp cleanup_issue_workspace(identifier, worker_host \\ nil)
 
+  defp cleanup_issue_workspace(issue_or_identifier, metadata) when is_map(metadata) do
+    case Map.get(metadata, :workspace_path) do
+      workspace_path when is_binary(workspace_path) and workspace_path != "" ->
+        Workspace.remove_recorded(workspace_path, Map.get(metadata, :worker_host))
+
+      _ ->
+        cleanup_issue_workspace(issue_or_identifier, Map.get(metadata, :worker_host))
+    end
+  end
+
   defp cleanup_issue_workspace(%Issue{} = issue, worker_host) do
     Workspace.remove_issue_workspaces(issue, worker_host)
   end
@@ -1547,12 +1569,6 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp cleanup_issue_workspace(_issue_or_identifier, _worker_host), do: :ok
-
-  defp blocked_issue_worker_host(%State{} = state, issue_id) do
-    state.blocked
-    |> Map.get(issue_id, %{})
-    |> Map.get(:worker_host)
-  end
 
   defp run_terminal_workspace_cleanup do
     case Tracker.fetch_issues_by_states(Config.settings!().tracker.terminal_states) do
@@ -1606,7 +1622,28 @@ defmodule SymphonyElixir.Orchestrator do
     if retry_candidate_issue?(issue, terminal_state_set()) and
          dispatch_slots_available?(issue, state) and
          worker_slots_available?(state, metadata[:worker_host]) do
-      {:noreply, dispatch_issue(state, issue, attempt, metadata[:worker_host])}
+      case refresh_issue_for_dispatch(issue) do
+        {:ok, %Issue{} = refreshed_issue} ->
+          {:noreply, do_dispatch_issue(state, refreshed_issue, attempt, metadata[:worker_host])}
+
+        {:skip, :missing} ->
+          {:noreply, release_issue_claim(state, issue.id)}
+
+        {:skip, %Issue{} = refreshed_issue} ->
+          handle_retry_issue_lookup(refreshed_issue, state, issue.id, attempt, metadata)
+
+        {:error, reason} ->
+          {:noreply,
+           schedule_issue_retry(
+             state,
+             issue.id,
+             attempt + 1,
+             Map.merge(metadata, %{
+               identifier: issue.identifier,
+               error: "retry dispatch refresh failed: #{inspect(reason)}"
+             })
+           )}
+      end
     else
       Logger.debug("No available slots for retrying #{issue_context(issue)}; preserving queue position")
 

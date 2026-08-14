@@ -1041,7 +1041,7 @@ Completion conditions:
 - Targeted-protocol turn completion signal -> success
 - Targeted-protocol turn failure signal -> failure
 - Targeted-protocol turn cancellation signal -> failure
-- turn timeout (`turn_timeout_ms`) -> failure
+- turn stream silence timeout (`turn_timeout_ms`) -> failure
 - subprocess exit -> failure
 
 Continuation processing:
@@ -1126,10 +1126,11 @@ Optional provider-native agent tool extension:
   The adapter MAY use `issue.id` and `issue.native_ref` to preserve provider-specific richness
   without teaching the orchestrator provider semantics.
 - Tracker credentials SHOULD NOT be inherited by the coding-agent child process. An adapter that
-  resolves credentials from environment variables MUST declare which secret environment names the
-  launcher removes from local and remote child environments. Literal credentials in a repo-owned
-  `WORKFLOW.md` remain readable to a child with workspace access and SHOULD NOT be used when this
-  isolation matters.
+  resolves credentials from environment variables MUST declare authentication-related environment
+  names for removal from local and remote child environments. Implementations SHOULD consult current
+  provider and client documentation when identifying credential names and aliases, as these can
+  change over time. Literal credentials in a repo-owned `WORKFLOW.md` remain readable to a child
+  with workspace access and SHOULD NOT be used when this isolation matters.
 - Unsupported tool names MUST return a structured failure result using the targeted protocol and
   continue the session.
 - Each adapter that ships tools MUST document:
@@ -1164,7 +1165,8 @@ User-input-required policy:
 Timeouts:
 
 - `codex.read_timeout_ms`: request/response timeout during startup and sync requests
-- `codex.turn_timeout_ms`: total turn stream timeout
+- `codex.turn_timeout_ms`: maximum silence interval while a turn stream is active; each
+  app-server output resets it, so it is not a total turn runtime cap
 - `codex.stall_timeout_ms`: enforced by orchestrator based on event inactivity
 
 Error mapping (RECOMMENDED normalized categories):
