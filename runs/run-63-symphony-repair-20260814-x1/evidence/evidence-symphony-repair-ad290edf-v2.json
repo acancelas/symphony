@@ -1,0 +1,71 @@
+{
+  "evidenceId": "evidence-symphony-repair-ad290edf-v2",
+  "runId": "run-63-symphony-repair-20260814-x1",
+  "commitSha": "ad290edf92702998e686f1899fadfc6711a820ba",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "name": "mix.exs declares 0.2.1",
+      "status": "passed"
+    },
+    {
+      "name": "Complete Symphony QA passes",
+      "status": "passed"
+    },
+    {
+      "name": "Exact-commit local runtime is healthy",
+      "status": "passed"
+    },
+    {
+      "name": "Integrated X1 browser dashboard flow passes without console or network errors",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "complete_qa_suite",
+      "status": "passed",
+      "complete": true,
+      "runnerId": "x1",
+      "environment": "local",
+      "commands": [
+        "/home/dev-agent/.local/bin/mise exec -- make all"
+      ]
+    },
+    {
+      "kind": "local_runtime",
+      "status": "passed",
+      "healthy": true,
+      "runnerId": "x1",
+      "environment": "local",
+      "commands": [
+        "./bin/symphony --i-understand-that-this-will-be-running-without-the-usual-guardrails test/fixtures/startup_workflow.md --port 8064"
+      ]
+    },
+    {
+      "kind": "x1_browser_functional",
+      "status": "passed",
+      "runnerId": "x1",
+      "browser": "integrated",
+      "functionalFlowStatus": "passed",
+      "consoleErrors": 0,
+      "networkErrors": 0,
+      "authenticationRequired": false,
+      "authenticatedSession": false,
+      "commands": [
+        "Open http://127.0.0.1:8064/ and verify the live Operations Dashboard"
+      ]
+    }
+  ],
+  "artifacts": [],
+  "residualRisk": [
+    {
+      "id": "phoenix-live-view-cve",
+      "severity": "low",
+      "status": "tracked",
+      "trackingUrl": "https://github.com/acancelas/bos-mcp/issues/218",
+      "summary": "Existing low-severity dependency advisory; not introduced by this one-line version repair."
+    }
+  ],
+  "summary": "Release metadata repair is limited to mix.exs 0.2.1; full QA and the exact-commit X1 dashboard flow passed."
+}
