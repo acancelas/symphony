@@ -1,0 +1,75 @@
+{
+  "evidenceId": "evidence-main-sym-20260814-v1",
+  "runId": "run-60-consolidation-20260814-x1",
+  "commitSha": "b6ffc8b29009c0480d2af8fb767c91a78bc01cd3",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "name": "El commit es el HEAD remoto actual de main",
+      "status": "passed"
+    },
+    {
+      "name": "El árbol del merge commit coincide byte a byte con el HEAD candidato validado",
+      "status": "passed"
+    },
+    {
+      "name": "La QA completa pasa sobre ese árbol exacto",
+      "status": "passed"
+    },
+    {
+      "name": "El flujo funcional pasa en runtime y navegador integrado",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "complete_qa_suite",
+      "status": "passed",
+      "complete": true,
+      "commands": [
+        "make -C elixir all"
+      ]
+    },
+    {
+      "kind": "local_runtime",
+      "status": "passed",
+      "environment": "local",
+      "healthy": true,
+      "commands": [
+        "BOS_OUTBOX_ROOT=/tmp/bos-goal216-symphony-outbox mix phx.server",
+        "GET http://127.0.0.1:8063"
+      ]
+    },
+    {
+      "kind": "x1_browser_functional",
+      "status": "passed",
+      "runnerId": "x1",
+      "browser": "integrated",
+      "functionalFlowStatus": "passed",
+      "consoleErrors": 0,
+      "networkErrors": 0,
+      "authenticationRequired": false,
+      "authenticatedSession": false
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "main_merge",
+      "status": "passed",
+      "commitSha": "b6ffc8b29009c0480d2af8fb767c91a78bc01cd3",
+      "treeSha": "bb5fd63ac5741184177019ae4e5ea89e42bf865f"
+    },
+    {
+      "kind": "tree_identity",
+      "status": "passed",
+      "command": "git diff --quiet candidate main"
+    }
+  ],
+  "residualRisk": [
+    {
+      "checkId": "dependency-audit",
+      "finding": "CVE baja registrada en BOS MCP #218."
+    }
+  ],
+  "summary": "El merge commit de main conserva exactamente el árbol candidato ya validado; QA completa, runtime y flujo integrado quedan vinculados al commit de despliegue."
+}
