@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run-63-symphony-repair-20260814-x1",
+  "issueNumber": 63,
+  "pullRequestNumber": 64,
+  "headSha": "ad290edf92702998e686f1899fadfc6711a820ba",
+  "status": "ready",
+  "alreadyReady": true,
+  "recoveredAfterProviderError": false
+}
