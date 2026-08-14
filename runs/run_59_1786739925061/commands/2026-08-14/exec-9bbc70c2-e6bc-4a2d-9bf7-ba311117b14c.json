@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-9bbc70c2-e6bc-4a2d-9bf7-ba311117b14c",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_1",
+  "eventId": "event_1786740236474_227",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:43:56.349Z",
+  "command": "/bin/bash -lc \"git for-each-ref --format='%(refname:short)' refs/remotes/origin | while read ref; do case \\\"\"'$ref\" in origin/HEAD|origin/main|origin/bos/audit) continue;; esac; counts=$(git rev-list --left-right --count origin/main...\"$ref\"); right=${counts#*$'\"'\\\\t'}; if test \\\"\"'$right\" != 0; then printf '\"'%s %s\\\\n' \\\"\"'$counts\" \"$ref\"; fi; done | sort -k2; grep -RInE '\"'deploy|production|rollback|serverId|targetId|vercel|VPS' .bos README.md elixir/README.md WORKFLOW.md .github 2>/dev/null | head -200; sed -n '1,200p' elixir/Makefile; grep -n 'version:' elixir/mix.exs\"",
+  "durationMs": 156,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "62\t1 origin/agent/bos-repository-contract\n93\t1 origin/bede/netsec-1129-supervisor-snapshot-reconciliation\n26\t1 origin/bos/capacity-wait-reconciliation\n59\t1 origin/bos/checkpoint-batching-rate-pressure\n43\t1 origin/bos/fix-provider-retry-after\n53\t1 origin/bos/issue-11-final\n53\t1 origin/bos/issue-13-final\n60\t1 origin/bos/issue-18\n56\t1 origin/bos/issue-23\n55\t1 origin/bos/issue-28\n54\t1 origin/bos/issue-30\n44\t1 origin/bos/issue-40\n26\t1 origin/bos/issue-51\n46\t1 origin/bos/issue-9\n42\t1 origin/bos/provider-retry-jitter\n74\t1 origin/codex/asana-tracker\n74\t1 origin/codex/github-tracker\n74\t1 origin/codex/gitlab-tracker\n25\t1 origin/codex/issue54-project-header\n74\t1 origin/codex/jira-tracker\n95\t1 origin/codex/persist-token-usage-ledger\n89\t1 origin/codex/sd-10-claim-leases\n89\t1 origin/codex/sd-11-jira-claim-leases\n90\t1 origin/codex/sd-5-second-smoke-test-doc\n89\t1 origin/codex/sd-9-board-automation-check\n75\t1 origin/codex/ssh-exec-server-command\n93\t1 origin/cristian/symphony-dashboard-agent-details\n61\t1 origin/fix/bound-codex-event-memory\n93\t1 origin/push-nzyowrnsvtsy\n89\t1 origin/sd-7-symphony-smoke-merge-flow\n89\t1 origin/sd-8-daemon-polling-smoke-note\n60\t2 origin/bos/issue-10\n53\t2 origin/bos/issue-10-final\n50\t2 origin/bos/issue-12-final\n53\t2 origin/bos/issue-13\n45\t2 origin/bos/issue-15\n59\t2 origin/bos/issue-20\n58\t2 origin/bos/issue-21\n47\t2 origin/bos/issue-8\n63\t2 origin/fix/audit-outbox-rebase\n57\t3 origin/bos/issue-22\n27\t3 origin/bos/repository-capacity\n95\t3 origin/dev/dtm/workspacewrite-implicit-issue-root\n24\t4 origin/bos/issue-53\n49\t5 origin/bos/issue-6\n63\t5 origin/fix/audit-volume-control\n48\t6 origin/bos/issue-7\n63\t9 origin/bos/issue-14\n.bos/project.yaml:18:  production:\n.bos/project.yaml:25:  blocked: [push, pull_request, deployment]\nWORKFLOW.md:7:Deployment, release, and rollback remain incomplete until `DeploymentVerification` is `passed`. Credentials, host-specific paths, and X1 runtime configuration belong in secure user or service configuration, never in this repository.\nW",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}
