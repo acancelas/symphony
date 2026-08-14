@@ -8,5 +8,5 @@
   "draft": false,
   "state": "open",
   "alreadyMerged": false,
-  "recoveryMatch": null
+  "recoveryMatch": "agent_run_marker"
 }
