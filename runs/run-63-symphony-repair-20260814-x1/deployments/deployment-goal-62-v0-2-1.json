@@ -1,0 +1,13 @@
+{
+  "deploymentId": "deployment-goal-62-v0-2-1",
+  "githubDeploymentId": "5912474040",
+  "runId": "run-63-symphony-repair-20260814-x1",
+  "issueNumber": 63,
+  "goalIssueNumber": 62,
+  "action": "deploy",
+  "rollbackOfDeploymentId": null,
+  "commitSha": "d5c51b4b225c0b4b4335556eccbc0a1ab3850549",
+  "releaseTag": "v0.2.1",
+  "environment": "production",
+  "status": "pending_verification"
+}
