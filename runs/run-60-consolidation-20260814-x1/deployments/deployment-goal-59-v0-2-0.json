@@ -1,0 +1,13 @@
+{
+  "deploymentId": "deployment-goal-59-v0-2-0",
+  "githubDeploymentId": "5912028241",
+  "runId": "run-60-consolidation-20260814-x1",
+  "issueNumber": 60,
+  "goalIssueNumber": 59,
+  "action": "deploy",
+  "rollbackOfDeploymentId": null,
+  "commitSha": "b6ffc8b29009c0480d2af8fb767c91a78bc01cd3",
+  "releaseTag": "v0.2.0",
+  "environment": "production",
+  "status": "pending_verification"
+}
