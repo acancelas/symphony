@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "goal",
   "scopeId": "symphony#62",
-  "lastSequence": 5,
-  "lastEventHash": "sha256:01c4bd78c5f3ee1f84c8d97ec9722cd17833378ad515981be7a5bc05eccf5a6d",
-  "lastEventId": "event_0831c7cc584b0423f40c4a4a6f",
-  "updatedAt": "2026-08-14T19:51:30.665619Z"
+  "lastSequence": 6,
+  "lastEventHash": "sha256:a3bcff799dfd624936fd2d826c9ff7f68070106a96c0d0f3b54bcc06226d1116",
+  "lastEventId": "event_86dac9fab7489fe1d1e99d1dc8",
+  "updatedAt": "2026-08-14T19:51:42.347596Z"
 }
