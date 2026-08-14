@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-a20e4048-b57a-4470-97a0-af20710e49dc",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_1",
+  "eventId": "event_1786740004002_183",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-analyst"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:40:03.865Z",
+  "command": "/bin/bash -lc 'git branch -a -vv; git tag --sort=-creatordate | head -n 20; find elixir/lib elixir/test .github -type f | sort; grep -RInE \"GameApi|GoalExecution|DeploymentVerification|outbox|reconcil|reviewer|evidence\" elixir/lib elixir/test .github | head -n 400; for d in ../symphony-*; do if [ -d \"$d/.git\" ] || [ -f \"$d/.git\" ]; then git -C \"$d\" status --short --branch 2>/dev/null | head -n 20; git -C \"$d\" log -1 --oneline --decorate 2>/dev/null; fi; done'",
+  "durationMs": 503,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "7b22f4b (HEAD -> bos/issue-12, origin/main, origin/HEAD, main) Bound retained Codex event summaries (#5)\n## bos/issue-59\nd5c51b4b (HEAD -> bos/issue-59, tag: v0.2.1, origin/main, origin/HEAD, main) Merge pull request #64 from acancelas/codex/goal-62-symphony-v0-2-1\n## bos/issue-60\naa819d90 (HEAD -> bos/issue-60, tag: v0.1.0, origin/main, origin/HEAD, main) feat: enforce Goal execution authorization\n## bos/issue-8\n M .codex/config.toml\n15d5843 (HEAD -> bos/issue-8, origin/bos/issue-8) docs(test): require post-gate process scan\n## bos/issue-9\n M .codex/config.toml\n09935f4 (HEAD -> bos/issue-9, origin/bos/issue-9) Route dirty candidates through bounded repair\n## bos/issue-18...fork/bos/issue-18\n M .codex/config.toml\n21c3b089 (HEAD -> bos/issue-18, fork/bos/issue-18) Preserve dirty workspaces during recovery\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}
