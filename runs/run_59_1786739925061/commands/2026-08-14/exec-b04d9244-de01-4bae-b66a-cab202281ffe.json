@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b04d9244-de01-4bae-b66a-cab202281ffe",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786741065378_431",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:57:45.326Z",
+  "command": "/bin/bash -lc \"git rev-parse --git-common-dir; find .. -maxdepth 3 -name .git -print; find . -maxdepth 3 \\\\( -name Makefile -o -name '*.yml' -o -name '*.yaml' -o -name mix.exs \\\\) -print; grep -nE 'version:|specs\\\\.check|lint:|credo|dialyzer|cover' elixir/mix.exs; sed -n '1,260p' elixir/mix.exs; git log --oneline --decorate --all --no-merges -n 80\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": ".git\n../bos-mcp-recovery-docs/.git\n../sidra-album-31/.git\n../symphony-8/.git\n../bos-front-22/.git\n../tengo-suerte-60/.git\n../bos-front-30/.git\n../bos-front-14/.git\n../bos-mcp-19/.git\n../tengo-suerte-46/.git\n../bos-front-23/.git\n../tengo-suerte-59/.git\n../tengo-suerte-119/.git\n../bos-orchestrator-18/.git\n../bos-front-36/.git\n../bos-mcp-194/.git\n../bos-mcp-198/.git\n../tengo-suerte-1/.git\n../tengo-suerte-82/.git\n../game-api-97/.git\n../sidra-album-138/.git\n../game-api-171/.git\n../symphony-11/.git\n../game-api-103/.git\n../bos-front-19/.git\n../auditoria-app-s0/.git\n../sidra-album-119/.git\n../symphony-59/.git\n../auditoria-app-62/.git\n../symphony-recovery-hardening/.git\n../bos-front-2/.git\n../bos-orchestrator-6/.git\n../bos-mcp-12/.git\n../tengo-suerte-75/.git\n../symphony-12/.git\n../game-api-82/.git\n../auditoria-api-s0/.git\n../game-api-117/.git\n../auditoria-front-1/.git\n../bos-front-delivery/.git\n../bos-front-17/.git\n../bos-mcp-199/.git\n../colossia-a3f4ed1c-59/.git\n../bos-front-31/.git\n../symphony-60/.git\n../tengo-suerte-91/.git\n../sidra-album-123/.git\n../bos-orchestrator-14/.git\n../game-api-84/.git\n../bos-mcp-190/.git\n../bos-front-21/.git\n../bos-front-32/.git\n../bos-front-33/.git\n../bos-mcp-51/.git\n../game-api-104/.git\n../sidra-album-105/.git\n../auditoria-app-issue79/.git\n../alejandro-cancelas-front-1/.git\n../symphony-9/.git\n../bos-mcp-40/.git\n../bos-front-20/.git\n../game-api-188/.git\n./.bos/project.yaml\n./elixir/Makefile\n./elixir/mix.exs\n./.github/workflows/burrito-release.yml\n./.github/workflows/make-all.yml\n./.github/workflows/pr-description-lint.yml\n7:      version: \"0.2.1\",\n11:      test_coverage: [\n59:      dialyzer: [\n92:      {:credo, \"~> 1.7\", only: [:dev, :test], runtime: false},\n101:      lint: [\"specs.check\", \"credo --strict\"]\ndefmodule SymphonyElixir.MixProject do\n  use Mix.Project\n\n  def project do\n    [\n      app: :symphony_elixir,\n      version: \"0.2.1\",\n      elixir: \"~> 1.19\",\n      compilers: [:phoenix_live_view] ++ Mix.compilers(),\n      start_permanent: M",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}

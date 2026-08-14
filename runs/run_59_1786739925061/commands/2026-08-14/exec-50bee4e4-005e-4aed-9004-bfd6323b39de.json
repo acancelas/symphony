@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-50bee4e4-005e-4aed-9004-bfd6323b39de",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786741065364_429",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:57:45.311Z",
+  "command": "/bin/bash -lc \"git status --short --branch; git worktree list --porcelain; git remote -v; git for-each-ref --format='%(refname) %(objectname)' refs/heads refs/remotes/origin refs/tags; rg --files -g 'Makefile' -g '*.yml' -g '*.yaml' -g 'mix.exs' -g '*release*' -g '*burrito*'; sed -n '1,280p' .github/workflows/burrito-release.yml; sed -n '1,220p' elixir/Makefile; rg -n 'specs\\\\.check|credo|dialyzer|coverage|version:|version\\\"|--clobber|workflow_dispatch|push:|tags:' elixir/mix.exs elixir/Makefile .github/workflows/burrito-release.yml .bos/project.yaml\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "## bos/issue-59\nworktree $WORKSPACE/.bos/worktrees/symphony-59\nHEAD d5c51b4b225c0b4b4335556eccbc0a1ab3850549\nbranch refs/heads/bos/issue-59\n\norigin\tgit@github.com:acancelas/symphony.git (fetch)\norigin\tgit@github.com:acancelas/symphony.git (push)\nrefs/heads/bos/issue-59 d5c51b4b225c0b4b4335556eccbc0a1ab3850549\nrefs/heads/main d5c51b4b225c0b4b4335556eccbc0a1ab3850549\nrefs/remotes/origin/HEAD d5c51b4b225c0b4b4335556eccbc0a1ab3850549\nrefs/remotes/origin/agent/bos-game-api-orchestration 76f5daedef214d2fcb12bc231f0f3845109ebbe5\nrefs/remotes/origin/agent/bos-repository-contract 2da33f70bbb46f047a84bc76d1f8210b5f4b85be\nrefs/remotes/origin/bede/netsec-1129-supervisor-snapshot-reconciliation 51532ebcbd090f063fafd6bd64e6665dd4470ef7\nrefs/remotes/origin/bos/audit 5b2263a58fdd176fd3aa1da51eb55db2e92a141f\nrefs/remotes/origin/bos/capacity-wait-reconciliation 2be943c98f4a7eedfcc9b69896ac35f058bd1970\nrefs/remotes/origin/bos/checkpoint-batching-rate-pressure b3be082e67105014d96050f28d79f672281aa944\nrefs/remotes/origin/bos/fix-provider-retry-after 4a50a8c420758a1621e5e02d981636bfc8085579\nrefs/remotes/origin/bos/issue-10 c3554e69d100bbf2a0fe5ec4badfbd8459138dc4\nrefs/remotes/origin/bos/issue-10-final 92e0ce29c9a292171ed09d4d53e9f01f106ef5d4\nrefs/remotes/origin/bos/issue-11-final 8e8c90466a252f148a696ac1732ac5752c045a8d\nrefs/remotes/origin/bos/issue-12-final 7c654dccccc9855479f16831289d288e0eb42010\nrefs/remotes/origin/bos/issue-13 b7d54a6168f31bfb1c3e7194ca2e5d0442e8d68a\nrefs/remotes/origin/bos/issue-13-final 625ea25160d775497fde8b5367178b5df6cbee8f\nrefs/remotes/origin/bos/issue-14 927666a5434c52298fd02d0152dd54e9e106db3f\nrefs/remotes/origin/bos/issue-15 ab077d1d68168c1758eec66826635f579343bc42\nrefs/remotes/origin/bos/issue-18 21c3b089e1ad6245bb06bdc7591a9ead051451ff\nrefs/remotes/origin/bos/issue-20 ab30f7e6472ef33b668d297d78b710578ebc701b\nrefs/remotes/origin/bos/issue-21 a2aa897ba95a2e2caab18b31b33272e9873f736e\nrefs/remotes/origin/bos/issue-22 c7e914e4e4798e8cb934375f057c938557ffb0d7\nre",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "long"
+  }
+}
