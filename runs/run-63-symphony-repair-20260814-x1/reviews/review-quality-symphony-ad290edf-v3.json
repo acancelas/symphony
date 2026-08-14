@@ -1,0 +1,13 @@
+{
+  "reviewId": "review-quality-symphony-ad290edf-v3",
+  "runId": "run-63-symphony-repair-20260814-x1",
+  "reviewType": "quality",
+  "actor": {
+    "type": "agent",
+    "subjectId": "implementation-agent"
+  },
+  "commitSha": "ad290edf92702998e686f1899fadfc6711a820ba",
+  "status": "passed",
+  "findings": [],
+  "summary": "One-line version repair matches the repository release workflow; complete QA and CI are green."
+}
