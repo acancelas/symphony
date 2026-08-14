@@ -552,30 +552,6 @@ defmodule SymphonyElixir.Workspace do
     end
   end
 
-  defp cleanup_failed_new_workspace(_workspace, false, _worker_host), do: :ok
-
-  defp cleanup_failed_new_workspace(workspace, true, nil) do
-    case File.rm_rf(workspace) do
-      {:ok, _removed} ->
-        :ok
-
-      {:error, reason, path} ->
-        Logger.warning("Failed to remove partial workspace path=#{path} reason=#{inspect(reason)}")
-    end
-  end
-
-  defp cleanup_failed_new_workspace(workspace, true, worker_host) when is_binary(worker_host) do
-    script = [remote_shell_assign("workspace", workspace), "rm -rf \"$workspace\""] |> Enum.join("\n")
-
-    case run_remote_command(worker_host, script, Config.settings!().hooks.timeout_ms) do
-      {:ok, {_output, 0}} ->
-        :ok
-
-      result ->
-        Logger.warning("Failed to remove partial workspace worker_host=#{worker_host_for_log(worker_host)} result=#{inspect(result)}")
-    end
-  end
-
   defp maybe_run_before_remove_hook(workspace, nil) do
     hooks = Config.settings!().hooks
 

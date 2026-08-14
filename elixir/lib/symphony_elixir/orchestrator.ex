@@ -243,22 +243,15 @@ defmodule SymphonyElixir.Orchestrator do
   def handle_info({:codex_worker_update, _issue_id, _update}, state), do: {:noreply, state}
 
   def handle_info({:retry_issue, issue_id, retry_token}, state) do
-    result =
+    {:noreply, state} =
       case pop_retry_attempt_state(state, issue_id, retry_token) do
         {:ok, attempt, metadata, state} -> handle_retry_issue(state, issue_id, attempt, metadata)
         :missing -> {:noreply, state}
       end
 
-    case result do
-      {:noreply, state} ->
-        cache_snapshot(state)
-        notify_dashboard()
-        {:noreply, state}
-
-      other ->
-        notify_dashboard()
-        other
-    end
+    cache_snapshot(state)
+    notify_dashboard()
+    {:noreply, state}
   end
 
   def handle_info({:retry_issue, _issue_id}, state), do: {:noreply, state}
@@ -1962,12 +1955,10 @@ defmodule SymphonyElixir.Orchestrator do
   end
 
   defp snapshot_from_mailbox(server, timeout) do
-    try do
-      GenServer.call(server, :snapshot, timeout)
-    catch
-      :exit, {:timeout, _} -> :timeout
-      :exit, _ -> :unavailable
-    end
+    GenServer.call(server, :snapshot, timeout)
+  catch
+    :exit, {:timeout, _} -> :timeout
+    :exit, _ -> :unavailable
   end
 
   @impl true
