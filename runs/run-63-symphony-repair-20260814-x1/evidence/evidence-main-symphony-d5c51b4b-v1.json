@@ -1,0 +1,79 @@
+{
+  "evidenceId": "evidence-main-symphony-d5c51b4b-v1",
+  "runId": "run-63-symphony-repair-20260814-x1",
+  "commitSha": "d5c51b4b225c0b4b4335556eccbc0a1ab3850549",
+  "status": "passed",
+  "acceptanceCriteria": [
+    {
+      "name": "mix.exs declares 0.2.1 on main",
+      "status": "passed"
+    },
+    {
+      "name": "Main tree equals tested PR head tree 8a76de7274020bd99497cafe1144035b4251f3f4",
+      "status": "passed"
+    },
+    {
+      "name": "Complete QA and CI pass",
+      "status": "passed"
+    },
+    {
+      "name": "Exact-tree local runtime and browser flow pass",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "complete_qa_suite",
+      "status": "passed",
+      "complete": true,
+      "runnerId": "x1",
+      "environment": "local",
+      "commands": [
+        "/home/dev-agent/.local/bin/mise exec -- make all",
+        "GitHub Actions make-all",
+        "GitHub Actions pr-description-lint"
+      ]
+    },
+    {
+      "kind": "local_runtime",
+      "status": "passed",
+      "healthy": true,
+      "runnerId": "x1",
+      "environment": "local",
+      "commands": [
+        "./bin/symphony --i-understand-that-this-will-be-running-without-the-usual-guardrails test/fixtures/startup_workflow.md --port 8064"
+      ]
+    },
+    {
+      "kind": "x1_browser_functional",
+      "status": "passed",
+      "runnerId": "x1",
+      "browser": "integrated",
+      "functionalFlowStatus": "passed",
+      "consoleErrors": 0,
+      "networkErrors": 0,
+      "authenticationRequired": false,
+      "authenticatedSession": false,
+      "commands": [
+        "Open exact-tree runtime dashboard and verify live Operations Dashboard"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "tree_identity",
+      "mergeCommit": "d5c51b4b225c0b4b4335556eccbc0a1ab3850549",
+      "testedHead": "ad290edf92702998e686f1899fadfc6711a820ba",
+      "treeSha": "8a76de7274020bd99497cafe1144035b4251f3f4"
+    }
+  ],
+  "residualRisk": [
+    {
+      "id": "phoenix-live-view-cve",
+      "severity": "low",
+      "status": "tracked",
+      "trackingUrl": "https://github.com/acancelas/bos-mcp/issues/218"
+    }
+  ],
+  "summary": "Symphony main merge has the exact tested PR tree; full QA, CI and X1 browser/runtime evidence therefore bind to the production candidate."
+}
