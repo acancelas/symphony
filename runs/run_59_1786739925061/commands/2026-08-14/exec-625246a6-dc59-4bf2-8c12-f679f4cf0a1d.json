@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-625246a6-dc59-4bf2-8c12-f679f4cf0a1d",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_1",
+  "eventId": "event_1786740157015_215",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:42:36.951Z",
+  "command": "/bin/bash -lc \"find .. -name AGENTS.md -o -name README.md -o -name SPEC.md -o -name WORKFLOW.md -o -path '*/.bos/project.yaml' -o -path '*/.github/workflows/*' | sort | head -200; sed -n '1,240p' .bos/project.yaml; sed -n '1,240p' WORKFLOW.md; sed -n '1,220p' elixir/AGENTS.md; git log --oneline --decorate --graph --all --max-count=80; git rev-list --left-right --count origin/main...origin/codex/goal-216-consolidate-symphony; git diff --stat origin/main...origin/codex/goal-216-consolidate-symphony\"",
+  "durationMs": 970,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "../.quarantine-game-api-89-20260721T0007Z/.pytest_cache/README.md\n../.quarantine-game-api-90-20260721T0610Z/.pytest_cache/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/.bos/project.yaml\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/AGENTS.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/WORKFLOW.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/docs/issues/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/code-frame/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/compat-data/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/core/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/generator/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helper-compilation-targets/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helper-globals/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helper-module-imports/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helper-module-transforms/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helper-plugin-utils/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helper-string-parser/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helper-validator-identifier/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helper-validator-option/README.md\n../.symphony-quarantine/bos-front-2/incomplete-1784682724836-4/node_modules/@babel/helpers/README.md\n../.symphony-quarantine/bos-front-2/incomple",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}
