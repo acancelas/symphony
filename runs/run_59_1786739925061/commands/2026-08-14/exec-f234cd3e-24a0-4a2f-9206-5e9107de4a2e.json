@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f234cd3e-24a0-4a2f-9206-5e9107de4a2e",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786740706329_333",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-analyst"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:51:46.272Z",
+  "command": "/bin/bash -lc 'git status --short --branch; git worktree list --porcelain; git branch -a -vv; git tag --list --sort=-version:refname | head -n 20; git log --oneline --decorate --all --graph -n 120'",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-59\nworktree $WORKSPACE/.bos/worktrees/symphony-59\nHEAD d5c51b4b225c0b4b4335556eccbc0a1ab3850549\nbranch refs/heads/bos/issue-59\n\n* bos/issue-59                                                       d5c51b4b Merge pull request #64 from acancelas/codex/goal-62-symphony-v0-2-1\n  main                                                               d5c51b4b [origin/main] Merge pull request #64 from acancelas/codex/goal-62-symphony-v0-2-1\n  remotes/origin/HEAD                                                -> origin/main\n  remotes/origin/agent/bos-game-api-orchestration                    76f5daed feat(delivery): orchestrate goal planning and terminal verification\n  remotes/origin/agent/bos-repository-contract                       2da33f70 chore(delivery): add BOS repository contract\n  remotes/origin/bede/netsec-1129-supervisor-snapshot-reconciliation 51532ebc fix(orchestrator): reconcile stale supervisor snapshots\n  remotes/origin/bos/audit                                           5b2263a5 bos-audit: append batch_attempt_started_attempt_run_59_1786739925061_1\n  remotes/origin/bos/capacity-wait-reconciliation                    2be943c9 fix: reconcile capacity-waiting claims\n  remotes/origin/bos/checkpoint-batching-rate-pressure               b3be082e fix-audit-batch-reconstructible-checkpoints\n  remotes/origin/bos/fix-provider-retry-after                        4a50a8c4 Honor provider retry windows in scheduler\n  remotes/origin/bos/issue-10                                        c3554e69 fix(delivery): verify PR readiness through game-api\n  remotes/origin/bos/issue-10-final                                  92e0ce29 fix(delivery): verify PR readiness through game-api\n  remotes/origin/bos/issue-11-final                                  8e8c9046 enforce-bos-command-integration-boundary\n  remotes/origin/bos/issue-12-final                                  7c654dcc Merge remote-tracking branch 'fork/main' into bos/issue-12-final\n  remotes/origin/bos/issue-13       ",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}

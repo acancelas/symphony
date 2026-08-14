@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-d92354b9-c27e-4aad-8beb-4cd90257f02a",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786740706270_321",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-analyst"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:51:46.212Z",
+  "command": "/bin/bash -lc \"rg --files -g 'AGENTS.md' -g '\"'!deps'\"' -g '\"'!_build'\"'; rg -n \\\"Goal|breakdown|execution proposal|propose_goal|GameApiTrackerAdapter|deployment verification|reconciliation|rate limit|outbox|workspace\\\" elixir/lib elixir/test .bos 2>/dev/null | head -n 500\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}

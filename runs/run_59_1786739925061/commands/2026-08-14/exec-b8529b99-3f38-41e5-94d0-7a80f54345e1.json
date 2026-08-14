@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b8529b99-3f38-41e5-94d0-7a80f54345e1",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786740706348_337",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-analyst"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:51:46.291Z",
+  "command": "/bin/bash -lc \"find . -name AGENTS.md -not -path './elixir/deps/*' -not -path './elixir/_build/*' -print; find elixir/lib elixir/test .github/workflows -type f | sort | head -n 500; sed -n '1,260p' .github/workflows/burrito-release.yml; grep -RIn \\\"GameApiTrackerAdapter\\\\|GoalExecution\\\\|DeploymentVerification\\\\|reconcile\\\\|rate.limit\\\\|outbox\\\\|recover_non_git\\\" elixir/lib elixir/test | head -n 500\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./AGENTS.md\n./elixir/AGENTS.md\n.github/workflows/burrito-release.yml\n.github/workflows/make-all.yml\n.github/workflows/pr-description-lint.yml\nelixir/lib/mix/tasks/pr_body.check.ex\nelixir/lib/mix/tasks/specs.check.ex\nelixir/lib/mix/tasks/workspace.before_remove.ex\nelixir/lib/symphony_elixir.ex\nelixir/lib/symphony_elixir/agent_runner.ex\nelixir/lib/symphony_elixir/agent_runtime_supervisor.ex\nelixir/lib/symphony_elixir/asana/adapter.ex\nelixir/lib/symphony_elixir/asana/agent_tool.ex\nelixir/lib/symphony_elixir/asana/client.ex\nelixir/lib/symphony_elixir/audit/canonical_json.ex\nelixir/lib/symphony_elixir/audit/outbox.ex\nelixir/lib/symphony_elixir/candidate_head.ex\nelixir/lib/symphony_elixir/cli.ex\nelixir/lib/symphony_elixir/codex/app_server.ex\nelixir/lib/symphony_elixir/codex/command_policy.ex\nelixir/lib/symphony_elixir/codex/dynamic_tool.ex\nelixir/lib/symphony_elixir/codex/turn_budget.ex\nelixir/lib/symphony_elixir/config.ex\nelixir/lib/symphony_elixir/config/schema.ex\nelixir/lib/symphony_elixir/delivery_coordinator.ex\nelixir/lib/symphony_elixir/game_api/adapter.ex\nelixir/lib/symphony_elixir/game_api/client.ex\nelixir/lib/symphony_elixir/game_api/provider_circuit.ex\nelixir/lib/symphony_elixir/github/adapter.ex\nelixir/lib/symphony_elixir/github/agent_tool.ex\nelixir/lib/symphony_elixir/github/client.ex\nelixir/lib/symphony_elixir/gitlab/adapter.ex\nelixir/lib/symphony_elixir/gitlab/agent_tool.ex\nelixir/lib/symphony_elixir/gitlab/client.ex\nelixir/lib/symphony_elixir/goal_execution.ex\nelixir/lib/symphony_elixir/goal_execution_policy.ex\nelixir/lib/symphony_elixir/goal_planning_coordinator.ex\nelixir/lib/symphony_elixir/http_server.ex\nelixir/lib/symphony_elixir/jira/adapter.ex\nelixir/lib/symphony_elixir/jira/agent_tool.ex\nelixir/lib/symphony_elixir/jira/client.ex\nelixir/lib/symphony_elixir/linear/adapter.ex\nelixir/lib/symphony_elixir/linear/agent_tool.ex\nelixir/lib/symphony_elixir/linear/client.ex\nelixir/lib/symphony_elixir/log_file.ex\nelixir/lib/symphony_elixir/observability_snapshot",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}
