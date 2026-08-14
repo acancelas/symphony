@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-b7cc5f7d-2e2a-4891-a5e1-e835093b375c",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_1",
+  "eventId": "event_1786739981655_172",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-analyst"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:39:41.586Z",
+  "command": "/bin/bash -lc \"sed -n '1,240p' README.md; sed -n '1,260p' SPEC.md; sed -n '1,240p' elixir/README.md; sed -n '1,240p' WORKFLOW.md; sed -n '1,240p' .bos/project.yaml; find .. -name AGENTS.md -print\"",
+  "durationMs": 14889,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "../bos-mcp-recovery-docs/AGENTS.md\n../sidra-album-31/node_modules/@supabase/supabase-js/AGENTS.md\n../sidra-album-31/node_modules/@supabase/storage-js/AGENTS.md\n../sidra-album-31/node_modules/@supabase/auth-js/AGENTS.md\n../sidra-album-31/node_modules/@supabase/postgrest-js/AGENTS.md\n../sidra-album-31/node_modules/@supabase/realtime-js/AGENTS.md\n../sidra-album-31/node_modules/@supabase/functions-js/AGENTS.md\n../sidra-album-31/AGENTS.md\n../symphony-8/AGENTS.md\n../symphony-8/elixir/AGENTS.md\n../bos-front-22/AGENTS.md\n../bos-front-22/src/content/modules/library/ai-harness/examples/basic-harness/AGENTS.md\n../tengo-suerte-60/AGENTS.md\n../bos-front-30/AGENTS.md\n../bos-front-30/src/content/modules/library/ai-harness/examples/basic-harness/AGENTS.md\n../bos-front-14/AGENTS.md\n../bos-front-14/src/content/modules/library/ai-harness/examples/basic-harness/AGENTS.md\n../bos-mcp-19/AGENTS.md\n../tengo-suerte-46/AGENTS.md\n../bos-front-23/AGENTS.md\n../bos-front-23/src/content/modules/library/ai-harness/examples/basic-harness/AGENTS.md\n../tengo-suerte-59/AGENTS.md\n../tengo-suerte-119/AGENTS.md\n../bos-orchestrator-18/AGENTS.md\n../bos-front-36/AGENTS.md\n../bos-front-36/src/content/modules/library/ai-harness/examples/basic-harness/AGENTS.md\n../bos-mcp-194/AGENTS.md\n../bos-mcp-198/AGENTS.md\n../tengo-suerte-1/AGENTS.md\n../tengo-suerte-82/AGENTS.md\n../game-api-97/AGENTS.md\n../sidra-album-138/AGENTS.md\n../game-api-171/AGENTS.md\n../symphony-11/AGENTS.md\n../symphony-11/elixir/AGENTS.md\n../game-api-103/AGENTS.md\n../bos-front-19/AGENTS.md\n../bos-front-19/src/content/modules/library/ai-harness/examples/basic-harness/AGENTS.md\n../auditoria-app-s0/AGENTS.md\n../sidra-album-119/AGENTS.md\n../symphony-59/AGENTS.md\n../symphony-59/elixir/AGENTS.md\n../auditoria-app-62/AGENTS.md\n../symphony-recovery-hardening/AGENTS.md\n../symphony-recovery-hardening/elixir/AGENTS.md\n../bos-front-2/AGENTS.md\n../bos-front-2/src/content/modules/library/ai-harness/examples/basic-harness/AGENTS.md\n../bos-orchestrator-6/AGENTS.md\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}
