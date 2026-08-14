@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-2ce4f40f-bbb4-4c5b-836f-1db2ce21c40a",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_1",
+  "eventId": "event_1786740475759_287",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:47:55.639Z",
+  "command": "/bin/bash -lc \"rg --files -g 'AGENTS.md' -g 'README.md' -g 'SPEC.md' -g 'WORKFLOW.md' -g 'Makefile' -g 'makefile' -g '*.mk' | sort && git tag --list --format='%(refname:short) %(objectname)' && git rev-list --left-right --count origin/main...origin/codex/goal-216-consolidate-symphony && git rev-list --left-right --count origin/main...origin/codex/release-symphony-consolidated && git log --all --not origin/main --format='%H %D %s' --max-count=120\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "/bin/bash: line 1: rg: command not found\nv0.0.1 910ce4727dd4c2fe337db6cef83c2f50bef52899\nv0.1.0 aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3\nv0.2.0 b6ffc8b29009c0480d2af8fb767c91a78bc01cd3\nv0.2.1 d5c51b4b225c0b4b4335556eccbc0a1ab3850549\n3\t0\n22\t0\n5b2263a58fdd176fd3aa1da51eb55db2e92a141f origin/bos/audit bos-audit: append batch_attempt_started_attempt_run_59_1786739925061_1\n8c8099ffc140a7df7fbe221911909a7ef31319dc  bos-audit: append batch_run_started_attempt_run_59_1786739925061_1\nda469cbda5c8602af9e32a3a279e31fc8e683b32  bos-audit: append batch_59065758fd5e35b23b82086fc4\n30c2044dbf7ac25c842ecde75b559cc2f52a69e7  bos-audit: append batch_46dc04365f3e202f4c4dfa848c\n80aebd54ce77dca6bf9bbaeb7d05f16d3ca31884  bos-audit: append batch_86dac9fab7489fe1d1e99d1dc8\ne18251ca7da8494172a1bfa2cb44e4e904705aae  bos-audit: append batch_015b74e4b8d99168be29094c74\nbe8fb23f0f2a7f62511069a8676fd852cd6aa6dc  bos-audit: append batch_0831c7cc584b0423f40c4a4a6f\n7a1b71e8f3fce44748d0da7bc4c8c71bbd237451  bos-audit: append batch_de19873bc2750b4f1f61d1e4fb\nee5cc3bff893b0d2ffe6bf0e3cf21febc35852c3  bos-audit: append batch_49ff2fbd23b4dc3db2a17ca592\naf11237b7b1ed3aa046353642552533d4b4151cc  bos-audit: append batch_79a65eac2e752805584e996ddf\na3914bfe26fc84b9d78853b32b64c0d173a54c84  bos-audit: append batch_5c6461ed54faffddc64d88c15b\nace091bc19485fe527266b9342c3a3793f5ecf8a  bos-audit: append batch_9274ba728050c8ccc08682839c\nd20471c6afcc7dd3f2ddbf5c5c0ee27f65c80ba6  bos-audit: append batch_04b16aae1003bcd984f841f20a\ndfdb7dde7c12648b265ea99d9d85aa0b3e4bec84  bos-audit: append batch_e7e652956fa3779a406b42d220\n92ec3f6a5e0342c131868393af8089d9f41c1cfd  bos-audit: append batch_875767765b82ac19b8cdb405ef\n5fa225599f7b517869c31457b5b3b3c8beb4d0f1  bos-audit: append batch_49ac13fd9dd230326a26bf0380\nbaa63c268a31e57623375b5504df25eeadfe4340  bos-audit: append batch_7dedd115631d130b245e04283b\nfc1761ddf6a4a4968e3faf7efa6c6955a87fbf63  bos-audit: append batch_92845722a246d250a8449fa74e\n527f4c62086f8c82919a4408c99be4da",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}

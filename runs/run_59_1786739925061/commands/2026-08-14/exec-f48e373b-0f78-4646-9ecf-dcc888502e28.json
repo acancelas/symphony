@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-f48e373b-0f78-4646-9ecf-dcc888502e28",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_1",
+  "eventId": "event_1786740475750_285",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:47:55.629Z",
+  "command": "/bin/bash -lc \"git status --short --branch && git worktree list --porcelain && git branch -r --format='%(refname:short) %(objectname)' && sed -n '1,240p' .bos/project.yaml && sed -n '1,280p' .github/workflows/burrito-release.yml && sed -n '1,180p' elixir/mix.exs && sed -n '1,240p' Makefile\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 2,
+  "outputSummary": "## bos/issue-59\nworktree $WORKSPACE/.bos/worktrees/symphony-59\nHEAD d5c51b4b225c0b4b4335556eccbc0a1ab3850549\nbranch refs/heads/bos/issue-59\n\norigin d5c51b4b225c0b4b4335556eccbc0a1ab3850549\norigin/agent/bos-game-api-orchestration 76f5daedef214d2fcb12bc231f0f3845109ebbe5\norigin/agent/bos-repository-contract 2da33f70bbb46f047a84bc76d1f8210b5f4b85be\norigin/bede/netsec-1129-supervisor-snapshot-reconciliation 51532ebcbd090f063fafd6bd64e6665dd4470ef7\norigin/bos/audit 5b2263a58fdd176fd3aa1da51eb55db2e92a141f\norigin/bos/capacity-wait-reconciliation 2be943c98f4a7eedfcc9b69896ac35f058bd1970\norigin/bos/checkpoint-batching-rate-pressure b3be082e67105014d96050f28d79f672281aa944\norigin/bos/fix-provider-retry-after 4a50a8c420758a1621e5e02d981636bfc8085579\norigin/bos/issue-10 c3554e69d100bbf2a0fe5ec4badfbd8459138dc4\norigin/bos/issue-10-final 92e0ce29c9a292171ed09d4d53e9f01f106ef5d4\norigin/bos/issue-11-final 8e8c90466a252f148a696ac1732ac5752c045a8d\norigin/bos/issue-12-final 7c654dccccc9855479f16831289d288e0eb42010\norigin/bos/issue-13 b7d54a6168f31bfb1c3e7194ca2e5d0442e8d68a\norigin/bos/issue-13-final 625ea25160d775497fde8b5367178b5df6cbee8f\norigin/bos/issue-14 927666a5434c52298fd02d0152dd54e9e106db3f\norigin/bos/issue-15 ab077d1d68168c1758eec66826635f579343bc42\norigin/bos/issue-18 21c3b089e1ad6245bb06bdc7591a9ead051451ff\norigin/bos/issue-20 ab30f7e6472ef33b668d297d78b710578ebc701b\norigin/bos/issue-21 a2aa897ba95a2e2caab18b31b33272e9873f736e\norigin/bos/issue-22 c7e914e4e4798e8cb934375f057c938557ffb0d7\norigin/bos/issue-23 406070d49289bf2ccf3cd2d930fd04f20bbd0243\norigin/bos/issue-28 f44719b4614ba88160ae36bb282200bb18583b3a\norigin/bos/issue-30 cb6c799e48a89f83672b634bfaa35404711d6e9b\norigin/bos/issue-40 3c9267f0c26f93525790a9907f13d4022ca56b2c\norigin/bos/issue-51 40750c297ed42435dabe1d4670bfda85ce92af36\norigin/bos/issue-53 aed939a508bf0ae1aca96532bf35a39dc3254b19\norigin/bos/issue-6 6be340eb3bc11677f24c12b64dbaaa25924bc365\norigin/bos/issue-7 dc3289caa26419d9d788ce03f27a376901d91ae3\norigin/b",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "long"
+  }
+}
