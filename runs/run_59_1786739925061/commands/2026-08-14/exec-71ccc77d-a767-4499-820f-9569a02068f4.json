@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-71ccc77d-a767-4499-820f-9569a02068f4",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786740872261_394",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-analyst"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:54:32.206Z",
+  "command": "/bin/bash -lc \"git status --short --branch && git worktree list --porcelain && git branch -a --no-color && git log --oneline --decorate --all --max-count=80 && find elixir/lib elixir/test .github/workflows -type f | sort | sed -n '1,320p' && find . -name AGENTS.md -print\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "## bos/issue-59\nworktree $WORKSPACE/.bos/worktrees/symphony-59\nHEAD d5c51b4b225c0b4b4335556eccbc0a1ab3850549\nbranch refs/heads/bos/issue-59\n\n* bos/issue-59\n  main\n  remotes/origin/HEAD -> origin/main\n  remotes/origin/agent/bos-game-api-orchestration\n  remotes/origin/agent/bos-repository-contract\n  remotes/origin/bede/netsec-1129-supervisor-snapshot-reconciliation\n  remotes/origin/bos/audit\n  remotes/origin/bos/capacity-wait-reconciliation\n  remotes/origin/bos/checkpoint-batching-rate-pressure\n  remotes/origin/bos/fix-provider-retry-after\n  remotes/origin/bos/issue-10\n  remotes/origin/bos/issue-10-final\n  remotes/origin/bos/issue-11-final\n  remotes/origin/bos/issue-12-final\n  remotes/origin/bos/issue-13\n  remotes/origin/bos/issue-13-final\n  remotes/origin/bos/issue-14\n  remotes/origin/bos/issue-15\n  remotes/origin/bos/issue-18\n  remotes/origin/bos/issue-20\n  remotes/origin/bos/issue-21\n  remotes/origin/bos/issue-22\n  remotes/origin/bos/issue-23\n  remotes/origin/bos/issue-28\n  remotes/origin/bos/issue-30\n  remotes/origin/bos/issue-40\n  remotes/origin/bos/issue-51\n  remotes/origin/bos/issue-53\n  remotes/origin/bos/issue-6\n  remotes/origin/bos/issue-7\n  remotes/origin/bos/issue-8\n  remotes/origin/bos/issue-9\n  remotes/origin/bos/provider-retry-jitter\n  remotes/origin/bos/repository-capacity\n  remotes/origin/codex/asana-tracker\n  remotes/origin/codex/github-tracker\n  remotes/origin/codex/gitlab-tracker\n  remotes/origin/codex/goal-216-consolidate-symphony\n  remotes/origin/codex/goal-62-symphony-v0-2-1\n  remotes/origin/codex/issue54-project-header\n  remotes/origin/codex/jira-tracker\n  remotes/origin/codex/persist-token-usage-ledger\n  remotes/origin/codex/release-symphony-consolidated\n  remotes/origin/codex/sd-10-claim-leases\n  remotes/origin/codex/sd-11-jira-claim-leases\n  remotes/origin/codex/sd-5-second-smoke-test-doc\n  remotes/origin/codex/sd-9-board-automation-check\n  remotes/origin/codex/ssh-exec-server-command\n  remotes/origin/cristian/symphony-dashboard-agent-detail",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}
