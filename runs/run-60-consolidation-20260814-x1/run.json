@@ -1,0 +1,18 @@
+{
+  "runId": "run-60-consolidation-20260814-x1",
+  "issueNumber": 60,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "runner",
+    "runnerId": "x1"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local",
+    "orchestratorVersion": "0.1.0"
+  },
+  "startedAt": "2026-08-14T18:45:46.898000Z",
+  "branch": "bos/issue-60",
+  "currentAttemptId": "attempt_run-60-consolidation-20260814-x1_1"
+}
