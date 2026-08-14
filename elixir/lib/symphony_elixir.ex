@@ -39,6 +39,7 @@ defmodule SymphonyElixir.Application do
       {Phoenix.PubSub, name: SymphonyElixir.PubSub},
       SymphonyElixir.WorkflowStore,
       SymphonyElixir.Audit.Outbox,
+      SymphonyElixir.ObservabilitySnapshot,
       SymphonyElixir.AgentRuntimeSupervisor,
       SymphonyElixir.HttpServer,
       SymphonyElixir.StatusDashboard
