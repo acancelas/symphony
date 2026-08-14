@@ -1,0 +1,12 @@
+{
+  "runId": "run-60-consolidation-20260814-x1",
+  "issueNumber": 60,
+  "pullRequestNumber": 61,
+  "url": "https://github.com/acancelas/symphony/pull/61",
+  "head": "18847afc8013a0169aee9536bf9387448e54c914",
+  "base": "aa819d909a22bb98f9a9deeb1869eea7c5c2f5f3",
+  "draft": false,
+  "state": "open",
+  "alreadyMerged": false,
+  "recoveryMatch": null
+}
