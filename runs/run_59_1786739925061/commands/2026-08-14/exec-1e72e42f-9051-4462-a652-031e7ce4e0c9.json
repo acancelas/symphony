@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-1e72e42f-9051-4462-a652-031e7ce4e0c9",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786740824250_362",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:53:43.793Z",
+  "command": "/bin/bash -lc \"pwd && git status --short --branch && git rev-parse HEAD && git rev-parse origin/main && git worktree list --porcelain && rg --files -g 'AGENTS.md' -g 'README.md' -g 'SPEC.md' -g 'WORKFLOW.md' -g '.bos/project.yaml' -g 'Makefile' -g 'makefile' -g '.github/workflows/*' -g 'elixir/mix.exs'\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 127,
+  "outputSummary": "$WORKSPACE/.bos/worktrees/symphony-59\n## bos/issue-59\nd5c51b4b225c0b4b4335556eccbc0a1ab3850549\nd5c51b4b225c0b4b4335556eccbc0a1ab3850549\nworktree $WORKSPACE/.bos/worktrees/symphony-59\nHEAD d5c51b4b225c0b4b4335556eccbc0a1ab3850549\nbranch refs/heads/bos/issue-59\n\n/bin/bash: line 1: rg: command not found\n",
+  "redacted": true,
+  "status": "failed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "long"
+  }
+}

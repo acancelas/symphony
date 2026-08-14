@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-27601bbf-1983-4890-b354-d0d617734f7f",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786740824276_368",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:53:43.819Z",
+  "command": "/bin/bash -lc \"sed -n '1,240p' .bos/project.yaml && sed -n '1,260p' .github/workflows/burrito-release.yml && sed -n '1,220p' elixir/Makefile && sed -n '1,220p' elixir/mix.exs && git branch -a --format='%(refname:short) %(objectname)' && git remote -v\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "schemaVersion: 1\nprojectId: bos\nrepositoryId: symphony\nworkflowId: bos-autonomous-delivery\nremote: https://github.com/acancelas/symphony\ndelivery:\n  issueProvider: github\n  issueRequired: true\n  branchStrategy: issue-based\nquality:\n  commands:\n    - id: test\n      runner: shell\n      script: cd elixir && mise exec -- mix test\n      required: true\n      timeoutSeconds: 900\nenvironments:\n  production:\n    branch: main\n    automaticDeployment: false\n    requiresApproval: true\n    requiresVerification: true\noffline:\n  allowed: [read, edit, local_checks]\n  blocked: [push, pull_request, deployment]\nname: burrito-release\n\non:\n  workflow_dispatch:\n  push:\n    tags:\n      - \"v*\"\n\npermissions:\n  contents: read\n\njobs:\n  build:\n    name: build-${{ matrix.target }}\n    runs-on: ubuntu-24.04\n    strategy:\n      fail-fast: false\n      matrix:\n        target: [linux_x86_64, linux_arm64, macos_x86_64, macos_arm64]\n    defaults:\n      run:\n        working-directory: elixir\n\n    steps:\n      - name: Checkout\n        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4\n\n      - name: Set up mise tools\n        uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3\n        with:\n          install: true\n          cache: true\n          working_directory: elixir\n\n      - name: Install Zig\n        run: mise install zig@0.15.2\n\n      - name: Install xz\n        run: sudo apt-get update && sudo apt-get install -y xz-utils\n\n      - name: Install Mix dependencies\n        run: |\n          mix local.hex --force\n          mix local.rebar --force\n          mix deps.get\n\n      - name: Verify release tag matches project version\n        if: startsWith(github.ref, 'refs/tags/v')\n        run: |\n          project_version=\"$(sed -nE 's/^[[:space:]]*version: \"([^\"]+)\",$/\\1/p' mix.exs | head -n 1)\"\n          expected_tag=\"v$project_version\"\n\n          if test -z \"$project_version\" || test \"$GITHUB_REF_NAME\" != \"$expected_tag\"; then\n            echo \"Release tag $GITHUB_REF_NAME do",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}

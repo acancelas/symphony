@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-6620503c-e77a-4a78-8ce8-fe4e45d0fae6",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_2",
+  "eventId": "event_1786740824267_366",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-proposal-reviewer"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:53:43.809Z",
+  "command": "/bin/bash -lc \"find . -maxdepth 4 \\\\( -name AGENTS.md -o -name README.md -o -name SPEC.md -o -name WORKFLOW.md -o -path './.bos/project.yaml' -o -name Makefile -o -name makefile -o -path './.github/workflows/*' -o -path './elixir/mix.exs' \\\\) -type f -print\"",
+  "durationMs": 0,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "./WORKFLOW.md\n./AGENTS.md\n./.bos/project.yaml\n./README.md\n./elixir/Makefile\n./elixir/WORKFLOW.md\n./elixir/AGENTS.md\n./elixir/mix.exs\n./elixir/README.md\n./SPEC.md\n./.github/workflows/burrito-release.yml\n./.github/workflows/make-all.yml\n./.github/workflows/pr-description-lint.yml\n",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}
