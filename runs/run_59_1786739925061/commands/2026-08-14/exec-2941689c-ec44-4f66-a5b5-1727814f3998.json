@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "commandId": "exec-2941689c-ec44-4f66-a5b5-1727814f3998",
+  "runId": "run_59_1786739925061",
+  "attemptId": "attempt_run_59_1786739925061_1",
+  "eventId": "event_1786740284833_258",
+  "actor": {
+    "type": "agent",
+    "subjectId": "goal-analyst"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "finishedAt": "2026-08-14T20:44:44.771Z",
+  "command": "/bin/bash -lc \"git for-each-ref --format='%(refname:short)' refs/remotes/origin | while read ref; do test \\\"\"'$ref\" = origin/HEAD && continue; ahead=$(git rev-list --count origin/main..\"$ref\"); behind=$(git rev-list --count \"$ref\"..origin/main); if test \"$ahead\" -gt 0; then printf '\"'%s ahead=%s behind=%s tip=%s\\\\n' \\\"\"'$ref\" \"$ahead\" \"$behind\" \"$(git rev-parse --short=12 \"$ref\")\"; fi; done\nfind $WORKSPACE/.bos/worktrees -mindepth 1 -maxdepth 2 -type d -name .git -print 2>/dev/null\nfind $WORKSPACE/.bos/worktrees -mindepth 1 -maxdepth 2 -type f -name .git -print 2>/dev/null'",
+  "durationMs": 321,
+  "environmentPolicy": "restricted",
+  "exitCode": 0,
+  "outputSummary": "origin/bos/issue-30 ahead=1 behind=54 tip=cb6c799e48a8\norigin/bos/issue-40 ahead=1 behind=44 tip=3c9267f0c26f\norigin/bos/issue-51 ahead=1 behind=26 tip=40750c297ed4\norigin/bos/issue-53 ahead=4 behind=24 tip=aed939a508bf\norigin/bos/issue-6 ahead=5 behind=49 tip=6be340eb3bc1\norigin/bos/issue-7 ahead=6 behind=48 tip=dc3289caa264\norigin/bos/issue-8 ahead=2 behind=47 tip=15d58435689b\norigin/bos/issue-9 ahead=1 behind=46 tip=09935f47b132\norigin/bos/provider-retry-jitter ahead=1 behind=42 tip=629d47d2f50c\norigin/bos/repository-capacity ahead=3 behind=27 tip=0bc979a2d170\norigin/codex/asana-tracker ahead=1 behind=74 tip=14e2fcfed16d\norigin/codex/github-tracker ahead=1 behind=74 tip=0d8f0c0a925a\norigin/codex/gitlab-tracker ahead=1 behind=74 tip=b5ac5ea376d5\norigin/codex/issue54-project-header ahead=1 behind=25 tip=bee110a4eccc\norigin/codex/jira-tracker ahead=1 behind=74 tip=5dced33ec7f8\norigin/codex/persist-token-usage-ledger ahead=1 behind=95 tip=46b7b9120beb\norigin/codex/sd-10-claim-leases ahead=1 behind=89 tip=3399d071eb10\norigin/codex/sd-11-jira-claim-leases ahead=1 behind=89 tip=aa991a62f0ba\norigin/codex/sd-5-second-smoke-test-doc ahead=1 behind=90 tip=83e02209e38e\norigin/codex/sd-9-board-automation-check ahead=1 behind=89 tip=b2fe3fee82b8\norigin/codex/ssh-exec-server-command ahead=1 behind=75 tip=1b1f002930e0\norigin/cristian/symphony-dashboard-agent-details ahead=1 behind=93 tip=7521631193f8\norigin/dev/dtm/workspacewrite-implicit-issue-root ahead=3 behind=95 tip=83d74e19dc71\norigin/fix/audit-outbox-rebase ahead=2 behind=63 tip=31b224bb3932\norigin/fix/audit-volume-control ahead=5 behind=63 tip=4756f66e6fff\norigin/fix/bound-codex-event-memory ahead=1 behind=61 tip=22bd598b6ca9\norigin/push-nzyowrnsvtsy ahead=1 behind=93 tip=51532ebcbd09\norigin/sd-7-symphony-smoke-merge-flow ahead=1 behind=89 tip=153a6f84a7ef\norigin/sd-8-daemon-polling-smoke-note ahead=1 behind=89 tip=a1f17c9e50b4\n$WORKSPACE/.bos/worktrees/sidra-album-31/.git\n$WORKSPACE/.bos/worktrees/symphony-8/.git\n$WORKS",
+  "redacted": true,
+  "status": "completed",
+  "workingDirectory": "$WORKSPACE/.bos/worktrees/symphony-59",
+  "retention": {
+    "category": "permanent"
+  }
+}
