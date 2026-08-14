@@ -1,0 +1,21 @@
+{
+  "repository": {
+    "repositoryId": "symphony",
+    "owner": "acancelas",
+    "repo": "symphony"
+  },
+  "issueNumber": 63,
+  "operationId": "approval-merge-pr-64-symphony-v0-2-1",
+  "approvalId": "approval-merge-pr-64-symphony-v0-2-1",
+  "runId": "run-63-symphony-repair-20260814-x1",
+  "commitSha": "ad290edf92702998e686f1899fadfc6711a820ba",
+  "actor": {
+    "type": "human",
+    "subjectId": "acancelas",
+    "githubLogin": "acancelas",
+    "displayName": "Alejandro Cancelas",
+    "authenticatedBy": "bos_mcp_human_action_token"
+  },
+  "status": "approved",
+  "reason": "The user explicitly authorized consolidating every commit into main and deploying; this strictly-derived repair PR has passed exact-head QA, CI and reviews."
+}
