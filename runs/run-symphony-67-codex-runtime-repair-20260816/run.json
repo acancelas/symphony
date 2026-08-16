@@ -1,0 +1,17 @@
+{
+  "runId": "run-symphony-67-codex-runtime-repair-20260816",
+  "issueNumber": 67,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "runner",
+    "runnerId": "x1"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "startedAt": "2026-08-16T20:47:56.910000Z",
+  "branch": "codex/issue-67-codex-runtime-resolution",
+  "baseCommit": "0e8328e3af5bf85dbd1efda3e776ab3e17b7503f"
+}
