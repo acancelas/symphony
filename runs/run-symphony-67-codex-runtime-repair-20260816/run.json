@@ -2,7 +2,7 @@
   "runId": "run-symphony-67-codex-runtime-repair-20260816",
   "issueNumber": 67,
   "repositoryId": "symphony",
-  "status": "running",
+  "status": "completed",
   "initiatedBy": {
     "type": "runner",
     "runnerId": "x1"
@@ -13,7 +13,18 @@
     "orchestratorVersion": "0.2.1"
   },
   "startedAt": "2026-08-16T20:47:56.910000Z",
+  "completedAt": "2026-08-16T21:08:00Z",
   "branch": "bos/issue-67",
   "baseCommit": "0e8328e3af5bf85dbd1efda3e776ab3e17b7503f",
-  "currentAttemptId": "attempt_run-symphony-67-codex-runtime-repair-20260816_2"
+  "headCommit": "0e8328e3af5bf85dbd1efda3e776ab3e17b7503f",
+  "reconciliation": {
+    "result": "Host-only Symphony runtime repair completed without repository mutation.",
+    "checks": [
+      "Explicit verified Codex app-server command configured.",
+      "Protocol initialize smoke passed.",
+      "Service active; concurrency remains 2.",
+      "Tengo-suerte #122 original run completed and PR #124 merged at cf68fb440d7539ea73234ce81cfc5c3679db6f9f.",
+      "Credentials unchanged."
+    ]
+  }
 }

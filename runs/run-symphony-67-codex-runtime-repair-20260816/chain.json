@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run-symphony-67-codex-runtime-repair-20260816",
-  "lastSequence": 6,
-  "lastEventHash": "sha256:8b950a0b65047d3fa564089cdbccb0ec6057b31dc4718d61a71857cda0c32ec1",
-  "lastEventId": "event_recovery_resumed_attempt_run-symphony-67-codex-runtime-repair-20260816_2",
-  "updatedAt": "2026-08-16T20:52:00.860960Z"
+  "lastSequence": 7,
+  "lastEventHash": "sha256:b366e79048a7d5079f4cb8a945eabcbed2a8954a187931f1bb9d44a4f6ce80ff",
+  "lastEventId": "event_5027f745eb4026670a3806e033",
+  "updatedAt": "2026-08-16T21:08:33.909753Z"
 }
