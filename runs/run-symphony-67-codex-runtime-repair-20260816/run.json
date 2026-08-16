@@ -9,9 +9,11 @@
   },
   "runner": {
     "id": "x1",
-    "type": "local"
+    "type": "local",
+    "orchestratorVersion": "0.2.1"
   },
   "startedAt": "2026-08-16T20:47:56.910000Z",
-  "branch": "codex/issue-67-codex-runtime-resolution",
-  "baseCommit": "0e8328e3af5bf85dbd1efda3e776ab3e17b7503f"
+  "branch": "bos/issue-67",
+  "baseCommit": "0e8328e3af5bf85dbd1efda3e776ab3e17b7503f",
+  "currentAttemptId": "attempt_run-symphony-67-codex-runtime-repair-20260816_1"
 }
