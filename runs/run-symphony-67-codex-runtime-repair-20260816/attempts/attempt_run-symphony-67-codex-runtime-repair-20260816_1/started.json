@@ -1,0 +1,12 @@
+{
+  "attemptId": "attempt_run-symphony-67-codex-runtime-repair-20260816_1",
+  "runId": "run-symphony-67-codex-runtime-repair-20260816",
+  "number": 1,
+  "status": "running",
+  "actor": {
+    "type": "runner",
+    "subjectId": "x1"
+  },
+  "startedAt": "2026-08-16T20:49:39.863000Z",
+  "metrics": {}
+}
