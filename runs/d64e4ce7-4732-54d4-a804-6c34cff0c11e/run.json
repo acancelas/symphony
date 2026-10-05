@@ -1,0 +1,16 @@
+{
+  "runId": "d64e4ce7-4732-54d4-a804-6c34cff0c11e",
+  "issueNumber": 68,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "runner",
+    "runnerId": "x1"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "startedAt": "2026-10-05T05:50:08.703382Z",
+  "baseCommit": "0e8328e3af5bf85dbd1efda3e776ab3e17b7503f"
+}
