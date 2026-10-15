@@ -82,6 +82,15 @@ defmodule SymphonyElixir.Tracker do
     end
   end
 
+  @doc "Persist a governed preparatory Run without opening an implementation Attempt."
+  def start_coordination(%Issue{} = issue) do
+    adapter = adapter()
+
+    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :start_coordination, 1),
+      do: adapter.start_coordination(issue),
+      else: {:error, :governance_coordination_adapter_unavailable}
+  end
+
   @spec start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}
   def start_execution(%Issue{} = issue, attempt_number)
       when is_integer(attempt_number) and attempt_number > 0 do

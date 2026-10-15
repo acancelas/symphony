@@ -1,6 +1,6 @@
 defmodule SymphonyElixir.GovernanceCatalog do
   @moduledoc "Loads role definitions from an exact canonical Git object, never mutable checkout files."
-  @commit "026923b4d4b9189d38f13aec7b40ab2c681a7f02"
+  @commit "ea1d38867fb8096991312d77fd7643e2810ee72e"
   @digest "2a3932de1ce0c2f868030891366815a7cdda7c0c464058fca959cc2abd7ff7cc"
   def commit, do: @commit
 

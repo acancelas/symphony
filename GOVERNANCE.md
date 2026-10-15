@@ -4,7 +4,7 @@ This change adapts the existing planning, implementation and delivery coordinato
 It does not enable governance globally or alter the running X1 service.
 
 The canonical source is `acancelas/bos-agent-governance`, commit
-`026923b4d4b9189d38f13aec7b40ab2c681a7f02`. `GovernanceCatalog` reads
+`ea1d38867fb8096991312d77fd7643e2810ee72e`. `GovernanceCatalog` reads
 `catalog.json` directly from that Git object and checks SHA-256
 `2a3932de1ce0c2f868030891366815a7cdda7c0c464058fca959cc2abd7ff7cc`.
 Role definitions remain in that repository. A mutable checkout cannot substitute
@@ -25,16 +25,25 @@ implementation or closure, and never asserts unimplemented business acceptance. 
 Goal decomposition can obtain a planning verdict before the existing Goal-level
 approval; it does not manufacture readiness or that approval.
 
-After the existing technical checks/reviews, the implementation committee runs
-against the exact confirmed candidate. If a committee repair changes the candidate,
-the old candidate cannot reach the finalizer: the scheduler resumes technical
-validation at the new HEAD. Final integration, closure, deployment and production
-verification continue to use the existing backend gates. This adapter does not
-write a closure receipt or claim integration/publication by itself.
+Required repository QA remains mandatory. For governed Issues, the canonical
+implementation committee replaces the legacy specialist-session orchestration;
+legacy Issues keep their original path. The exact candidate and passing original
+evidence bind the canonical committee. A committee repair requires new exact-head
+validation/evidence before approval. Only a scoped coordinator session can finalize
+after the committee; it cannot grant approval or bypass backend integration,
+closure, release or production verification gates.
 
 The dossier is `docs/issues/{issueNumber}/plan.md` plus `manifest.json`, containing
 `issueNumber`, exact-byte `planHash` (`sha256:`), `catalogCommitSha`, original scope,
-acceptance criteria and requirement IDs. Backend #536 verifies the manifest
+acceptance criteria and requirement IDs. The controller copies `definitionDigest`
+from the signed scoped Issue readback; it covers the exact GitHub body bytes,
+including visible Markdown and the hidden marker. It rechecks this binding after
+drafting. A changed definition, including Markdown-only changes, stops the flow
+without rewriting an existing manifest. Missing or invalid existing dossiers are
+not silently regenerated. Goal dossiers also copy `goalBreakdownHash` directly
+from scoped `get_goal_planning`; no duplicate production hashing implementation is
+used. Changing Goal capabilities invalidates the bound committee proof.
+Backend #536 verifies the manifest
 against GitHub's canonical requirements. Its full closure dossier remains required.
 
 The normalized backend contract is `kind: governance`, with event-specific fields
@@ -50,23 +59,59 @@ independent exception receipt is visible. There is no fourth round.
 
 ## Host session boundary still required
 
-`Application` environment `:symphony_elixir, :governance` can supply `catalog_path`
-and `session_broker`. The latter implements `SymphonyElixir.GovernanceSession`
+`Application` environment `:symphony_elixir, :governance` supplies `catalog_path`,
+`session_broker` and `coordinator_repositories`, e.g. a host-owned map from canonical
+repositoryId to `%{token_env: "HOST_SCOPED_COORDINATOR_JWT"}`. No credential value
+belongs in a repository. The existing normalized HTTP client uses `Authorization:
+Bearer` from that environment reference for the configured repository, removes the
+legacy shared-token/claimed-actor headers, and omits client auditBatch on governed
+artifacts. The server verifies the signed M2M subject, role, permissions and repo.
+A configured repository cannot silently fall back to legacy execution if its Issue
+projection is missing. Missing coordinator credentials fail before claim.
+
+The scheduler's lease only reserves work. `start_coordination` creates/reuses the
+existing AgentRun without an implementation Attempt. The read-only drafting session
+returns data; the controller validates exact keys and writes/commits only fixed
+`docs/issues/{issueNumber}/plan.md` and `manifest.json` paths. Extra file requests,
+symlink destinations and unrelated dirty work are rejected. After committee and
+environment READY, Goal authorization is rechecked and the existing start_execution
+creates the implementation Attempt; product sessions use the scoped broker rather
+than default AppServer credentials. No second workflow state machine is introduced.
+Goal planning uses the canonical independent committee, not the legacy
+breakdown-review endpoint which scoped reviewer tokens intentionally cannot call.
+
+The host `session_broker` implements `SymphonyElixir.GovernanceSession`
 inside the existing host runtime. There is deliberately no default broker:
 `BOS_MCP_ACTOR`, a shared service token, or a prompt instruction cannot establish
 independent identity. Do not enable this in production with the legacy launcher.
 
+The broker implements `identity(context, role)` returning the public verified
+`machine_id`, server-bound `role` and canonical `repository_id`, and
+`draft(context, prompt, policy)` returning only a plan/manifest object from a
+readOnly session. Those public identity details are injected into prompts so
+Review/Attempt actor fields use the exact M2M subject, never a guessed role name.
+The server remains the authority; a callback's strings are not proof of live auth.
 For each callback `run(context, role, prompt, policy)`, the trusted host extension
 must provision a fresh existing AppServer session with a distinct verified M2M
 subject, server-assigned role and permissions, and effective tool allowlist. It
 must check the inherited Goal authorization and aggregate turn budgets before each
 turn, account for the turn through the existing runtime telemetry, and enforce the
-requested sandbox before starting. `tools` is the MCP allowlist;
+requested sandbox before starting. The `capabilities(context, role)` callback must
+report enforcement of tool allowlists, minimal environment, restricted read roots,
+private MCP credentials and readOnly where requested. Missing capabilities fail
+closed. These host attestations are a contract boundary, not an external sandbox
+certificate: deployment requires actual negative tests against host/human/provider
+secrets and unauthorized file reads/writes. The agent process must never inherit
+any MCP token; only its private scoped MCP transport receives that credential.
+Ambient service, human and coordinator secrets must be stripped, and read roots
+limited to the task workspace. A platform that cannot enforce these controls
+cannot certify independent review. `tools` is the MCP allowlist;
 `native_operations` bounds native reads, workspace edits and local validation
 separately. Review/arbiter native operations are limited to reads. Reviewers and the arbiter receive readOnly,
 no direct network, only BOS reads plus their narrowly permitted record operations;
-scoped MCP transport supplies the authorized gateway access. Coordinator preparation
-and repair may use workspaceWrite under the approved scope. Never forward raw
+scoped MCP transport supplies the authorized gateway access. Preparation and planning revisions remain readOnly; only the controller writes
+the fixed dossier files. Implementation/repair may use workspaceWrite only after
+READY under the approved scope. Never forward raw
 credentials to prompts, logs, artifacts, or the coordinator context. A token or
 session provisioning failure must return an error and preserve all state.
 
@@ -77,4 +122,7 @@ and MCP #246. Tests use an isolated broker fixture; they prove coordinator order
 readback requirements and recovery, not the external authentication infrastructure.
 
 Run the required repository check from `elixir`: `mise exec -- mix test`.
-The test helper sets a unique temporary outbox and provider-state paths.
+The test helper sets a unique temporary outbox. Bootstrap tests use a fresh Git
+fixture and no preseeded governance artifacts, exercise the real tracker/client and
+coordinator order, reject early Attempts and unsafe draft writes, and check exact
+public machine subjects in Reviews. They do not certify external M2M infrastructure.

@@ -45,7 +45,8 @@ defmodule SymphonyElixir.GameApi.Adapter do
     repository_id = issue.native_ref["repositoryId"]
     existing_run_id = issue.native_ref["runId"]
 
-    with {:ok, result} <- client_module().claim_issue(repository_id, issue_number, existing_run_id),
+    with :ok <- require_coordinator(issue),
+         {:ok, result} <- client_module().claim_issue(repository_id, issue_number, existing_run_id),
          "completed" <- result["status"] do
       claim = result["claim"] || %{}
 
@@ -76,6 +77,14 @@ defmodule SymphonyElixir.GameApi.Adapter do
     end
   end
 
+  def start_coordination(%Issue{} = issue), do: client_module().start_coordination(issue)
+
+  defp require_coordinator(issue) do
+    if SymphonyElixir.GovernanceCoordinator.enabled?(issue, []),
+      do: SymphonyElixir.GovernanceTransport.require_repository(issue.native_ref["repositoryId"]),
+      else: :ok
+  end
+
   @spec start_execution(Issue.t(), pos_integer()) :: {:ok, Issue.t()} | {:error, term()}
   def start_execution(%Issue{} = issue, attempt_number)
       when is_integer(attempt_number) and attempt_number > 0 do
@@ -94,7 +103,7 @@ defmodule SymphonyElixir.GameApi.Adapter do
 
   @spec secret_environment_names(map()) :: [String.t()]
   def secret_environment_names(_tracker_settings),
-    do: ["BOS_API_INTERNAL_TOKEN", "BOS_RUNNER_ACTION_TOKEN"]
+    do: ["BOS_API_INTERNAL_TOKEN", "BOS_RUNNER_ACTION_TOKEN"] ++ SymphonyElixir.GovernanceTransport.secret_environment_names()
 
   defp normalize_issue(payload) do
     labels = payload["labels"] || []

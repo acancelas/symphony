@@ -54,13 +54,15 @@ defmodule SymphonyElixir.AgentRunner do
     Logger.info("Starting worker attempt for #{issue_context(issue)} worker_host=#{worker_host_for_log(worker_host)}")
     attempt_number = normalize_attempt_number(Keyword.get(opts, :attempt))
 
-    with {:ok, issue} <- ensure_goal_authorized(issue, opts),
-         {:ok, issue} <- Tracker.start_execution(issue, attempt_number),
-         {:ok, workspace} <- Workspace.create_for_issue(issue, worker_host) do
+    tracker = Keyword.get(opts, :tracker_module, Tracker)
+    workspace_module = Keyword.get(opts, :workspace_module, Workspace)
+
+    with {:ok, issue} <- start_worker_context(issue, attempt_number, opts, tracker),
+         {:ok, workspace} <- workspace_module.create_for_issue(issue, worker_host) do
       send_worker_runtime_info(codex_update_recipient, issue, worker_host, workspace)
 
       try do
-        with :ok <- Workspace.run_before_run_hook(workspace, issue, worker_host) do
+        with :ok <- workspace_module.run_before_run_hook(workspace, issue, worker_host) do
           cond do
             goal_planning_issue?(issue) ->
               GoalPlanningCoordinator.run(workspace, issue, codex_update_recipient, opts, worker_host)
@@ -79,15 +81,27 @@ defmodule SymphonyElixir.AgentRunner do
           end
         end
       after
-        Workspace.run_after_run_hook(workspace, issue, worker_host)
+        workspace_module.run_after_run_hook(workspace, issue, worker_host)
       end
     else
       {:error, reason} -> {:error, reason}
     end
   end
 
+  defp start_worker_context(issue, attempt, opts, tracker) do
+    if SymphonyElixir.GovernanceCoordinator.enabled?(issue, opts) do
+      with :ok <- SymphonyElixir.GovernanceSession.available_for?(opts), do: tracker.start_coordination(issue)
+    else
+      with {:ok, authorized} <- ensure_goal_authorized(issue, opts), do: tracker.start_execution(authorized, attempt)
+    end
+  end
+
+  @doc false
+  def run_on_worker_host_for_test(issue, opts), do: run_on_worker_host(issue, nil, opts, nil)
+
   defp run_implementation_or_resume_reviews(workspace, issue, recipient, opts, worker_host) do
-    with :ok <- SymphonyElixir.GovernanceCoordinator.run(:planning, workspace, issue, recipient, opts, worker_host) do
+    with :ok <- SymphonyElixir.GovernanceCoordinator.run(:planning, workspace, issue, recipient, opts, worker_host),
+         {:ok, issue} <- start_product_attempt(issue, opts) do
       if bos_delivery_issue?(issue) do
         issue
         |> DeliveryCoordinator.review_stage_started?(opts)
@@ -95,6 +109,18 @@ defmodule SymphonyElixir.AgentRunner do
       else
         run_codex_turns(workspace, issue, recipient, opts, worker_host)
       end
+    end
+  end
+
+  defp start_product_attempt(issue, opts) do
+    if SymphonyElixir.GovernanceCoordinator.enabled?(issue, opts) do
+      tracker = Keyword.get(opts, :tracker_module, Tracker)
+
+      with {:ok, authorized} <- ensure_goal_authorized(issue, opts) do
+        tracker.start_execution(authorized, normalize_attempt_number(Keyword.get(opts, :attempt)))
+      end
+    else
+      {:ok, issue}
     end
   end
 
@@ -228,11 +254,28 @@ defmodule SymphonyElixir.AgentRunner do
 
     issue_state_fetcher = Keyword.get(opts, :issue_state_fetcher, &Tracker.fetch_issues_by_ids/1)
 
-    with {:ok, session} <- AppServer.start_session(workspace, worker_host: worker_host) do
-      try do
-        do_run_codex_turns(session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, 1, max_turns)
-      after
-        AppServer.stop_session(session)
+    if SymphonyElixir.GovernanceCoordinator.enabled?(issue, opts) do
+      context = SymphonyElixir.GovernanceSession.context(workspace, issue, codex_update_recipient, opts, worker_host)
+      prompt = build_turn_prompt(issue, opts, 1, max_turns)
+
+      policy = %{
+        sandbox: %{"type" => "workspaceWrite", "networkAccess" => false},
+        tools: ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_goal_execution bos_get_evidence bos_record_progress bos_record_evidence),
+        native_operations: [:read, :workspace_edit, :local_validation],
+        verified_m2m: true,
+        fresh_session: true,
+        check_goal_authorization: true,
+        execution_scope: :implementation
+      }
+
+      SymphonyElixir.GovernanceSession.run(context, "task-orchestrator", prompt, policy)
+    else
+      with {:ok, session} <- AppServer.start_session(workspace, worker_host: worker_host) do
+        try do
+          do_run_codex_turns(session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, 1, max_turns)
+        after
+          AppServer.stop_session(session)
+        end
       end
     end
   end

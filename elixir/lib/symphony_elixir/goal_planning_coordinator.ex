@@ -23,11 +23,32 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
       worker_host: worker_host,
       app_server: Keyword.get(opts, :app_server_module, AppServer),
       client: Keyword.get(opts, :game_api_client_module, Client),
-      max_cycles: Keyword.get(opts, :max_goal_planning_cycles, @max_cycles)
+      max_cycles: Keyword.get(opts, :max_goal_planning_cycles, @max_cycles),
+      governance_opts: opts
     }
 
-    with :ok <- plan(context, 1) do
-      SymphonyElixir.GovernanceCoordinator.run(:planning, workspace, issue, recipient, Keyword.put(opts, :governance_require_ready, false), worker_host)
+    if SymphonyElixir.GovernanceCoordinator.enabled?(issue, opts) do
+      # The legacy breakdown-review endpoint is intentionally unavailable to scoped
+      # reviewers. The canonical independent committee replaces that review.
+      with :ok <- ensure_governed_proposals(context),
+           :ok <- SymphonyElixir.GovernanceCoordinator.run(:planning, workspace, issue, recipient, Keyword.put(opts, :governance_require_ready, false), worker_host),
+           {:ok, %{"status" => "completed"}} <- context.client.request_goal_breakdown_approval(issue) do
+        :ok
+      else
+        {:error, reason} -> {:error, reason}
+        _ -> {:error, :governance_goal_approval_request_unconfirmed}
+      end
+    else
+      plan(context, 1)
+    end
+  end
+
+  defp ensure_governed_proposals(context) do
+    case fetch_planning(context) do
+      {:ok, %{"proposal" => proposal, "executionProposal" => execution}} when is_map(proposal) and is_map(execution) -> :ok
+      {:ok, _} -> run_analyst(context, 1)
+      {:error, {:game_api_http_error, 404}} -> run_analyst(context, 1)
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -172,25 +193,40 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
   end
 
   defp run_role(context, actor, prompt) do
-    with {:ok, session} <-
-           context.app_server.start_session(context.workspace,
-             worker_host: context.worker_host,
-             environment_overrides: [{"BOS_MCP_ACTOR", actor}]
-           ) do
-      try do
-        callback = fn message ->
-          send_update(context.recipient, context.issue, actor, message)
-        end
+    if SymphonyElixir.GovernanceCoordinator.enabled?(context.issue, context.governance_opts) do
+      scoped = SymphonyElixir.GovernanceSession.context(context.workspace, context.issue, context.recipient, context.governance_opts, context.worker_host)
 
-        case context.app_server.run_turn(session, prompt, context.issue,
-               on_message: callback,
-               role: actor
+      policy = %{
+        sandbox: %{"type" => "readOnly", "networkAccess" => false},
+        tools: ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_goal_planning bos_get_goal_execution bos_propose_goal_breakdown bos_propose_goal_execution),
+        native_operations: [:read],
+        verified_m2m: true,
+        fresh_session: true,
+        execution_scope: :coordination
+      }
+
+      SymphonyElixir.GovernanceSession.run(scoped, "task-orchestrator", prompt, policy)
+    else
+      with {:ok, session} <-
+             context.app_server.start_session(context.workspace,
+               worker_host: context.worker_host,
+               environment_overrides: [{"BOS_MCP_ACTOR", actor}]
              ) do
-          {:ok, _turn} -> :ok
-          {:error, reason} -> {:error, reason}
+        try do
+          callback = fn message ->
+            send_update(context.recipient, context.issue, actor, message)
+          end
+
+          case context.app_server.run_turn(session, prompt, context.issue,
+                 on_message: callback,
+                 role: actor
+               ) do
+            {:ok, _turn} -> :ok
+            {:error, reason} -> {:error, reason}
+          end
+        after
+          context.app_server.stop_session(session)
         end
-      after
-        context.app_server.stop_session(session)
       end
     end
   end

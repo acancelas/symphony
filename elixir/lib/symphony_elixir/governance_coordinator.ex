@@ -14,7 +14,7 @@ defmodule SymphonyElixir.GovernanceCoordinator do
 
   def enabled?(issue, opts) do
     native = issue.native_ref || %{}
-    Keyword.get(opts, :governance_enabled, false) or is_map(native["governance"])
+    Keyword.get(opts, :governance_enabled, false) or is_map(native["governance"]) or SymphonyElixir.GovernanceTransport.configured?(native["repositoryId"])
   end
 
   def run(phase, workspace, issue, recipient, opts, worker_host) when phase in [:planning, :implementation] do
@@ -35,8 +35,10 @@ defmodule SymphonyElixir.GovernanceCoordinator do
       }
 
       with :ok <- GovernanceSession.available?(context),
-           {:ok, catalog} <- GovernanceCatalog.load(context.catalog_path),
+           {:ok, catalog} <- Keyword.get(opts, :governance_catalog_module, GovernanceCatalog).load(context.catalog_path),
            context = Map.put(context, :catalog, catalog),
+           {:ok, bindings} <- definition_bindings(context),
+           context = Map.put(context, :definition_bindings, bindings),
            {:ok, candidate, manifest} <- prepare_candidate(context),
            {:ok, state} <- read_state(context) do
         context = Map.merge(context, %{catalog: catalog, manifest: manifest, sha: candidate.head_sha})
@@ -60,25 +62,40 @@ defmodule SymphonyElixir.GovernanceCoordinator do
         {:ok, manifest} ->
           {:ok, candidate, manifest}
 
-        {:error, :governance_manifest_unverified} ->
-          prompt =
-            "Prepare the versioned BOS dossier for Issue #{context.issue.native_ref["issueNumber"]} from original BOS scope and acceptance criteria. Write docs/issues/{issueNumber}/plan.md and manifest.json with issueNumber, planHash sha256 of exact plan bytes, catalogCommitSha #{GovernanceCatalog.commit()}, scope, acceptanceCriteria and requirement IDs. Preserve concurrent requirements. Do not implement product code or approve. Validate and publish a clean issue-branch candidate through existing governed operations."
-
-          policy = %{
-            sandbox: %{"type" => "workspaceWrite", "networkAccess" => false},
-            tools: @read_tools ++ ~w(bos_record_evidence),
-            native_operations: [:read, :workspace_edit, :local_validation],
-            verified_m2m: true,
-            fresh_session: true,
-            check_goal_authorization: true
-          }
-
-          with :ok <- GovernanceSession.run(context, "task-orchestrator", prompt, policy),
+        {:error, :governance_manifest_missing} ->
+          with :ok <- prepare_draft(context, "Prepare the original approved task plan; do not implement product code."),
                {:ok, next} <- context.candidate_head.confirm(context.workspace, context.issue, context.worker_host),
                {:ok, manifest} <- read_manifest(context, next.head_sha) do
             {:ok, next, manifest}
           end
+
+        {:error, reason} ->
+          {:error, reason}
       end
+    end
+  end
+
+  defp prepare_draft(context, detail) do
+    prompt =
+      "#{detail} Return only a draft object with plan (Markdown bytes) and manifest (scope, acceptanceCriteria, requirements). No filenames, extra files or product changes. Controller sets issueNumber, planHash and catalogCommitSha. Retrieve original BOS requirements; no invented authority."
+
+    policy = %{
+      sandbox: %{"type" => "readOnly", "networkAccess" => false},
+      tools: @read_tools,
+      native_operations: [:read],
+      verified_m2m: true,
+      fresh_session: true,
+      check_goal_authorization: true,
+      execution_scope: :coordination
+    }
+
+    with {:ok, draft} <- GovernanceSession.draft(context, prompt, policy),
+         {:ok, current} <- definition_bindings(context),
+         true <- current == context.definition_bindings do
+      SymphonyElixir.GovernanceDossier.commit(context.workspace, context.issue, draft, current)
+    else
+      false -> {:error, :governance_definition_conflict}
+      error -> error
     end
   end
 
@@ -86,16 +103,63 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     number = context.issue.native_ref["issueNumber"]
     path = "docs/issues/#{number}"
 
-    with {bytes, 0} <- System.cmd("git", ["-C", context.workspace, "show", "#{sha}:#{path}/manifest.json"], stderr_to_stdout: true),
-         {:ok, manifest} <- Jason.decode(bytes),
-         {plan, 0} <- System.cmd("git", ["-C", context.workspace, "show", "#{sha}:#{path}/plan.md"], stderr_to_stdout: true),
-         true <- manifest["issueNumber"] == number,
-         true <- manifest["catalogCommitSha"] == GovernanceCatalog.commit(),
-         true <- manifest["planHash"] == "sha256:" <> Base.encode16(:crypto.hash(:sha256, plan), case: :lower) do
-      {:ok, manifest}
-    else
-      _ -> {:error, :governance_manifest_unverified}
+    case System.cmd("git", ["-C", context.workspace, "ls-tree", "--name-only", sha, "--", "#{path}/manifest.json", "#{path}/plan.md"], stderr_to_stdout: true) do
+      {"", 0} ->
+        {:error, :governance_manifest_missing}
+
+      _ ->
+        with {bytes, 0} <- System.cmd("git", ["-C", context.workspace, "show", "#{sha}:#{path}/manifest.json"], stderr_to_stdout: true),
+             {:ok, manifest} <- Jason.decode(bytes),
+             :ok <- verify_definition(manifest, context.definition_bindings),
+             {plan, 0} <- System.cmd("git", ["-C", context.workspace, "show", "#{sha}:#{path}/plan.md"], stderr_to_stdout: true),
+             true <- manifest["issueNumber"] == number,
+             true <- manifest["catalogCommitSha"] == GovernanceCatalog.commit(),
+             true <- manifest["planHash"] == "sha256:" <> Base.encode16(:crypto.hash(:sha256, plan), case: :lower) do
+          {:ok, manifest}
+        else
+          {:error, :governance_definition_conflict} -> {:error, :governance_definition_conflict}
+          _ -> {:error, :governance_manifest_unverified}
+        end
     end
+  end
+
+  defp definition_bindings(context) do
+    native = context.issue.native_ref
+
+    with {:ok, %{"definitionDigest" => digest}} <- context.client.fetch_issue(native["repositoryId"], native["issueNumber"]),
+         true <- is_binary(digest) and Regex.match?(~r/^sha256:[0-9a-f]{64}$/, digest),
+         {:ok, goal_hash} <- goal_breakdown_hash(context) do
+      bindings = %{"definitionDigest" => digest}
+      {:ok, if(goal_hash, do: Map.put(bindings, "goalBreakdownHash", goal_hash), else: bindings)}
+    else
+      {:error, reason} -> {:error, reason}
+      _ -> {:error, :governance_definition_digest_unavailable}
+    end
+  end
+
+  defp goal_breakdown_hash(context) do
+    if "bos:goal" in (context.issue.labels || []) do
+      native = context.issue.native_ref
+
+      with {:ok, %{"proposal" => proposal} = planning} when is_map(proposal) <- context.client.fetch_goal_planning(native["repositoryId"], native["issueNumber"]) do
+        hash = planning["goalBreakdownHash"]
+
+        if is_binary(hash) and Regex.match?(~r/^sha256:[0-9a-f]{64}$/, hash),
+          do: {:ok, hash},
+          else: {:error, :governance_goal_proposal_hash_unavailable}
+      else
+        {:error, reason} -> {:error, reason}
+        _ -> {:error, :governance_goal_proposal_incomplete}
+      end
+    else
+      {:ok, nil}
+    end
+  end
+
+  defp verify_definition(manifest, bindings) do
+    if Enum.all?(bindings, fn {key, value} -> manifest[key] == value end),
+      do: :ok,
+      else: {:error, :governance_definition_conflict}
   end
 
   defp read_state(context) do
@@ -235,7 +299,7 @@ defmodule SymphonyElixir.GovernanceCoordinator do
       prompt =
         "Repair only the approved acceptance criteria from this durable verdict: #{Jason.encode!(phase["verdict"])}. Preserve this Issue/Run, Goal authorization, aggregate budgets, branch and evidence. Update the versioned plan dossier for planning revisions. Run required validation and publish a clean exact candidate through the existing governed contract; no merge or production."
 
-      with :ok <- GovernanceSession.run(context, "task-orchestrator", prompt, policy),
+      with :ok <- repair_turn(context, prompt, policy),
            {:ok, candidate} <- context.candidate_head.confirm(context.workspace, context.issue, context.worker_host),
            {:ok, manifest} <- read_manifest(context, candidate.head_sha),
            true <- candidate.head_sha != context.sha,
@@ -248,6 +312,9 @@ defmodule SymphonyElixir.GovernanceCoordinator do
       end
     end
   end
+
+  defp repair_turn(%{phase: "planning"} = context, prompt, _policy), do: prepare_draft(context, prompt)
+  defp repair_turn(context, prompt, policy), do: GovernanceSession.run(context, "task-orchestrator", prompt, policy)
 
   defp passed?(phase) do
     verdict = phase["verdict"] || %{}

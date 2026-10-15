@@ -8,7 +8,11 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
   end
 
   defmodule Broker do
+    def capabilities(_, _), do: {:ok, %{read_only: :enforced, tool_allowlist: :enforced, minimal_environment: :enforced, read_roots: :enforced, private_mcp_credentials: :enforced}}
+
     @behaviour GovernanceSession
+    def identity(context, role), do: {:ok, %{machine_id: "verified-" <> role, role: role, repository_id: context.issue.native_ref["repositoryId"]}}
+
     def run(context, role, prompt, policy) do
       [_, json] = Regex.run(~r/Required artifact base: (.*)\. Add a concise/, prompt)
       artifact = Jason.decode!(json)
@@ -53,6 +57,12 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
           :ok
       end
     end
+  end
+
+  defmodule UnisolatedBroker do
+    def identity(context, role), do: Broker.identity(context, role)
+    def capabilities(_, _), do: {:ok, %{read_only: :enforced}}
+    def run(_, _, _, _), do: raise("must never start an unisolated agent")
   end
 
   setup do
@@ -174,5 +184,9 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
     assert {:error, :governance_catalog_unconfigured} = GovernanceCatalog.load(nil)
     assert {:error, :governance_catalog_unverified} = GovernanceCatalog.load(System.tmp_dir!())
     assert String.length(GovernanceCatalog.commit()) == 40
+  end
+
+  test "readOnly without secret and read-root isolation cannot start a reviewer", %{context: c} do
+    assert {:error, :governance_isolation_unavailable} = GovernanceSession.run(%{c | broker: UnisolatedBroker}, "security", "review", %{sandbox: %{"type" => "readOnly"}})
   end
 end
