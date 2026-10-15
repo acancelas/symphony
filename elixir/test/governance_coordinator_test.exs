@@ -45,7 +45,7 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
                 put_in(state, ["phases", context.phase, "exception"], Map.put(artifact, "summary", "Independent evidence justifies one final review"))
 
               "readiness" ->
-                Map.put(state, "readiness", artifact)
+                Map.put(state, "readiness", Map.merge(artifact, %{"status" => "passed", "state" => "READY"}))
             end
 
           Process.put(:gov_state, state)
