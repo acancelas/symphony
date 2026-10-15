@@ -54,3 +54,15 @@ host environment results, runtime certification and independent Goal authorizati
   messages, inputs and context. This corrects the information loss observed after
   the real Desktop candidate returned HTTP 422; its exact prior field remains
   unknown. Do not treat that error as a confirmed candidate or consume new rounds.
+
+- Ordinary Desktop activation milestone (candidate `2bb978f`, MCP `7d6458ce`):
+  same planning round completed ten applicability decisions, six original Reviews
+  and independent APPROVED_WITH_NOTES. Readback SHA `12d8886086dfd828b94a3da2127550077570a5f5f7bbb7e86458bf08124d7a95`.
+  This snapshot-backed experimental pilot is not canonical fulfillment or full
+  execution certification. Readiness remains null: real host environment evidence
+  is absent; Goal authorization is independently unresolved in the single-Issue
+  snapshot. Preserve all gates, counters and the exact candidate. Next work is a
+  trusted host observation producer and recovery of the actual authorized Goal,
+  without widening scopes. See docs/issues/69/desktop-pilot-2026-10-15.md.
+  Keep the registered worktree/runtime/evidence while dependencies remain active;
+  no main integration, production publication or final task closure occurred.
