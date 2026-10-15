@@ -1,0 +1,51 @@
+{
+  "evidenceId": "governance_69_local_65223c2e",
+  "runId": "symphony-governance-69",
+  "commitSha": "65223c2e9391ba5b2918e12705da91ffd452040e",
+  "status": "inconclusive",
+  "phase": "pre_deployment",
+  "acceptanceCriteria": [
+    {
+      "name": "Opt-in committees, recovery and legacy local regression checks",
+      "status": "passed"
+    },
+    {
+      "name": "Live M2M identities, scoped host sessions and end-to-end gate confirmation",
+      "status": "inconclusive"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "complete_qa_suite",
+      "status": "passed",
+      "complete": true,
+      "commands": [
+        "cd elixir && mise exec -- mix test"
+      ],
+      "environment": "local"
+    },
+    {
+      "kind": "canonical_catalog_pin",
+      "status": "passed",
+      "commands": [
+        "MIX_ENV=test mise exec -- mix run --no-start verify_catalog.exs"
+      ]
+    },
+    {
+      "kind": "live_m2m_governance",
+      "status": "inconclusive"
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "draft_pull_request",
+      "url": "https://github.com/acancelas/symphony/pull/70"
+    }
+  ],
+  "residualRisk": [
+    {
+      "summary": "Concrete host broker implementation and actual runtime isolation certification are missing; this is separate from M2M provisioning and backend/MCP installation. See committed runtime probe/provenance. No production authorization requested."
+    }
+  ],
+  "summary": "Local suite465tests0fail6skip,23governance cases. Follow-up spec5.2 archives host-built requestSnapshot with full sanitized authorized Issue definition, identity/time metadata, exact rawdefinitionDigest and provenance; caller/model snapshot/history ignored, original preserved and explicit revisions appended. Tests cover full safe text, synthetic credential/contact redaction and history preservation. Backend snapshot semantics/redaction certification not claimed; mandatory request section remains. Broker concrete/runtime isolation/M2M/desktop A-L validation remain pending; overall inconclusive, no main/prod/globalactivation."
+}
