@@ -87,12 +87,14 @@ defmodule SymphonyElixir.AgentRunner do
   end
 
   defp run_implementation_or_resume_reviews(workspace, issue, recipient, opts, worker_host) do
-    if bos_delivery_issue?(issue) do
-      issue
-      |> DeliveryCoordinator.review_stage_started?(opts)
-      |> run_bos_delivery_stage(workspace, issue, recipient, opts, worker_host)
-    else
-      run_codex_turns(workspace, issue, recipient, opts, worker_host)
+    with :ok <- SymphonyElixir.GovernanceCoordinator.run(:planning, workspace, issue, recipient, opts, worker_host) do
+      if bos_delivery_issue?(issue) do
+        issue
+        |> DeliveryCoordinator.review_stage_started?(opts)
+        |> run_bos_delivery_stage(workspace, issue, recipient, opts, worker_host)
+      else
+        run_codex_turns(workspace, issue, recipient, opts, worker_host)
+      end
     end
   end
 

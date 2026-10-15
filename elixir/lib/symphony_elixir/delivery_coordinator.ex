@@ -65,7 +65,8 @@ defmodule SymphonyElixir.DeliveryCoordinator do
       max_lookup_attempts: max_lookup_attempts,
       sleep_fn: sleep_fn,
       candidate_head: candidate_head,
-      prior_command_context: Keyword.get(opts, :prior_command_context)
+      prior_command_context: Keyword.get(opts, :prior_command_context),
+      governance_opts: opts
     }
 
     run_delivery_cycle(context, 1, max_cycles, [])
@@ -130,14 +131,16 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   defp confirm_reviewed_candidate(context, reviewed, cycle, max_cycles, dirty_fingerprints) do
     case context.candidate_head.confirm(context.workspace, context.issue, context.worker_host) do
       {:ok, %{head_sha: head_sha} = candidate} when head_sha == reviewed.head_sha ->
-        run_finalizer(
-          context.workspace,
-          context.issue,
-          context.recipient,
-          context.worker_host,
-          context.app_server,
-          candidate
-        )
+        with :ok <- SymphonyElixir.GovernanceCoordinator.run(:implementation, context.workspace, context.issue, context.recipient, context.governance_opts, context.worker_host),
+             {:ok, confirmed} <- confirm_governance_candidate(context, candidate) do
+          if confirmed.head_sha == candidate.head_sha do
+            run_finalizer(context.workspace, context.issue, context.recipient, context.worker_host, context.app_server, candidate)
+          else
+            # Governance repairs are independent of legacy technical repair cycles.
+            # Re-enter through the scheduler so technical reviews bind the new HEAD.
+            {:error, {:governance_candidate_repaired, candidate.head_sha, confirmed.head_sha}}
+          end
+        end
 
       {:ok, candidate} when cycle < max_cycles ->
         Logger.warning("Candidate HEAD changed after review; restarting reviews at exact HEAD=#{candidate.head_sha}")
@@ -151,6 +154,14 @@ defmodule SymphonyElixir.DeliveryCoordinator do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp confirm_governance_candidate(context, candidate) do
+    if SymphonyElixir.GovernanceCoordinator.enabled?(context.issue, context.governance_opts) do
+      context.candidate_head.confirm(context.workspace, context.issue, context.worker_host)
+    else
+      {:ok, candidate}
     end
   end
 

@@ -26,7 +26,9 @@ defmodule SymphonyElixir.GoalPlanningCoordinator do
       max_cycles: Keyword.get(opts, :max_goal_planning_cycles, @max_cycles)
     }
 
-    plan(context, 1)
+    with :ok <- plan(context, 1) do
+      SymphonyElixir.GovernanceCoordinator.run(:planning, workspace, issue, recipient, Keyword.put(opts, :governance_require_ready, false), worker_host)
+    end
   end
 
   defp plan(context, cycle) do
