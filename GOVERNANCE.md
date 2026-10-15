@@ -67,18 +67,15 @@ server; technical/transport counters and aggregate Goal consumption are never
 reset or copied into committee counters. A third round starts only after an
 independent exception receipt is visible. There is no fourth round.
 
-## Host session boundary still required
+## Host session boundary
 
-`Application` environment `:symphony_elixir, :governance` supplies `catalog_path`,
-`session_broker` and `coordinator_repositories`, e.g. a host-owned map from canonical
-repositoryId to `%{token_env: "HOST_SCOPED_COORDINATOR_JWT"}`. No credential value
-belongs in a repository. The existing normalized HTTP client uses `Authorization:
-Bearer` from that environment reference for the configured repository, removes the
-legacy shared-token/claimed-actor headers, and omits client auditBatch on governed
-artifacts. The server verifies the signed M2M subject, role, permissions and repo.
-A configured repository cannot silently fall back to legacy execution if its Issue
-projection is missing. Missing coordinator credentials fail before claim.
-
+`Application` environment `:symphony_elixir, :governance` supplies the canonical
+`catalog_path`, concrete `session_broker` and private `broker` configuration. The
+protected CLI uses the existing BOS service registry through HMAC v2 and a pinned
+private MCP build, as detailed below. The earlier scheduler bearer adapter uses
+`coordinator_repositories` environment references and remains a separate opt-in
+compatibility path. No credential value belongs in a repository, and an opted-in
+repository fails closed when its configured authentication or projection is absent.
 The scheduler's lease only reserves work. `start_coordination` creates/reuses the
 existing AgentRun without an implementation Attempt. The read-only drafting session
 returns data; the controller validates exact keys and writes/commits only fixed
@@ -96,16 +93,19 @@ inside the existing host runtime. There is deliberately no default broker:
 independent identity. Do not enable this in production with the legacy launcher.
 
 The broker implements `identity(context, role)` returning the public verified
-`machine_id`, server-bound `role` and canonical `repository_id`, and
+`subject_id`, `service_id`, server-bound `role`, canonical `repository_id`, and
 `draft(context, prompt, policy)` returning only a plan/manifest object from a
 readOnly session. Those public identity details are injected into prompts so
-Review/Attempt actor fields use the exact M2M subject, never a guessed role name.
+Review/Attempt actor fields use the exact verified execution subject. A service
+identity can authenticate many logical roles; every native invocation has its own
+server-bound execution subject.
 The server remains the authority; a callback's strings are not proof of live auth.
 For each callback `run(context, role, prompt, policy)`, the trusted host extension
-must provision a fresh existing AppServer session with a distinct verified M2M
-subject, server-assigned role and permissions, and effective tool allowlist. It
-must check the inherited Goal authorization and aggregate turn budgets before each
-turn, account for the turn through the existing runtime telemetry, and enforce the
+must provision a fresh existing AppServer session with a distinct verified
+invocation subject, server-assigned role and permissions, and effective tool allowlist.
+Product execution requires inherited Goal authorization and aggregate budgets.
+Read-only planning can precede that grant. Account for turns through existing
+runtime telemetry and enforce the
 requested sandbox before starting. The `capabilities(context, role)` callback must
 report enforcement of tool allowlists, minimal environment, restricted read roots,
 private MCP credentials and readOnly where requested. Missing capabilities fail
@@ -114,7 +114,8 @@ certificate: deployment requires actual negative tests against host/human/provid
 secrets and unauthorized file reads/writes. The agent process must never inherit
 any MCP token; only its private scoped MCP transport receives that credential.
 Ambient service, human and coordinator secrets must be stripped, and read roots
-limited to the task workspace. A platform that cannot enforce these controls
+limited to the empty native task directory and runtime essentials; bounded host
+Git-object tools read the original candidate. A platform without these controls
 cannot certify independent review. `tools` is the MCP allowlist;
 `native_operations` bounds native reads, workspace edits and local validation
 separately. Review/arbiter native operations are limited to reads. Reviewers and the arbiter receive readOnly,
@@ -125,29 +126,28 @@ READY under the approved scope. Never forward raw
 credentials to prompts, logs, artifacts, or the coordinator context. A token or
 session provisioning failure must return an error and preserve all state.
 
-This contract is a dependency boundary, not a claim that the unavailable M2M
-provisioning is implemented or verified. Live execution, server permissions and
-end-to-end READY remain pending secure provisioning and deployment of backend #536
-and MCP #246. Tests use an isolated broker fixture; they prove coordinator ordering,
-readback requirements and recovery, not the external authentication infrastructure.
-
+The isolated concrete broker has verified service identity over real local HTTP
+and observed real native source-tool calls. The local ledger remains experimental,
+so those observations do not certify canonical fulfillment or READY. Final source
+build re-pinning, complete host environment evidence, workspace-write integration
+and ordinary desktop activation still require their respective acceptance checks.
 Run the required repository check from `elixir`: `mise exec -- mix test`.
 The test helper sets a unique temporary outbox. Bootstrap tests use a fresh Git
 fixture and no preseeded governance artifacts, exercise the real tracker/client and
 coordinator order, reject early Attempts and unsafe draft writes, and check exact
-public machine subjects in Reviews. They do not certify external M2M infrastructure.
+public execution subjects in Reviews. Unit fixtures complement the separately
+recorded live broker probes; they do not replace external acceptance evidence.
 
 ## Actual host availability
 
-Phase 3's concrete AppServer session broker remains pending, separately from M2M
-credential provisioning. Installed native probes failed certification: WSL aborts
-on a bwrap integrity mismatch, and the isolated Windows standalone command/exec
-route allowed the synthetic outside read and write. This is not a claim about all
-Windows turn/tool paths. No global fix or guard bypass was attempted. See
-`docs/governance-runtime-probe-2026-10-15.md` for exact provenance, a repeatable
-no-model canary script and the compatible vendor-verified runtime/profile route.
-The callback/test fixtures must never be described as a working host broker.
-
+The original installed-runtime probes failed: WSL reported a bundled bwrap digest
+mismatch, and the isolated Windows standalone command/exec route allowed synthetic
+outside reads and writes. These historical observations do not cover every Windows
+tool route. The isolated official 0.162.1 vendor runtime subsequently passed real
+WSL model-tool isolation, and the concrete read-only broker completed actual
+original-source Git tools. The historical probe document and the concrete liveness
+report preserve both results. No installed binary or guard was replaced or bypassed.
+Workspace-write broker execution and ordinary desktop activation remain pending.
 ### Concrete private host broker (isolated DEV pilot)
 
 `GovernanceAppServerBroker` launches the pinned native AppServer directly, with
