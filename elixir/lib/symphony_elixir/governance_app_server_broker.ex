@@ -18,21 +18,37 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
 
   @doc false
   def reserve_existing_run(context, run) do
-    number = context.issue.native_ref["issueNumber"]
-    run_id = context.issue.native_ref["runId"]
-    runner = get_in(run, ["runner", "id"])
-    bucket = div(System.system_time(:second), 300) * 300
-    lease = DateTime.from_unix!(bucket + 3600) |> DateTime.to_iso8601()
-    operation = "governance-intake-" <> Base.encode16(:crypto.hash(:sha256, Jason.encode!([context.issue.native_ref["repositoryId"], run_id, bucket])), case: :lower)
+    with true <- SymphonyElixir.GovernanceReservation.run_matches?(context, run),
+         {:ok, source} <- host_read(context, "bos_get_issue", %{"issueNumber" => context.issue.native_ref["issueNumber"]}) do
+      case SymphonyElixir.GovernanceReservation.verify(context, run, source) do
+        :ok -> :ok
+        {:error, _} -> request_reservation(context, run)
+      end
+    else
+      _ -> {:error, :governance_existing_run_reservation_denied}
+    end
+  end
 
-    with true <- run["runId"] == run_id and run["issueNumber"] == number and run["repositoryId"] == context.issue.native_ref["repositoryId"] and is_binary(runner) and runner != "",
-         {:ok, configuration} <- configuration(),
+  defp request_reservation(context, run) do
+    native = context.issue.native_ref
+
+    with {:ok, configuration} <- configuration(),
          {:ok, cached} <- connection(context, "task-orchestrator", configuration),
          {:ok, _, _} <- effective(cached, context, "task-orchestrator", configuration),
+         operation =
+           "governance-intake-" <> Base.encode16(:crypto.hash(:sha256, Jason.encode!([native["repositoryId"], native["runId"], cached.invocation_id, cached.reservation_bucket])), case: :lower),
+         lease = DateTime.to_iso8601(DateTime.from_unix!(cached.reservation_bucket + 3600)),
          {:ok, raw} <-
-           GovernancePrivateMcp.call(cached.client, "bos_claim_issue", %{"issueNumber" => number, "runId" => run_id, "runnerId" => runner, "operationId" => operation, "leaseExpiresAt" => lease}),
+           GovernancePrivateMcp.call(cached.client, "bos_claim_issue", %{
+             "issueNumber" => native["issueNumber"],
+             "runId" => native["runId"],
+             "runnerId" => get_in(run, ["runner", "id"]),
+             "operationId" => operation,
+             "leaseExpiresAt" => lease
+           }),
          {:ok, result} <- GovernanceToolBoundary.decode_result(raw),
-         true <- result["status"] in ["claimed", "resumed", "completed"] do
+         {:ok, source} <- host_read(context, "bos_get_issue", %{"issueNumber" => native["issueNumber"]}),
+         :ok <- SymphonyElixir.GovernanceReservation.verify_response(result, context, run, source) do
       :ok
     else
       _ -> {:error, :governance_existing_run_reservation_denied}
@@ -254,7 +270,7 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
              }
            }),
          {:ok, client} <- GovernancePrivateMcp.open(options) do
-      cached = %{client: client, invocation_id: invocation, source: nil, principal: nil}
+      cached = %{client: client, invocation_id: invocation, source: nil, principal: nil, reservation_bucket: div(System.system_time(:second), 300) * 300}
       Process.put(key(context, role), cached)
       {:ok, cached}
     else

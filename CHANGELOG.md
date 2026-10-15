@@ -28,3 +28,8 @@ Definition archive correction (spec 5.2): the host now copies the authorized Iss
 - Add protected one-shot governance CLI and private-MCP coordinator read adapter;
   validate existing Run, registered task workspace and branch, preserve legacy
   daemon guards, and avoid shared remote edits. Local tests: 473 passed, six skipped.
+
+- Preserve host replay isolation during preparation lease recovery: read an existing
+  exact Run/runner lease first, bind new reservation operation IDs to invocation,
+  and verify the authoritative future lease and Issue state after claim. Accept
+  both new_run and resume_run only on matching readback; no new Run or Attempt.
