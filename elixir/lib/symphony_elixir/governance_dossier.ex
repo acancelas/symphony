@@ -13,6 +13,7 @@ defmodule SymphonyElixir.GovernanceDossier do
     with true <- Enum.sort(Map.keys(draft)) == ["manifest", "plan"],
          true <- is_integer(number) and number > 0,
          true <- is_binary(bindings["definitionDigest"]) and Regex.match?(~r/^sha256:[0-9a-f]{64}$/, bindings["definitionDigest"]),
+         true <- is_map(bindings["requestSnapshot"]) and bindings["requestSnapshot"]["definitionDigest"] == bindings["definitionDigest"],
          {:ok, root} <- PathSafety.canonicalize(workspace),
          true <- Enum.all?(files, &safe?(root, &1)),
          {"", 0} <- System.cmd("git", ["-C", root, "status", "--porcelain", "--untracked-files=all"]),
@@ -21,7 +22,8 @@ defmodule SymphonyElixir.GovernanceDossier do
          true <- Enum.all?(files, &safe?(root, &1)),
          manifest =
            Map.merge(manifest, %{"issueNumber" => number, "catalogCommitSha" => GovernanceCatalog.commit(), "planHash" => "sha256:" <> Base.encode16(:crypto.hash(:sha256, plan), case: :lower)}),
-         manifest = Map.merge(manifest, bindings),
+         history = preserve_request_snapshots(Path.join(root, List.last(files)), bindings["requestSnapshot"]),
+         manifest = manifest |> Map.merge(bindings) |> Map.merge(history),
          :ok <- File.write(Path.join(root, hd(files)), plan),
          :ok <- File.write(Path.join(root, List.last(files)), Jason.encode!(manifest) <> "\n"),
          {_, 0} <- System.cmd("git", ["-C", root, "add", "--" | files], stderr_to_stdout: true),
@@ -33,6 +35,25 @@ defmodule SymphonyElixir.GovernanceDossier do
   end
 
   def commit(_, _, _, _), do: {:error, :governance_dossier_write_rejected}
+
+  defp preserve_request_snapshots(path, current) do
+    previous =
+      case File.read(path) do
+        {:ok, bytes} ->
+          case Jason.decode(bytes) do
+            {:ok, value} when is_map(value) -> value
+            _ -> %{}
+          end
+
+        _ ->
+          %{}
+      end
+
+    original = previous["requestSnapshot"] || current
+    revisions = previous["requestRevisionSnapshots"] || []
+    revisions = if current == original or current in revisions, do: revisions, else: revisions ++ [current]
+    %{"requestSnapshot" => original, "requestRevisionSnapshots" => revisions}
+  end
 
   defp safe?(root, relative) do
     path = Path.join(root, relative)

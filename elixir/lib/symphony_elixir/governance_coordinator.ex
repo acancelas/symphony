@@ -126,10 +126,12 @@ defmodule SymphonyElixir.GovernanceCoordinator do
   defp definition_bindings(context) do
     native = context.issue.native_ref
 
-    with {:ok, %{"definitionDigest" => digest}} <- context.client.fetch_issue(native["repositoryId"], native["issueNumber"]),
+    with {:ok, %{"definitionDigest" => digest} = source} <- context.client.fetch_issue(native["repositoryId"], native["issueNumber"]),
          true <- is_binary(digest) and Regex.match?(~r/^sha256:[0-9a-f]{64}$/, digest),
+         {:ok, snapshot} <- SymphonyElixir.GovernanceRequestSnapshot.build(source, native["repositoryId"]),
+         true <- snapshot["number"] == native["issueNumber"],
          {:ok, goal_hash} <- goal_breakdown_hash(context) do
-      bindings = %{"definitionDigest" => digest}
+      bindings = %{"definitionDigest" => digest, "requestSnapshot" => snapshot}
       {:ok, if(goal_hash, do: Map.put(bindings, "goalBreakdownHash", goal_hash), else: bindings)}
     else
       {:error, reason} -> {:error, reason}
@@ -157,7 +159,11 @@ defmodule SymphonyElixir.GovernanceCoordinator do
   end
 
   defp verify_definition(manifest, bindings) do
-    if Enum.all?(bindings, fn {key, value} -> manifest[key] == value end),
+    current = bindings["requestSnapshot"]
+    revisions = manifest["requestRevisionSnapshots"] || []
+    snapshots = if is_list(revisions), do: [manifest["requestSnapshot"] | revisions], else: []
+
+    if Enum.all?(Map.delete(bindings, "requestSnapshot"), fn {key, value} -> manifest[key] == value end) and current in snapshots,
       do: :ok,
       else: {:error, :governance_definition_conflict}
   end

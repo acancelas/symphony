@@ -43,8 +43,18 @@ without rewriting an existing manifest. Missing or invalid existing dossiers are
 not silently regenerated. Goal dossiers also copy `goalBreakdownHash` directly
 from scoped `get_goal_planning`; no duplicate production hashing implementation is
 used. Changing Goal capabilities invalidates the bound committee proof.
+The manifest also archives `requestSnapshot`: host-built number/title/URL,
+createdAt when available, complete sanitized body, original definitionDigest and
+provenance. The draft cannot supply this source record. Existing original snapshots
+remain unchanged; explicit host-adopted revisions append to `requestRevisionSnapshots`
+without replacing that original. Secret/header/private-key patterns use the existing
+audit redactor plus snapshot-specific contact redaction; comments, author profiles
+and unrelated personal data are not copied. No raw body is written to Git.
 Backend #536 verifies the manifest
-against GitHub's canonical requirements. Its full closure dossier remains required.
+against GitHub's canonical requirements. Its full closure dossier, including the existing readable request section, remains
+required. The additional snapshot is an archive, not a substitute for that section
+or a claim that backend #536 certifies snapshot semantics/redaction. Model prose
+must not replace the original archived definition.
 
 The normalized backend contract is `kind: governance`, with event-specific fields
 at the top level. Never send `actor`, `role` or `payload`; the server derives the

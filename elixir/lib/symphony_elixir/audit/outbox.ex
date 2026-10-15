@@ -1318,6 +1318,9 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   defp sha256(value), do: "sha256:" <> (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower))
 
+  @doc false
+  def redact_text_for_evidence(text) when is_binary(text), do: redact_sensitive_text(text)
+
   defp redact_sensitive_text(value) do
     value
     |> then(&Regex.replace(@bearer, &1, "Bearer [REDACTED]"))

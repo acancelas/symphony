@@ -54,7 +54,16 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
 
         String.ends_with?(path, "/issues/69") ->
           digest = "sha256:" <> Base.encode16(:crypto.hash(:sha256, Process.get(:bootstrap_issue_body)), case: :lower)
-          reply(200, %{"governance" => state, "definitionDigest" => digest})
+
+          reply(200, %{
+            "governance" => state,
+            "definitionDigest" => digest,
+            "number" => 69,
+            "title" => "Original GitHub title",
+            "url" => "https://github.test/acancelas/bos-front/issues/69",
+            "createdAt" => "2026-10-15T06:00:00Z",
+            "body" => Process.get(:bootstrap_issue_body)
+          })
 
         String.ends_with?(path, "/artifacts/attempts") ->
           reply(200, %{"artifacts" => Process.get(:bootstrap_attempts, [])})
@@ -105,7 +114,18 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
       assert Process.get(:bootstrap_attempts, []) == []
       Test.trace(:draft)
       if Process.get(:change_definition_during_draft), do: Process.put(:bootstrap_issue_body, "Concurrent change\n" <> Process.get(:bootstrap_issue_body))
-      {:ok, %{"plan" => "# Original authorized task plan\n", "manifest" => %{"scope" => ["product"], "acceptanceCriteria" => ["product works"], "requirements" => ["product-1"]}}}
+
+      {:ok,
+       %{
+         "plan" => "# Original authorized task plan\n",
+         "manifest" => %{
+           "scope" => ["product"],
+           "acceptanceCriteria" => ["product works"],
+           "requirements" => ["product-1"],
+           "requestSnapshot" => %{"bodySanitized" => "model summary must never replace source"},
+           "requestRevisionSnapshots" => [%{"bodySanitized" => "fabricated history"}]
+         }
+       }}
     end
 
     def run(context, role, prompt, policy) do
@@ -282,17 +302,25 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     assert Process.get(:bootstrap_attempts, []) == []
   end
 
+  defp snapshot_bindings do
+    {:ok, source} = Client.fetch_issue("bos-front", 69)
+    {:ok, snapshot} = SymphonyElixir.GovernanceRequestSnapshot.build(source, "bos-front")
+    %{"definitionDigest" => source["definitionDigest"], "requestSnapshot" => snapshot}
+  end
+
   test "draft output cannot request a product edit", %{issue: issue, root: root} do
     draft = %{"plan" => "plan", "manifest" => %{"scope" => [], "acceptanceCriteria" => [], "requirements" => []}, "files" => %{"product.txt" => "changed"}}
-    assert {:error, :governance_dossier_write_rejected} = GovernanceDossier.commit(root, issue, draft)
+    assert {:error, :governance_dossier_write_rejected} = GovernanceDossier.commit(root, issue, draft, snapshot_bindings())
     assert File.read!(Path.join(root, "product.txt")) == "original product\n"
     refute File.exists?(Path.join(root, "docs"))
   end
 
   test "dossier refuses symlink destinations", %{issue: issue, root: root} do
     File.ln_s!(root, Path.join(root, "docs"))
+    File.write!(Path.join(root, ".git/info/exclude"), "docs\n", [:append])
+    assert {"", 0} = System.cmd("git", ["status", "--porcelain"], cd: root)
     draft = %{"plan" => "plan", "manifest" => %{"scope" => [], "acceptanceCriteria" => [], "requirements" => []}}
-    assert {:error, :governance_dossier_write_rejected} = GovernanceDossier.commit(root, issue, draft)
+    assert {:error, :governance_dossier_write_rejected} = GovernanceDossier.commit(root, issue, draft, snapshot_bindings())
     refute File.exists?(Path.join(root, "issues"))
   end
 
@@ -334,5 +362,62 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     assert String.starts_with?(manifest["goalBreakdownHash"], "sha256:")
     Process.put(:bootstrap_goal_proposal, %{Process.get(:bootstrap_goal_proposal) | "capabilities" => [%{"key" => "different"}]})
     assert {:error, :governance_definition_conflict} = SymphonyElixir.GovernanceCoordinator.run(:planning, root, claimed, nil, Keyword.put(opts, :governance_require_ready, false), nil)
+  end
+
+  test "source snapshot preserves full safe definition and ignores model counterfeit", %{issue: issue, opts: opts, root: root} do
+    raw =
+      "# Original definition\nFull requirement and acceptance text.\nAPI_TOKEN=synthetic-secret-value\nBearer synthetic-bearer-value\nAuthorization: Basic synthetic-encoded-credential\nCookie: SID=synthetic-cookie-value; other=synthetic-cookie-extra\ncontact person@example.invalid\nphone: +34 600 123 456\n<!-- original unchanged marker -->"
+
+    Process.put(:bootstrap_issue_body, raw)
+    assert {:ok, claimed} = Tracker.claim_issue(issue)
+    assert :ok = AgentRunner.run_on_worker_host_for_test(claimed, opts)
+    bytes = File.read!(Path.join(root, "docs/issues/69/manifest.json"))
+    manifest = Jason.decode!(bytes)
+    snapshot = manifest["requestSnapshot"]
+    assert snapshot["number"] == 69
+    assert snapshot["title"] == "Original GitHub title"
+    assert snapshot["createdAt"] == "2026-10-15T06:00:00Z"
+    assert snapshot["provenance"]["source"] == "game-api"
+    assert snapshot["provenance"]["redactionApplied"]
+    assert String.contains?(snapshot["bodySanitized"], "Full requirement and acceptance text.")
+    assert String.contains?(snapshot["bodySanitized"], "<!-- original unchanged marker -->")
+
+    for forbidden <- [
+          "synthetic-secret-value",
+          "synthetic-bearer-value",
+          "synthetic-encoded-credential",
+          "synthetic-cookie-value",
+          "synthetic-cookie-extra",
+          "person@example.invalid",
+          "+34 600 123 456",
+          "model summary",
+          "fabricated history"
+        ],
+        do: refute(String.contains?(bytes, forbidden))
+
+    assert manifest["requestRevisionSnapshots"] == []
+    assert manifest["definitionDigest"] == "sha256:" <> Base.encode16(:crypto.hash(:sha256, raw), case: :lower)
+  end
+
+  test "explicit host dossier revision preserves original snapshot and appends relevant revision", %{issue: issue, opts: opts, root: root} do
+    assert {:ok, claimed} = Tracker.claim_issue(issue)
+    assert :ok = AgentRunner.run_on_worker_host_for_test(claimed, opts)
+    path = Path.join(root, "docs/issues/69/manifest.json")
+    original = Jason.decode!(File.read!(path))["requestSnapshot"]
+    revised_body = "Explicitly adopted revised source definition"
+    digest = "sha256:" <> Base.encode16(:crypto.hash(:sha256, revised_body), case: :lower)
+    {:ok, snapshot} = SymphonyElixir.GovernanceRequestSnapshot.build(%{"number" => 69, "title" => "Revised title", "body" => revised_body, "definitionDigest" => digest}, "bos-front")
+
+    draft = %{
+      "plan" => "# Revised plan\n",
+      "manifest" => %{"scope" => ["product"], "acceptanceCriteria" => ["product works"], "requirements" => ["product-1"], "requestSnapshot" => %{"bodySanitized" => "forged replacement"}}
+    }
+
+    # This is an explicit trusted-controller write, not automatic reconciliation;
+    # the ordinary coordinator still refuses changed source definitions.
+    assert :ok = GovernanceDossier.commit(root, claimed, draft, %{"definitionDigest" => digest, "requestSnapshot" => snapshot})
+    revised = Jason.decode!(File.read!(path))
+    assert revised["requestSnapshot"] == original
+    assert revised["requestRevisionSnapshots"] == [snapshot]
   end
 end
