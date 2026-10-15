@@ -1,0 +1,60 @@
+{
+  "evidenceId": "governance_69_desktop_pilot_2bb978f",
+  "runId": "symphony-governance-69",
+  "commitSha": "2bb978f629d1ecf92f30d606816a6e93ceac86ba",
+  "status": "inconclusive",
+  "phase": "pre_deployment",
+  "acceptanceCriteria": [
+    {
+      "name": "Bounded ordinary Desktop activation and local planning committee",
+      "status": "passed"
+    },
+    {
+      "name": "Readiness, authorized Goal and full governed execution",
+      "status": "inconclusive"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "planning_pilot",
+      "status": "passed",
+      "summary": "Observed ordinary Desktop activation, ten applicability decisions, six original Reviews and independent APPROVED_WITH_NOTES in planning round 1. Snapshot-backed experimental ledger only; canonicalFulfillment=false.",
+      "environment": "local"
+    },
+    {
+      "kind": "complete_qa_suite",
+      "status": "passed",
+      "summary": "Candidate 2bb978f: 481 passed, 0 failures, 6 skipped; historical exact-candidate QA, no executable changes in documentary follow-up.",
+      "complete": true,
+      "environment": "local",
+      "commands": [
+        "cd elixir && BOS_OUTBOX_ROOT=<unique isolated temporary directory> mise exec -- mix test"
+      ]
+    },
+    {
+      "kind": "execution_readiness",
+      "status": "inconclusive",
+      "summary": "HTTP409 governance_environment_evidence_missing; readiness null. Single-Issue snapshot has no Goal parent/inheritedAuthorization; GoalGET403 is separate expected scope limitation."
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "documentary_commit",
+      "url": "https://github.com/acancelas/symphony/commit/b6a609425815a283df07866373131aabac898dc9"
+    },
+    {
+      "kind": "pilot_report",
+      "url": "https://github.com/acancelas/symphony/blob/b6a609425815a283df07866373131aabac898dc9/docs/issues/69/desktop-pilot-2026-10-15.md"
+    },
+    {
+      "kind": "private_authenticated_readback_digest",
+      "sha256": "12d8886086dfd828b94a3da2127550077570a5f5f7bbb7e86458bf08124d7a95"
+    }
+  ],
+  "residualRisk": [
+    {
+      "summary": "Canonical persistence of this report does not certify experimental committee approval as canonical fulfillment. No READY, workspace-write broker certification, implementation committee, main integration or production publication. Worktree retained for active dependencies."
+    }
+  ],
+  "summary": "Bounded Symphony69 Desktop activation pilot reached planning APPROVED_WITH_NOTES, same round1/candidate2bb, and correctly stopped readiness without environment proof. MCP Review schema and safe branch diagnostics corrected externally. Ten votes/six Reviews/arbiter readback verified. Documentary follow-up b6a60942 only; actual Goal authority and trusted host observation producer remain pending."
+}
