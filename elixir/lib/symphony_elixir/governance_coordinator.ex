@@ -8,7 +8,7 @@ defmodule SymphonyElixir.GovernanceCoordinator do
   alias SymphonyElixir.GameApi.Client
 
   @read_tools ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_goal_execution bos_get_run_history bos_get_evidence)
-  @coordinator_tools @read_tools ++ ~w(bos_record_governance)
+  @coordinator_tools @read_tools ++ ~w(bos_record_governance bos_record_evidence)
   @review_tools @read_tools ++ ~w(bos_record_review bos_record_governance)
   @arbiter_tools @read_tools ++ ~w(bos_record_governance)
 
@@ -64,7 +64,14 @@ defmodule SymphonyElixir.GovernanceCoordinator do
           prompt =
             "Prepare the versioned BOS dossier for Issue #{context.issue.native_ref["issueNumber"]} from original BOS scope and acceptance criteria. Write docs/issues/{issueNumber}/plan.md and manifest.json with issueNumber, planHash sha256 of exact plan bytes, catalogCommitSha #{GovernanceCatalog.commit()}, scope, acceptanceCriteria and requirement IDs. Preserve concurrent requirements. Do not implement product code or approve. Validate and publish a clean issue-branch candidate through existing governed operations."
 
-          policy = %{sandbox: %{"type" => "workspaceWrite", "networkAccess" => false}, tools: @read_tools, verified_m2m: true, fresh_session: true, check_goal_authorization: true}
+          policy = %{
+            sandbox: %{"type" => "workspaceWrite", "networkAccess" => false},
+            tools: @read_tools ++ ~w(bos_record_evidence),
+            native_operations: [:read, :workspace_edit, :local_validation],
+            verified_m2m: true,
+            fresh_session: true,
+            check_goal_authorization: true
+          }
 
           with :ok <- GovernanceSession.run(context, "task-orchestrator", prompt, policy),
                {:ok, next} <- context.candidate_head.confirm(context.workspace, context.issue, context.worker_host),
@@ -217,7 +224,8 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     else
       policy = %{
         sandbox: %{"type" => "workspaceWrite", "networkAccess" => false},
-        tools: @read_tools,
+        tools: @read_tools ++ ~w(bos_record_evidence),
+        native_operations: [:read, :workspace_edit, :local_validation],
         verified_m2m: true,
         fresh_session: true,
         check_goal_authorization: true,
@@ -241,12 +249,19 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     end
   end
 
-  defp passed?(phase), do: get_in(phase, ["verdict", "status"]) == "passed"
+  defp passed?(phase) do
+    verdict = phase["verdict"] || %{}
+    verdict["status"] == "passed" and verdict["verdict"] in ["APPROVED", "APPROVED_WITH_NOTES"]
+  end
+
+  defp ready?(context, readiness) do
+    matches?(context, readiness) and readiness["status"] == "passed" and readiness["state"] == "READY"
+  end
 
   defp finish(%{phase: "planning", require_ready: false}, _state), do: :ok
 
   defp finish(%{phase: "planning"} = context, state) do
-    if matches?(context, state["readiness"]) do
+    if ready?(context, state["readiness"]) do
       :ok
     else
       with {:ok, _} <-
@@ -255,8 +270,8 @@ defmodule SymphonyElixir.GovernanceCoordinator do
                "task-orchestrator",
                "readiness",
                current(context, state)["round"],
-               "Check inherited Goal authorization, aggregate budgets, dependencies and execution window via existing BOS contracts. Persist READY only if authorized; then continue automatically without generic confirmation.",
-               &matches?(context, &1["readiness"])
+               "Check inherited Goal authorization, aggregate budgets, dependencies, execution window and the real local environment via existing BOS contracts. Reuse or persist a real exact-candidate EvidenceReport with phase readiness and status passed, acceptance criteria for environment readiness only (never unimplemented business acceptance), and one check {kind: environment, id: environment, status: passed, verified: true} referencing original environment probes. Include its evidenceIds in readiness. Readiness evidence cannot satisfy implementation or closure. Missing environment proof must stop readiness. No caller environmentReady flags. Persist READY only if the server confirms authorization and evidence; then continue automatically without generic confirmation.",
+               &ready?(context, &1["readiness"])
              ) do
         :ok
       end
@@ -291,6 +306,7 @@ defmodule SymphonyElixir.GovernanceCoordinator do
       verified_m2m: true,
       fresh_session: true,
       check_goal_authorization: true,
+      native_operations: [:read],
       independent_of_executor: role != "task-orchestrator"
     }
 

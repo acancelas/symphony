@@ -17,7 +17,11 @@ may explicitly opt in with `governance_enabled: true`.
 
 Before implementation, the coordinator prepares the dossier when absent, obtains
 all ten applicability decisions, an independent arbiter verdict, and the server's
-readiness receipt. An authorized READY resumes without another confirmation.
+readiness receipt. Readiness references exact-candidate evidence with typed
+`phase: readiness`, environment-only acceptance criteria and an environment
+check `id: environment`, `status: passed`, `verified: true`; no caller readiness
+flag substitutes for that server check. Readiness evidence cannot satisfy
+implementation or closure, and never asserts unimplemented business acceptance. An authorized READY resumes without another confirmation.
 Goal decomposition can obtain a planning verdict before the existing Goal-level
 approval; it does not manufacture readiness or that approval.
 
@@ -57,7 +61,9 @@ must provision a fresh existing AppServer session with a distinct verified M2M
 subject, server-assigned role and permissions, and effective tool allowlist. It
 must check the inherited Goal authorization and aggregate turn budgets before each
 turn, account for the turn through the existing runtime telemetry, and enforce the
-requested sandbox before starting. Reviewers and the arbiter receive readOnly,
+requested sandbox before starting. `tools` is the MCP allowlist;
+`native_operations` bounds native reads, workspace edits and local validation
+separately. Review/arbiter native operations are limited to reads. Reviewers and the arbiter receive readOnly,
 no direct network, only BOS reads plus their narrowly permitted record operations;
 scoped MCP transport supplies the authorized gateway access. Coordinator preparation
 and repair may use workspaceWrite under the approved scope. Never forward raw
