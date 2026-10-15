@@ -126,3 +126,14 @@ The test helper sets a unique temporary outbox. Bootstrap tests use a fresh Git
 fixture and no preseeded governance artifacts, exercise the real tracker/client and
 coordinator order, reject early Attempts and unsafe draft writes, and check exact
 public machine subjects in Reviews. They do not certify external M2M infrastructure.
+
+## Actual host availability
+
+Phase 3's concrete AppServer session broker remains pending, separately from M2M
+credential provisioning. Installed native probes failed certification: WSL aborts
+on a bwrap integrity mismatch, and the isolated Windows standalone command/exec
+route allowed the synthetic outside read and write. This is not a claim about all
+Windows turn/tool paths. No global fix or guard bypass was attempted. See
+`docs/governance-runtime-probe-2026-10-15.md` for exact provenance, a repeatable
+no-model canary script and the compatible vendor-verified runtime/profile route.
+The callback/test fixtures must never be described as a working host broker.
