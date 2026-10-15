@@ -1,0 +1,16 @@
+{
+  "runId": "symphony-governance-69",
+  "issueNumber": 69,
+  "repositoryId": "symphony",
+  "status": "running",
+  "initiatedBy": {
+    "type": "runner",
+    "runnerId": "x1"
+  },
+  "runner": {
+    "id": "x1",
+    "type": "local"
+  },
+  "startedAt": "2026-10-15T06:51:00Z",
+  "branch": "issue/69-agent-governance"
+}
