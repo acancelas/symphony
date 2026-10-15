@@ -1,0 +1,51 @@
+{
+  "evidenceId": "governance_69_local_c229092c",
+  "runId": "symphony-governance-69",
+  "commitSha": "c229092c5dd7c570240b2ef5cb4fec5273fed86c",
+  "status": "inconclusive",
+  "phase": "pre_deployment",
+  "acceptanceCriteria": [
+    {
+      "name": "Opt-in committees, recovery and legacy local regression checks",
+      "status": "passed"
+    },
+    {
+      "name": "Live M2M identities, scoped host sessions and end-to-end gate confirmation",
+      "status": "inconclusive"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "complete_qa_suite",
+      "status": "passed",
+      "complete": true,
+      "commands": [
+        "cd elixir && mise exec -- mix test"
+      ],
+      "environment": "local"
+    },
+    {
+      "kind": "canonical_catalog_pin",
+      "status": "passed",
+      "commands": [
+        "MIX_ENV=test mise exec -- mix run --no-start verify_catalog.exs"
+      ]
+    },
+    {
+      "kind": "live_m2m_governance",
+      "status": "inconclusive"
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "draft_pull_request",
+      "url": "https://github.com/acancelas/symphony/pull/70"
+    }
+  ],
+  "residualRisk": [
+    {
+      "summary": "Secure host role-session provisioning and backend536/MCP246 installation remain pending. No production or main integration performed."
+    }
+  ],
+  "summary": "Local verification passed:463 tests,0 failures,6 skipped,21 governance cases including8 fresh-bootstrap/boundary tests. NewIssue/Goal flows use scoped transport and no preseeded plan or committee artifacts. Early Attempt, unsafe writes and definition/proposal drift fail closed. Source ea1d38867fb8096991312d77fd7643e2810ee72e catalog verified12/10. Overall inconclusive: no real host broker, isolation certification or12separate M2M subjects provisioned; no production/main integration."
+}
