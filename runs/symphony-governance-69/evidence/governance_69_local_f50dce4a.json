@@ -1,0 +1,51 @@
+{
+  "evidenceId": "governance_69_local_f50dce4a",
+  "runId": "symphony-governance-69",
+  "commitSha": "f50dce4af781347c41f8f7a97b2c4b61e0d1a255",
+  "status": "inconclusive",
+  "phase": "pre_deployment",
+  "acceptanceCriteria": [
+    {
+      "name": "Opt-in committees, recovery and legacy local regression checks",
+      "status": "passed"
+    },
+    {
+      "name": "Live M2M identities, scoped host sessions and end-to-end gate confirmation",
+      "status": "inconclusive"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "complete_qa_suite",
+      "status": "passed",
+      "complete": true,
+      "commands": [
+        "cd elixir && mise exec -- mix test"
+      ],
+      "environment": "local"
+    },
+    {
+      "kind": "canonical_catalog_pin",
+      "status": "passed",
+      "commands": [
+        "MIX_ENV=test mise exec -- mix run --no-start verify_catalog.exs"
+      ]
+    },
+    {
+      "kind": "live_m2m_governance",
+      "status": "inconclusive"
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "draft_pull_request",
+      "url": "https://github.com/acancelas/symphony/pull/70"
+    }
+  ],
+  "residualRisk": [
+    {
+      "summary": "Concrete host broker implementation and actual runtime isolation certification are missing; this is separate from M2M provisioning and backend/MCP installation. See committed runtime probe/provenance. No production authorization requested."
+    }
+  ],
+  "summary": "Local suite463tests0fail6skip,21governance cases; scoped freshIssue/Goal bootstrap and definition-boundary tests passed. No-model installed runtime probes remain uncertified: isolated WSL command/exec aborts bundledbwrap integrity, Windows command/exec route allows synthetic outsideRead/write (not a claim about all shell turns). Real host session broker is not implemented/installed, separately from missing12scopedM2M subjects and secure auth/isolation proof. Overall inconclusive; phase3/global activation incomplete. No production/main changes or guard bypass."
+}
