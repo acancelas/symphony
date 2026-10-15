@@ -131,6 +131,7 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
          {:ok, %{"tools" => tools}} <- GovernancePrivateMcp.request(cached.client, "tools/list", %{}),
          allowed = policy.tools,
          true <- is_list(allowed) and Enum.all?(allowed, fn name -> Enum.any?(tools, &(&1["name"] == name)) end) do
+      prompt = "Canonical role definition from verified catalog #{GovernanceCatalog.commit()}: #{Jason.encode!(cached.role_definition)}\n" <> prompt
       selected = Enum.filter(tools, &(&1["name"] in allowed)) |> Enum.map(&Map.take(&1, ~w(name description inputSchema)))
       specs = selected ++ GovernanceSourceTools.specs()
       binding = %{tool_specs: specs, secret_environment_names: []}
@@ -138,23 +139,26 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
 
       with {:ok, session} <- AppServer.start_session(launch.workspace, options) do
         Process.put({__MODULE__, :final_text}, "")
+        Process.put({__MODULE__, :native_status}, nil)
 
         try do
           executor = fn tool, args -> tool_result(cached, context, role, configuration, source, tool, args, allowed) end
 
           callback = fn message ->
             collect_text(message)
+            if status = SymphonyElixir.GovernanceHostDiagnostics.terminal_status(message[:payload]), do: Process.put({__MODULE__, :native_status}, status)
             if is_pid(context.recipient), do: send(context.recipient, {:codex_worker_update, context.issue.id, Map.put(message, :delivery_actor, role)})
           end
 
           case AppServer.run_turn(session, prompt, context.issue, on_message: callback, tool_executor: executor, role: role, output_schema: schema) do
             {:ok, %{result: %{status: :budget_paused}}} -> {:error, :governance_turn_budget_paused}
-            {:ok, _} -> {:ok, Process.get({__MODULE__, :final_text}, "")}
+            {:ok, _} -> if Process.get({__MODULE__, :native_status}) == "completed", do: {:ok, Process.get({__MODULE__, :final_text}, "")}, else: {:error, :governance_native_turn_not_completed}
             {:error, _} -> {:error, :governance_native_turn_failed}
           end
         after
           AppServer.stop_session(session)
           Process.delete({__MODULE__, :final_text})
+          Process.delete({__MODULE__, :native_status})
         end
       end
     else
@@ -172,7 +176,7 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
           GovernanceSourceTools.execute(tool, arguments, context, source)
         else
           with {:ok, args} <- GovernanceToolBoundary.arguments(tool, arguments, context, allowed),
-               {:ok, raw} <- GovernancePrivateMcp.call(cached.client, tool, args),
+               {:ok, raw} <- observed_mcp_call(cached, context, role, configuration, tool, args),
                {:ok, value} <- GovernanceToolBoundary.decode_result(raw) do
             {:ok, GovernanceToolBoundary.safe_output(value)}
           end
@@ -180,6 +184,8 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
       else
         _ -> {:error, :governance_live_binding_changed}
       end
+
+    SymphonyElixir.GovernanceHostDiagnostics.record(configuration, context, role, tool, "host-tool-result", result)
 
     if is_pid(context[:recipient]),
       do:
@@ -201,6 +207,13 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
       {:ok, value} -> %{"success" => true, "output" => Jason.encode!(value)}
       {:error, reason} -> %{"success" => false, "output" => Jason.encode!(%{"error" => to_string(reason)})}
     end
+  end
+
+  defp observed_mcp_call(cached, context, role, configuration, tool, args) do
+    result = GovernancePrivateMcp.call(cached.client, tool, args)
+    audit_context = Map.merge(context, %{diagnostic_operation_id: args["operationId"], diagnostic_governance_id: get_in(args, ["artifact", "governanceId"])})
+    SymphonyElixir.GovernanceHostDiagnostics.record(configuration, audit_context, role, tool, "private-mcp-call", result)
+    result
   end
 
   defp effective(cached, context, role, configuration) do
@@ -270,7 +283,15 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
              }
            }),
          {:ok, client} <- GovernancePrivateMcp.open(options) do
-      cached = %{client: client, invocation_id: invocation, source: nil, principal: nil, reservation_bucket: div(System.system_time(:second), 300) * 300}
+      cached = %{
+        client: client,
+        invocation_id: invocation,
+        source: nil,
+        principal: nil,
+        reservation_bucket: div(System.system_time(:second), 300) * 300,
+        role_definition: Enum.find(catalog["roles"], &(&1["id"] == role))
+      }
+
       Process.put(key(context, role), cached)
       {:ok, cached}
     else

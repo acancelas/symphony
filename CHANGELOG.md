@@ -39,3 +39,12 @@ the entire artifact matches host-observed evidence for the current scope. Signed
 origin alone cannot prove an environment observation. Self-report, altered reports,
 stale commits and other Runs are rejected. Full readiness remains pending actual
 host environment results, runtime certification and independent Goal authorization.
+
+- Preserve candidate failure observability with host-only bounded tool status/code
+  metadata, without arguments, response bodies, headers or credentials. Namespace
+  transport operation keys by verified invocation and exact payload while keeping
+  logical governance/review identifiers immutable and recovering existing receipts.
+- Require an explicit completed native terminal status and inject the verified
+  canonical role definition into every concrete role session. The real planning
+  draft was committed as efd3018; candidate receipt remained unconfirmed with all
+  counters zero. The next coordinator is the single ordinary Desktop acceptance run.

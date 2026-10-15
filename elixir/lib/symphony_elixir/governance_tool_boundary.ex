@@ -48,7 +48,9 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
          true <- same_or_absent?(args, "runId", native["runId"]),
          true <- Enum.all?(~w(repository repositoryId owner repo), &(not Map.has_key?(args, &1))),
          {:ok, artifact} <- artifact(tool, args["artifact"], context) do
-      {:ok, if(artifact, do: Map.put(args, "artifact", artifact), else: args)}
+      bound = if artifact, do: Map.put(args, "artifact", artifact), else: args
+      invocation = context.principal[:invocation_id]
+      {:ok, bind_operation(tool, bound, invocation)}
     else
       _ -> {:error, :governance_tool_scope_rejected}
     end
@@ -56,6 +58,19 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
 
   def arguments(_, _, _, _), do: {:error, :governance_tool_scope_rejected}
 
+  @doc false
+  def bind_operation(tool, args, invocation) when tool in ~w(bos_record_governance bos_record_review bos_record_evidence) and is_binary(invocation) do
+    case args["operationId"] do
+      logical when is_binary(logical) ->
+        bytes = :erlang.term_to_binary({logical, invocation, Map.delete(args, "operationId")}, [:deterministic])
+        Map.put(args, "operationId", "govop_" <> Base.encode16(:crypto.hash(:sha256, bytes), case: :lower))
+
+      _ ->
+        args
+    end
+  end
+
+  def bind_operation(_, args, _), do: args
   def decode_result(%{"isError" => true}), do: {:error, :governance_mcp_tool_failed}
 
   def decode_result(%{"content" => content}) when is_list(content) do
