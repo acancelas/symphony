@@ -130,7 +130,7 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
 
     def run(context, role, prompt, policy) do
       assert context.principal.machine_id == "machine-subject-" <> role
-      assert String.contains?(prompt, "Effective public M2M machineId: machine-subject-" <> role)
+      assert String.contains?(prompt, "Effective verified BOS execution subject: machine-subject-" <> role)
 
       if policy[:execution_scope] == :implementation do
         assert get_in(Process.get(:bootstrap_state), ["readiness", "state"]) == "READY"

@@ -16,7 +16,7 @@ defmodule SymphonyElixir.GovernanceDossier do
          true <- is_map(bindings["requestSnapshot"]) and bindings["requestSnapshot"]["definitionDigest"] == bindings["definitionDigest"],
          {:ok, root} <- PathSafety.canonicalize(workspace),
          true <- Enum.all?(files, &safe?(root, &1)),
-         {"", 0} <- System.cmd("git", ["-C", root, "status", "--porcelain", "--untracked-files=all"]),
+         {"", 0} <- System.cmd("/usr/bin/git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, "status", "--porcelain", "--untracked-files=all"]),
          true <- is_list(manifest["scope"]) and is_list(manifest["acceptanceCriteria"]) and is_list(manifest["requirements"]),
          :ok <- File.mkdir_p(Path.join(root, relative)),
          true <- Enum.all?(files, &safe?(root, &1)),
@@ -26,8 +26,11 @@ defmodule SymphonyElixir.GovernanceDossier do
          manifest = manifest |> Map.merge(bindings) |> Map.merge(history),
          :ok <- File.write(Path.join(root, hd(files)), plan),
          :ok <- File.write(Path.join(root, List.last(files)), Jason.encode!(manifest) <> "\n"),
-         {_, 0} <- System.cmd("git", ["-C", root, "add", "--" | files], stderr_to_stdout: true),
-         {_, 0} <- System.cmd("git", ["-C", root, "commit", "-m", "Prepare governed plan for Issue #{number}", "--" | files], stderr_to_stdout: true) do
+         {_, 0} <- System.cmd("/usr/bin/git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, "add", "--" | files], stderr_to_stdout: true),
+         {_, 0} <-
+           System.cmd("/usr/bin/git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root, "commit", "-m", "Prepare governed plan for Issue #{number}", "--" | files],
+             stderr_to_stdout: true
+           ) do
       :ok
     else
       _ -> {:error, :governance_dossier_write_rejected}

@@ -14,14 +14,18 @@ defmodule SymphonyElixir.GovernanceSession do
   def available_for?(opts), do: available?(context(nil, nil, nil, opts, nil))
 
   def draft(context, prompt, policy) do
-    with :ok <- available?(context),
-         true <- function_exported?(context.broker, :draft, 3),
-         {:ok, principal} <- principal(context, "task-orchestrator"),
-         {:ok, policy} <- isolation(context, "task-orchestrator", policy) do
-      context.broker.draft(Map.put(context, :principal, principal), prompt, policy)
-    else
-      false -> {:error, :governance_readonly_draft_unavailable}
-      error -> error
+    try do
+      with :ok <- available?(context),
+           true <- function_exported?(context.broker, :draft, 3),
+           {:ok, principal} <- principal(context, "task-orchestrator"),
+           {:ok, policy} <- isolation(context, "task-orchestrator", policy) do
+        context.broker.draft(Map.put(context, :principal, principal), prompt, policy)
+      else
+        false -> {:error, :governance_readonly_draft_unavailable}
+        error -> error
+      end
+    after
+      if is_atom(context.broker) and function_exported?(context.broker, :release, 2), do: context.broker.release(context, "task-orchestrator")
     end
   end
 
@@ -55,9 +59,13 @@ defmodule SymphonyElixir.GovernanceSession do
   defp principal(context, role) do
     if function_exported?(context.broker, :identity, 2) do
       case context.broker.identity(context, role) do
-        {:ok, %{machine_id: id, role: ^role, repository_id: repository} = identity}
-        when is_binary(id) and id != "" ->
+        {:ok, %{subject_id: subject, service_id: service, role: ^role, repository_id: repository} = identity}
+        when is_binary(subject) and subject != "" and is_binary(service) and service != "" ->
           if repository == context.issue.native_ref["repositoryId"], do: {:ok, identity}, else: {:error, :governance_principal_repository_mismatch}
+
+        {:ok, %{machine_id: id, role: ^role, repository_id: repository} = legacy}
+        when is_binary(id) and id != "" ->
+          if repository == context.issue.native_ref["repositoryId"], do: {:ok, Map.merge(legacy, %{subject_id: id, service_id: id})}, else: {:error, :governance_principal_repository_mismatch}
 
         _ ->
           {:error, :governance_verified_principal_unavailable}
@@ -68,14 +76,18 @@ defmodule SymphonyElixir.GovernanceSession do
   end
 
   def run(context, role, prompt, policy) do
-    with :ok <- available?(context),
-         {:ok, identity} <- principal(context, role),
-         {:ok, policy} <- isolation(context, role, policy) do
-      prompt =
-        "Effective public M2M machineId: #{identity.machine_id}. Review/Attempt actor must be type agent and subjectId exactly this machineId; never a role name. Server verifies authority.\n" <>
-          prompt
+    try do
+      with :ok <- available?(context),
+           {:ok, identity} <- principal(context, role),
+           {:ok, policy} <- isolation(context, role, policy) do
+        prompt =
+          "Effective verified BOS execution subject: #{identity.subject_id}; service identity: #{identity.service_id}. Review/Attempt actor must be type agent and subjectId exactly this execution subject; never the service id or a role name. Server verifies authority.\n" <>
+            prompt
 
-      context.broker.run(Map.put(context, :principal, identity), role, prompt, policy)
+        context.broker.run(Map.put(context, :principal, identity), role, prompt, policy)
+      end
+    after
+      if is_atom(context.broker) and function_exported?(context.broker, :release, 2), do: context.broker.release(context, role)
     end
   end
 end

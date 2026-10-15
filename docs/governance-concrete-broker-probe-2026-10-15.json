@@ -1,0 +1,25 @@
+{
+  "provider": "synthetic-issue-git-ledger",
+  "nativeTurn": ":ok",
+  "observedTools": [
+    {
+      "success": true,
+      "tool": "governance_list_files",
+      "candidate": "9b7239d13ada3bb97f212e8dffeee8ab11069352"
+    },
+    {
+      "success": true,
+      "tool": "governance_read_file",
+      "candidate": "9b7239d13ada3bb97f212e8dffeee8ab11069352"
+    }
+  ],
+  "canonicalFulfillment": false,
+  "mcpReceiptSha256": "1904c7951537bd9bacaa4a954a76ebcb35f278e03680746d64434a470cd61179",
+  "runtimeReceiptSha256": "bd8667824ac7cff35002d888c337b9e08cddd47649de14f6e949a0cae0bde748",
+  "nativeConfigSha256": "34b9c11b784121ba949d00ef138cc5de922e822316e192fc594f7587e646f89f",
+  "nativeRuntimeSha256": "628e35487d888a28f0427fc37501da529dd3d81fcbad7a2c3421c1e8670d92e1",
+  "brokerCertified": false,
+  "nativeThreadId": "01a13edb-258d-7462-bd0f-5c81fabb7d2e",
+  "mcpSourceCommit": "6f9bd9f6fd488be4508edfccb9466e63ff9d1f02",
+  "scope": "Historical read-only concrete broker liveness; canonical fulfillment and ordinary desktop activation pending."
+}

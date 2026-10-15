@@ -147,3 +147,65 @@ Windows turn/tool paths. No global fix or guard bypass was attempted. See
 `docs/governance-runtime-probe-2026-10-15.md` for exact provenance, a repeatable
 no-model canary script and the compatible vendor-verified runtime/profile route.
 The callback/test fixtures must never be described as a working host broker.
+
+### Concrete private host broker (isolated DEV pilot)
+
+`GovernanceAppServerBroker` launches the pinned native AppServer directly, with
+an explicit named read-only permission profile, an empty task runtime directory,
+and a minimal environment. Original candidate files remain in the existing Git
+worktree and are available through bounded, sanitized host Git-object tools.
+The model never receives the private MCP service credential or chooses its
+logical execution identity. Service authentication reuses the existing BOS host
+HMAC registry; it does not require a Clerk account or machine for every role.
+
+The private MCP process is a separately pinned build: a host-pinned SHA-256
+receipt covers `dist`, dependency files and package lock, sealed directory
+inventories reject added imports, and the Node executable has its own pin.
+Every host tool call first rechecks the uncached server identity and complete
+immutable scope. Connections are versioned by phase, plan and candidate; closing
+a role session closes its older versions while preserving other Runs.
+
+Runtime preparation probes are prerequisites, not certification of this broker.
+The local backend pilot explicitly uses synthetic Issue/Git/ledger provider data;
+HTTP authentication and actual native tool observations cannot establish canonical
+committee acceptance, human approval or Goal fulfillment. Workspace-write native
+launch and ordinary desktop automatic activation remain pending. The existing
+legacy daemon acknowledgement and all Delivery gates remain unchanged.
+
+The protected one-shot entrypoint is:
+
+```sh
+bin/symphony governance --host-config /private/governance-host.json \
+  --phase planning --workspace /registered/task/worktree \
+  --repository symphony --issue 69 --run symphony-governance-69 WORKFLOW.md
+```
+
+The host configuration is a mode-0600 JSON file with `service_subject`,
+`service_secret_file` (a path to the existing registry, never the secret),
+`catalog_path`, `allowed_authenticated_by` (`["bos-host-hmac-v2"]`),
+`repositories` (ID to exact repository identity), `workspaces` (ID to authorized
+registered task worktrees), `api_base_url` (loopback DEV only),
+`target_project_id`, `private_home`, `private_cache_root`, `mcp` and `runtime`.
+`mcp` supplies the executable/entrypoint, full build receipt root/path/SHA-256 and
+Node executable SHA-256. `runtime` supplies the native package receipt, binary and
+proof paths/hashes, vendor/auth/worker roots, audited native config SHA-256 and the
+complete `disabled_mcp_servers` name list. Provider names are explicitly disabled
+before initialization; an empty table alone merges inherited servers. Preflight
+rejects active providers and nonempty hook handlers while accepting the native
+serde representation of empty hook arrays.
+
+This command reuses the existing AgentRun and server-derived runner, reserves it
+through the existing claim API, confirms the active claim and branch, and runs the
+existing coordinator. It starts no scheduler and creates no implementation
+Attempt. A planning result is `ready` only after the coordinator's authoritative
+readback; a Goal planning committee without execution authorization can report
+`phase-passed`. Invalid configuration or any gate failure returns `blocked`.
+Candidate publication uses the configured, server-verified repository explicitly,
+without changing the shared checkout's `origin`. The legacy daemon entrypoint
+retains its existing acknowledgement requirement.
+
+The historical concrete liveness report is
+`docs/governance-concrete-broker-probe-2026-10-15.json`: actual native tool events
+read the same original Git SHA through both source tools. It intentionally marks
+`brokerCertified: false`; full committee/desktop activation and final build
+re-pinning remain separate acceptance work.

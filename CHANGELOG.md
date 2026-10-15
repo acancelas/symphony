@@ -13,3 +13,18 @@ Bootstrap correction: scheduler claim/metadata now uses repository-scoped signed
 Host capability evaluation: added a no-model isolated permission-profile canary probe. Current WSL standalone execution fails bwrap integrity; Windows standalone command/exec failed outside-read/write canaries. These route-specific results do not certify a broker, and do not generalize to untested Windows shell-turn behavior. No matching verified vendor pair was found in the bounded inspected locations; no binary/config/global service was changed. Concrete host broker implementation and live certification remain pending separately from scoped credentials.
 
 Definition archive correction (spec 5.2): the host now copies the authorized Issue readback into manifest.requestSnapshot (full sanitized body and number/title/URL/createdAt/provenance with exact original definitionDigest). Model-provided snapshot/history is discarded. The original archive is preserved and explicit revisions append without overwrite; ordinary source drift still blocks. Tests cover sanitized full-text preservation, spoofed source rejection and version history. Backend snapshot semantic/redaction verification is not claimed; its existing request-section closure requirement remains mandatory.
+
+- Governance 69 follow-up: implement isolated concrete AppServer/private-MCP host
+  broker, full build receipts, server-bound invocation identities and sanitized
+  exact-candidate Git tools. Keep native workspace-write execution uncertified
+  and fail closed. Tests cover principal/cross-scope denial, receipt tampering and
+  versioned private-process cleanup. Retain this registered worktree and temporary
+  runtime artifacts while the local backend/broker and desktop activation checks
+  are active; no main merge or production deployment.
+- Concrete broker liveness: native model thread
+  `01a13edb-258d-7462-bd0f-5c81fabb7d2e` successfully called both original-source
+  Git tools after uncached HMAC identity revalidation. Pinned source SHA and build
+  receipts are in the historical probe report; this is not canonical fulfillment.
+- Add protected one-shot governance CLI and private-MCP coordinator read adapter;
+  validate existing Run, registered task workspace and branch, preserve legacy
+  daemon guards, and avoid shared remote edits. Local tests: 473 passed, six skipped.
