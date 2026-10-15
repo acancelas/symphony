@@ -3,10 +3,10 @@
   "issueNumber": 69,
   "pullRequestNumber": 70,
   "url": "https://github.com/acancelas/symphony/pull/70",
-  "head": "f739a3661d0b248afa1dfce7564c500c7c9724ba",
+  "head": "c229092c5dd7c570240b2ef5cb4fec5273fed86c",
   "base": "eed72fec2ea65b4161e8f23411b0b07c660985c2",
   "draft": true,
   "state": "open",
   "alreadyMerged": false,
-  "recoveryMatch": null
+  "recoveryMatch": "agent_run_marker"
 }
