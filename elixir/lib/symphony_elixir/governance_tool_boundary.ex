@@ -71,7 +71,15 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
   end
 
   def bind_operation(_, args, _), do: args
-  def decode_result(%{"isError" => true}), do: {:error, :governance_mcp_tool_failed}
+
+  def decode_result(%{"isError" => true} = raw) do
+    details = SymphonyElixir.GovernanceHostDiagnostics.outcome({:ok, raw})
+
+    case details[:validationIssues] do
+      [_ | _] = issues -> {:error, {:governance_mcp_tool_failed, issues}}
+      _ -> {:error, :governance_mcp_tool_failed}
+    end
+  end
 
   def decode_result(%{"content" => content}) when is_list(content) do
     case Enum.find(content, &(&1["type"] == "text")) do

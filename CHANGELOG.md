@@ -48,3 +48,9 @@ host environment results, runtime certification and independent Goal authorizati
   canonical role definition into every concrete role session. The real planning
   draft was committed as efd3018; candidate receipt remained unconfirmed with all
   counters zero. The next coordinator is the single ordinary Desktop acceptance run.
+
+- Preserve only sanitized validation field/type/static-constraint issues from the
+  pinned MCP response in private host diagnostics and tool failures. Strip raw
+  messages, inputs and context. This corrects the information loss observed after
+  the real Desktop candidate returned HTTP 422; its exact prior field remains
+  unknown. Do not treat that error as a confirmed candidate or consume new rounds.

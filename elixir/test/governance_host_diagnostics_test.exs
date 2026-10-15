@@ -20,6 +20,32 @@ defmodule SymphonyElixir.GovernanceHostDiagnosticsTest do
     assert nil == GovernanceHostDiagnostics.terminal_status(%{"method" => "item/completed"})
   end
 
+  test "only already sanitized validation fields, types and static constraints survive diagnostics and model errors" do
+    issue = %{
+      "field" => "body.artifact",
+      "type" => "value_error",
+      "constraint" => "pull_request_event_only",
+      "input" => "SYNTHETIC_SECRET",
+      "ctx" => %{"secret" => "SYNTHETIC_SECRET"},
+      "msg" => "SYNTHETIC_SECRET"
+    }
+
+    raw = %{
+      "isError" => true,
+      "content" => [
+        %{
+          "type" => "text",
+          "text" => Jason.encode!(%{"error" => %{"code" => "delivery_api_error", "details" => %{"status" => 422, "issues" => [issue, %{"field" => "privateSecretField", "type" => "value_error"}]}}})
+        }
+      ]
+    }
+
+    expected = Map.take(issue, ~w(field type constraint))
+    assert GovernanceHostDiagnostics.outcome({:ok, raw}).validationIssues == [expected]
+    assert {:error, {:governance_mcp_tool_failed, [^expected]}} = GovernanceToolBoundary.decode_result(raw)
+    refute Jason.encode!(GovernanceHostDiagnostics.outcome({:ok, raw})) =~ "SYNTHETIC_SECRET"
+  end
+
   test "diagnostics retain status and code but no request, body, credential or error details" do
     raw = %{
       "isError" => true,
@@ -32,7 +58,7 @@ defmodule SymphonyElixir.GovernanceHostDiagnosticsTest do
     }
 
     result = GovernanceHostDiagnostics.outcome({:ok, raw})
-    assert result == %{privateMcpInvoked: true, success: false, errorCode: "forbidden", httpStatus: 403}
+    assert result == %{privateMcpInvoked: true, success: false, errorCode: "forbidden", httpStatus: 403, validationIssues: []}
     refute Jason.encode!(result) =~ "SYNTHETIC_PRIVATE_SECRET"
   end
 end

@@ -205,6 +205,7 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
 
     case result do
       {:ok, value} -> %{"success" => true, "output" => Jason.encode!(value)}
+      {:error, {:governance_mcp_tool_failed, issues}} -> %{"success" => false, "output" => Jason.encode!(%{"error" => "governance_mcp_tool_failed", "validationIssues" => issues})}
       {:error, reason} -> %{"success" => false, "output" => Jason.encode!(%{"error" => to_string(reason)})}
     end
   end
