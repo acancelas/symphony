@@ -92,6 +92,7 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
   defp artifact(tool, artifact, context) when is_map(artifact) do
     with true <- same_or_absent?(artifact, "runId", context.issue.native_ref["runId"]),
          true <- exact_candidate?(artifact, context),
+         true <- observed_evidence?(tool, artifact, context),
          true <- tool != "bos_record_governance" or Enum.all?(~w(actor role payload), &(not Map.has_key?(artifact, &1))) do
       actor = %{"type" => "agent", "subjectId" => context.principal.subject_id}
       {:ok, if(tool in ~w(bos_record_review bos_start_attempt bos_complete_attempt), do: Map.put(artifact, "actor", actor), else: artifact)}
@@ -101,6 +102,14 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
   end
 
   defp artifact(_, _, _), do: {:error, :governance_tool_scope_rejected}
+
+  defp observed_evidence?("bos_record_evidence", artifact, context) do
+    checks = artifact["checks"] || []
+    asserted = artifact["status"] == "passed" or (is_list(checks) and Enum.any?(checks, &(is_map(&1) and &1["verified"] == true)))
+    not asserted or get_in(context, [:host_observed_evidence, artifact["evidenceId"]]) == artifact
+  end
+
+  defp observed_evidence?(_, _, _), do: true
 
   defp exact_candidate?(artifact, %{sha: sha}) do
     Enum.all?(~w(commitSha candidateCommitSha), &same_or_absent?(artifact, &1, sha))

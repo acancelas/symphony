@@ -55,6 +55,36 @@ defmodule SymphonyElixir.GovernanceToolBoundaryTest do
              GovernanceToolBoundary.arguments("bos_record_review", %{"artifact" => %{}}, context, ["bos_record_review"])
   end
 
+  test "model evidence cannot self-certify readiness or implementation without exact host observations" do
+    context = %{issue: %{native_ref: %{"issueNumber" => 69, "runId" => "run69"}}, sha: String.duplicate("a", 40), principal: %{subject_id: "logical"}}
+
+    report = %{
+      "evidenceId" => "env-host-observed",
+      "runId" => "run69",
+      "commitSha" => context.sha,
+      "phase" => "readiness",
+      "status" => "passed",
+      "checks" => [%{"id" => "environment", "verified" => true, "status" => "passed"}]
+    }
+
+    args = %{"artifact" => report}
+    assert {:error, _} = GovernanceToolBoundary.arguments("bos_record_evidence", args, context, ["bos_record_evidence"])
+    observed = Map.put(context, :host_observed_evidence, %{"env-host-observed" => report})
+    assert {:ok, _} = GovernanceToolBoundary.arguments("bos_record_evidence", args, observed, ["bos_record_evidence"])
+
+    for stale <- [Map.put(report, "commitSha", String.duplicate("b", 40)), Map.put(report, "runId", "another-run")] do
+      stale_context = Map.put(context, :host_observed_evidence, %{"env-host-observed" => stale})
+      assert {:error, _} = GovernanceToolBoundary.arguments("bos_record_evidence", %{"artifact" => stale}, stale_context, ["bos_record_evidence"])
+    end
+
+    tampered = put_in(args, ["artifact", "checks"], [%{"id" => "invented-check", "verified" => true}])
+    assert {:error, _} = GovernanceToolBoundary.arguments("bos_record_evidence", tampered, observed, ["bos_record_evidence"])
+
+    for phase <- ["implementation", "readiness"] do
+      assert {:error, _} = GovernanceToolBoundary.arguments("bos_record_evidence", put_in(args, ["artifact", "phase"], phase), context, ["bos_record_evidence"])
+    end
+  end
+
   test "MCP failures and credential fields never become successful model output" do
     assert {:error, _} = GovernanceToolBoundary.decode_result(%{"isError" => true, "content" => []})
     assert %{"nested" => [%{"authorization" => "[REDACTED]"}]} = GovernanceToolBoundary.safe_output(%{"nested" => [%{"authorization" => "synthetic-secret"}]})

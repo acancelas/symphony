@@ -33,3 +33,9 @@ Definition archive correction (spec 5.2): the host now copies the authorized Iss
   exact Run/runner lease first, bind new reservation operation IDs to invocation,
   and verify the authoritative future lease and Issue state after claim. Accept
   both new_run and resume_run only on matching readback; no new Run or Attempt.
+
+The concrete host rejects model-submitted passed/verified EvidenceReports unless
+the entire artifact matches host-observed evidence for the current scope. Signed
+origin alone cannot prove an environment observation. Self-report, altered reports,
+stale commits and other Runs are rejected. Full readiness remains pending actual
+host environment results, runtime certification and independent Goal authorization.

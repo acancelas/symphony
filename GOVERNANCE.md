@@ -209,3 +209,9 @@ The historical concrete liveness report is
 read the same original Git SHA through both source tools. It intentionally marks
 `brokerCertified: false`; full committee/desktop activation and final build
 re-pinning remain separate acceptance work.
+
+The concrete host rejects model-submitted passed/verified EvidenceReports unless
+the entire artifact matches host-observed evidence for the current scope. Signed
+origin alone cannot prove an environment observation. Self-report, altered reports,
+stale commits and other Runs are rejected. Full readiness remains pending actual
+host environment results, runtime certification and independent Goal authorization.
