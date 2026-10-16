@@ -96,3 +96,12 @@ host environment results, runtime certification and independent Goal authorizati
   without widening scopes. See docs/issues/69/desktop-pilot-2026-10-15.md.
   Keep the registered worktree/runtime/evidence while dependencies remain active;
   no main integration, production publication or final task closure occurred.
+
+
+## 2026-10-16 — Optional observed snapshot lifecycle (#69)
+
+- Connect the host-only snapshot refresh to existing readiness preparation using
+  strict optional settings; preserve string-key provenance/custody and default-off
+  behavior. Reuse existing fixed raw reads, immutable observations and publisher.
+- Verify13 isolated configuration/producer tests. Preserve the real producer
+  freeze and installed configuration; live API/export/E2E remain unverified.

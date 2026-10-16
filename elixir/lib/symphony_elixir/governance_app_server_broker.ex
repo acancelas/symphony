@@ -139,7 +139,14 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
              &(&1["evidenceId"] == artifact["evidenceId"] and &1["commitSha"] == context.sha and
                  &1["status"] == "passed")
            ),
-         {:ok, _fresh, ^principal} <- effective(cached, context, "task-orchestrator", configuration) do
+         {:ok, _fresh, ^principal} <- effective(cached, context, "task-orchestrator", configuration),
+         {:ok, _snapshot} <-
+           SymphonyElixir.GovernanceObservedSnapshot.refresh(
+             bound,
+             Map.get(configuration, :observed_snapshot),
+             configuration.execution,
+             fn tool, args -> host_snapshot_read(bound, tool, args) end
+           ) do
       {:ok, artifact["evidenceId"]}
     else
       _ -> {:error, :governance_host_readiness_evidence_unconfirmed}

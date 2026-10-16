@@ -54,6 +54,160 @@ defmodule SymphonyElixir.GovernanceObservedSnapshotTest do
 
   defp build(values \\ reads(), meta \\ provenance(), at \\ @now), do: Snapshot.build(context(), texts(values), meta, schema(), @now, at)
 
+  defp refresh_fixture do
+    root = Path.join(System.tmp_dir!(), "bos-snapshot-refresh-test-#{System.unique_integer([:positive])}")
+    File.mkdir!(root)
+    File.chmod!(root, 0o700)
+    directory = Path.join(root, "export")
+    File.mkdir!(directory)
+    File.chmod!(directory, 0o700)
+    lock = Path.join(directory, ".snapshot.lock")
+    File.write!(lock, "")
+    File.chmod!(lock, 0o600)
+
+    on_exit(fn ->
+      true = String.starts_with?(Path.expand(root), Path.expand(System.tmp_dir!()) <> "/bos-snapshot-refresh-test-")
+      true = File.lstat!(root).type == :directory
+      File.rm_rf!(root)
+    end)
+
+    contract = Path.join(root, "projection-contract.json")
+    File.write!(contract, Jason.encode!(%{"$defs" => %{"payload" => schema()}}))
+    dir_stat = File.stat!(directory)
+    lock_stat = File.stat!(lock)
+    custody = %{"directory" => directory, "directoryDevice" => dir_stat.major_device, "directoryInode" => dir_stat.inode, "lockDevice" => lock_stat.major_device, "lockInode" => lock_stat.inode}
+    python = "/usr/bin/python3"
+    execution = %{journal_root: Path.join(root, "journal"), python_executable: python, python_sha256: SymphonyElixir.GovernanceBuildReceipt.file_digest(python)}
+    settings = %{enabled: true, contract_path: contract, contract_sha256: SymphonyElixir.GovernanceBuildReceipt.file_digest(contract), provenance: provenance(), custody: custody}
+    expiry = DateTime.utc_now() |> DateTime.add(40, :second) |> DateTime.truncate(:millisecond) |> DateTime.to_iso8601()
+    values = put_in(reads(), ["issue", "claim", "leaseExpiresAt"], expiry)
+    %{execution: execution, settings: settings, values: values, file: Path.join(directory, "symphony-69.snapshot.json")}
+  end
+
+  defp refresh_fetch(values) do
+    original = Map.new(texts(values), fn {key, text} -> {key, " \n" <> text <> " "} end)
+
+    fn tool, args ->
+      {key, expected} =
+        case tool do
+          "bos_get_issue" -> {"issue", %{"issueNumber" => 69}}
+          "bos_get_delivery_run" -> {"run", %{"runId" => @run}}
+          "bos_get_run_history" -> {"timeline", %{"runId" => @run}}
+        end
+
+      assert args == expected
+      Process.put(:refresh_calls, Process.get(:refresh_calls, []) ++ [tool])
+      {:ok, %{"content" => [%{"type" => "text", "text" => original[key]}]}}
+    end
+  end
+
+  test "disabled refresh has no callbacks, dependency reads or export side effects" do
+    absent = Path.join(System.tmp_dir!(), "bos-snapshot-disabled-#{System.unique_integer([:positive])}")
+    fetch = fn _, _ -> flunk("disabled producer must not call MCP") end
+    refute File.exists?(absent)
+
+    for settings <- [nil, %{}, %{enabled: false, contract_path: absent, custody: %{}}] do
+      assert {:ok, :disabled} = Snapshot.refresh(%{}, settings, nil, fetch)
+    end
+
+    refute File.exists?(absent)
+  end
+
+  test "invalid opt-in scope, settings, Python pin and schema pin fail before any MCP read" do
+    fixture = refresh_fixture()
+    Process.put(:unexpected_refresh_calls, 0)
+
+    fetch = fn _, _ ->
+      Process.put(:unexpected_refresh_calls, Process.get(:unexpected_refresh_calls) + 1)
+      {:error, :unexpected_mcp_read}
+    end
+
+    invalid_settings = [
+      %{fixture.settings | enabled: "true"},
+      %{"enabled" => true},
+      Map.put(fixture.settings, :unknown, true),
+      %{fixture.settings | contract_sha256: String.duplicate("0", 64)},
+      %{fixture.settings | custody: %{}}
+    ]
+
+    for settings <- invalid_settings do
+      assert {:error, _} = Snapshot.refresh(context(), settings, fixture.execution, fetch)
+    end
+
+    assert {:error, _} = Snapshot.refresh(put_in(context(), [:issue, :native_ref, "issueNumber"], 70), fixture.settings, fixture.execution, fetch)
+    assert {:error, _} = Snapshot.refresh(context(), fixture.settings, %{fixture.execution | python_sha256: String.duplicate("0", 64)}, fetch)
+    assert Process.get(:unexpected_refresh_calls) == 0
+    refute File.exists?(fixture.file)
+    refute File.exists?(fixture.execution.journal_root)
+  end
+
+  test "refresh connects original MCP bytes to immutable observation and real private export; rereading is not refresh" do
+    fixture = refresh_fixture()
+    fetch = refresh_fetch(fixture.values)
+    assert {:ok, metadata} = Snapshot.refresh(context(), fixture.settings, fixture.execution, fetch)
+    assert Process.get(:refresh_calls) == ~w(bos_get_issue bos_get_delivery_run bos_get_run_history)
+    bytes = File.read!(fixture.file)
+    exported = Jason.decode!(bytes)
+    assert metadata["exportSha256"] == Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
+    assert metadata["hostObservationId"] == exported["source"]["hostObservationId"]
+    assert metadata["readAt"] == exported["readAt"]
+    assert Map.keys(metadata) |> Enum.sort() == Enum.sort(~w(candidateCommitSha epoch readAt issuedAt expiresAt payloadDigest hostObservationId exportSha256 file))
+    original_issue = " \n" <> Jason.encode!(fixture.values["issue"]) <> " "
+    assert exported["source"]["originalResponseDigests"]["issue"] == "sha256:" <> Base.encode16(:crypto.hash(:sha256, original_issue), case: :lower)
+    assert exported["expiresAt"] == fixture.values["issue"]["claim"]["leaseExpiresAt"]
+    refute bytes =~ "DO_NOT_EXPORT"
+    refute bytes =~ "NEVER_EXPORT_RAW_BODY"
+    assert get_in(Jason.decode!(exported["payloadJson"]), ["timeline", "verification", "eventCount"]) == nil
+    basis = Map.update!(exported, "source", &Map.delete(&1, "hostObservationId"))
+
+    assert {:ok, %{"record" => ^basis}} =
+             SymphonyElixir.GovernanceHostStore.request(
+               fixture.execution,
+               %{"kind" => "observation", "command" => "read", "id" => metadata["hostObservationId"]}
+             )
+
+    assert File.read!(fixture.file) == bytes
+    assert length(Process.get(:refresh_calls)) == 3
+    assert {:ok, next} = Snapshot.refresh(context(), fixture.settings, fixture.execution, fetch)
+    assert length(Process.get(:refresh_calls)) == 6
+    assert next["readAt"] >= metadata["readAt"]
+  end
+
+  test "failed fixed read and invalid authenticated observation cannot produce an export or host observation" do
+    fixture = refresh_fixture()
+
+    for rejected <- ~w(bos_get_issue bos_get_delivery_run bos_get_run_history) do
+      Process.put(:refresh_calls, [])
+      good = refresh_fetch(fixture.values)
+
+      fetch = fn tool, args ->
+        if tool == rejected do
+          Process.put(:refresh_calls, Process.get(:refresh_calls) ++ [tool])
+          {:error, :synthetic_transport_failure}
+        else
+          good.(tool, args)
+        end
+      end
+
+      assert {:error, :snapshot_read_unavailable} = Snapshot.refresh(context(), fixture.settings, fixture.execution, fetch)
+      assert List.last(Process.get(:refresh_calls)) == rejected
+      refute File.exists?(fixture.file)
+      refute File.exists?(fixture.execution.journal_root)
+    end
+
+    unauthenticated = put_in(fixture.values, ["issue", "governanceIdentity", "verified"], false)
+    assert {:error, _} = Snapshot.refresh(context(), fixture.settings, fixture.execution, refresh_fetch(unauthenticated))
+    refute File.exists?(fixture.file)
+    refute File.exists?(fixture.execution.journal_root)
+  end
+
+  test "refresh does not report success when the existing private publisher rejects custody" do
+    fixture = refresh_fixture()
+    settings = put_in(fixture.settings, [:custody, "lockInode"], fixture.settings.custody["lockInode"] + 1)
+    assert {:error, _} = Snapshot.refresh(context(), settings, fixture.execution, refresh_fetch(fixture.values))
+    refute File.exists?(fixture.file)
+  end
+
   test "original text byte digests precede minimization; TTL never exceeds actual lease and unknown count stays null" do
     original = texts(reads())
     assert {:ok, snapshot} = build()

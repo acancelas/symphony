@@ -6,6 +6,69 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
   @scope %{"repositoryId" => "symphony", "owner" => "acancelas", "repo" => "symphony", "issueNumber" => 69, "runId" => @run}
   @max_bytes 262_144
 
+  @doc "Opt-in host refresh: fixed raw reads, pinned projection and private publication. Never a model tool."
+  @spec refresh(map(), map() | nil, map() | nil, (String.t(), map() -> {:ok, map()} | {:error, term()})) ::
+          {:ok, :disabled | map()} | {:error, atom()}
+  def refresh(_context, nil, _execution, _fetch), do: {:ok, :disabled}
+  def refresh(_context, %{enabled: false}, _execution, _fetch), do: {:ok, :disabled}
+
+  def refresh(_context, %{} = settings, _execution, _fetch) when map_size(settings) == 0,
+    do: {:ok, :disabled}
+
+  def refresh(context, %{enabled: true} = settings, execution, fetch) do
+    with :ok <- refresh_settings(context, settings, execution, fetch),
+         {:ok, schema} <- load_contract(settings.contract_path, settings.contract_sha256),
+         {:ok, texts, read_at} <- collect(fetch),
+         {:ok, envelope} <- build(context, texts, settings.provenance, schema, read_at, DateTime.utc_now()),
+         {:ok, receipt} <- publish(execution, settings.custody, envelope),
+         expected = Base.encode16(:crypto.hash(:sha256, Jason.encode!(envelope)), case: :lower),
+         true <- receipt["ok"] == true and receipt["sha256"] == expected and receipt["file"] == "symphony-69.snapshot.json",
+         :ok <- export_current(envelope) do
+      metadata = Map.take(envelope, ~w(candidateCommitSha epoch readAt issuedAt expiresAt payloadDigest))
+      {:ok, Map.merge(metadata, %{"hostObservationId" => envelope["source"]["hostObservationId"], "exportSha256" => expected, "file" => "symphony-69.snapshot.json"})}
+    else
+      {:error, reason} -> {:error, reason}
+      _ -> {:error, :snapshot_refresh_unverified}
+    end
+  rescue
+    _ -> {:error, :snapshot_refresh_unavailable}
+  end
+
+  def refresh(_context, _settings, _execution, _fetch), do: {:error, :snapshot_settings_invalid}
+
+  defp refresh_settings(%{sha: sha, issue: %{native_ref: native}}, settings, execution, fetch)
+       when is_map(native) and is_map(execution) and is_function(fetch, 2) do
+    custody = settings[:custody]
+
+    valid =
+      sha?(sha) and Map.take(native, ~w(repositoryId issueNumber runId)) == Map.take(@scope, ~w(repositoryId issueNumber runId)) and
+        Enum.sort(Map.keys(settings)) == Enum.sort(~w(enabled contract_path contract_sha256 provenance custody)a) and
+        absolute_path?(settings[:contract_path]) and raw_digest?(settings[:contract_sha256]) and
+        is_map(settings[:provenance]) and is_map(custody) and
+        Enum.sort(Map.keys(custody)) == Enum.sort(~w(directory directoryDevice directoryInode lockDevice lockInode)) and
+        absolute_path?(custody["directory"]) and
+        Enum.all?(~w(directoryDevice lockDevice), &(is_integer(custody[&1]) and custody[&1] >= 0)) and
+        Enum.all?(~w(directoryInode lockInode), &(is_integer(custody[&1]) and custody[&1] > 0)) and
+        absolute_path?(execution[:journal_root]) and absolute_path?(execution[:python_executable]) and
+        raw_digest?(execution[:python_sha256]) and
+        GovernanceBuildReceipt.file_digest(execution.python_executable) == execution.python_sha256
+
+    if valid, do: :ok, else: {:error, :snapshot_settings_invalid}
+  end
+
+  defp refresh_settings(_, _, _, _), do: {:error, :snapshot_settings_invalid}
+  defp absolute_path?(value), do: is_binary(value) and Path.type(value) == :absolute
+  defp raw_digest?(value), do: is_binary(value) and Regex.match?(~r/^[a-f0-9]{64}$/, value)
+
+  defp export_current(envelope) do
+    with {:ok, expiry, _} <- DateTime.from_iso8601(envelope["expiresAt"]),
+         :gt <- DateTime.compare(expiry, DateTime.utc_now()) do
+      :ok
+    else
+      _ -> {:error, :snapshot_expired_during_export}
+    end
+  end
+
   @doc "Load the existing Front-generated allowlist by exact host-configured byte pin."
   @spec load_contract(String.t(), String.t()) :: {:ok, map()} | {:error, atom()}
   def load_contract(path, expected) do

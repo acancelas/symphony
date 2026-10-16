@@ -77,6 +77,26 @@ defmodule SymphonyElixir.GovernanceCLITest do
     File.chmod!(path, 0o600)
     assert {:ok, _} = GovernanceHostConfig.load(path)
 
+    for settings <- [
+          nil,
+          %{},
+          %{"enabled" => false},
+          %{"enabled" => true, "contract_path" => "/schema", "contract_sha256" => "pin", "provenance" => %{"epoch" => "preserved-string-key"}, "custody" => %{"directory" => "/private"}}
+        ] do
+      File.write!(path, Jason.encode!(Map.put(base, "observed_snapshot", settings)))
+      assert {:ok, config} = GovernanceHostConfig.load(path)
+
+      if settings && settings["enabled"] == true do
+        assert config.observed_snapshot.provenance == %{"epoch" => "preserved-string-key"}
+        assert config.observed_snapshot.custody == %{"directory" => "/private"}
+      end
+    end
+
+    for settings <- [%{"enabled" => "true"}, %{"enabled" => true}, %{"enabled" => false, "unknown" => true}, "invalid"] do
+      File.write!(path, Jason.encode!(Map.put(base, "observed_snapshot", settings)))
+      assert {:error, _} = GovernanceHostConfig.load(path)
+    end
+
     for changed <- [
           Map.put(base, "api_base_url", "https://api.production.example"),
           Map.put(base, "service_secret", "inline-forbidden"),
