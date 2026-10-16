@@ -192,3 +192,26 @@ its constructor-source pin is4f7df1d6460e7826a151d2002d88b040c24d43d520d1d8a5a65
 Later module changes cover readiness wiring/refactoring; this prior full-file
 pin is not presented as acceptance of the later module. No live API/container,
 canonical human approval, model invocation or536 source edit was involved.
+
+### Canonical local checks on fc4716d4 (2026-10-16)
+
+Candidate `fc4716d4cb3ba2d77699a4852f257db414ff1e1c` passed ordinary
+`mix test`: 541 tests, 0 failures, 6 existing skips (seed 854379).
+`mix format --check-formatted`, `mix lint` (public specs and strict Credo),
+and `git diff --check` also passed.
+
+The separate `mix test --cover` command failed with exit 1: coverage 68.17%
+against the existing 100% threshold. Its 541 tests had 0 failures and 6 skips
+(seed 365908). No threshold or exclusion was changed. Consequently this commit
+is a wiring checkpoint, not a complete QA acceptance candidate. Ordinary local
+checks do not certify the isolated fixed-command QA recipe or the actual primary
+capability canary. Whole-Run continuity, settlement and final independent review
+remain pending; publication stays blocked before Git mutation.
+
+The ordinary local Dialyzer check also failed: 89 diagnostics, 0 skipped,
+with the VM reporting exit status 2 (the WSL command surfaced exit 1).
+These include inferred-unreachable broker/runtime paths and unused functions.
+The full short-format diagnostic log is retained in the coordinating chat's
+work/dialyzer-fc4716d4.log. No warning suppression was added. These diagnostics
+require investigation before full QA can be accepted; they are not a runtime
+capability result and do not authorize installation or execution.
