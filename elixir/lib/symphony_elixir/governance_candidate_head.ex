@@ -13,6 +13,6 @@ defmodule SymphonyElixir.GovernanceCandidateHead do
   end
 
   defp trusted_git(workspace, nil, "git", arguments) do
-    {:ok, System.cmd("/usr/bin/git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false" | arguments], cd: workspace, stderr_to_stdout: true)}
+    {:ok, SymphonyElixir.GovernanceTrustedGit.run(workspace, arguments)}
   end
 end

@@ -60,15 +60,17 @@ defmodule SymphonyElixir.GovernanceCLI do
 
         case GovernanceCoordinator.run(phase, context.workspace, issue, nil, options, nil) do
           :ok ->
-            {:ok,
-             %{
-               status: if(phase == :planning and "bos:goal" not in issue.labels, do: "ready", else: "phase-passed"),
-               phase: context.phase,
-               issueNumber: issue.native_ref["issueNumber"],
-               runId: issue.native_ref["runId"],
-               catalogCommitSha: GovernanceCatalog.commit(),
-               implementationStarted: false
-             }}
+            with :ok <- continue_after_planning(phase, context, options) do
+              {:ok,
+               %{
+                 status: if(phase == :planning and "bos:goal" not in issue.labels, do: "local-verified", else: "phase-passed"),
+                 phase: context.phase,
+                 issueNumber: issue.native_ref["issueNumber"],
+                 runId: issue.native_ref["runId"],
+                 catalogCommitSha: GovernanceCatalog.commit(),
+                 implementationStarted: phase == :planning and "bos:goal" not in issue.labels
+               }}
+            end
 
           {:error, _} = error ->
             error
@@ -78,6 +80,16 @@ defmodule SymphonyElixir.GovernanceCLI do
       GovernanceAppServerBroker.release(context, "task-orchestrator")
     end
   end
+
+  defp continue_after_planning(:planning, context, options) do
+    if "bos:goal" in context.issue.labels do
+      :ok
+    else
+      SymphonyElixir.AgentRunner.run_governed_implementation(context.workspace, context.issue, nil, options, nil)
+    end
+  end
+
+  defp continue_after_planning(_, _, _), do: :ok
 
   defp confirmed_issue(source, context, repository) do
     run = context.issue.native_ref["runId"]

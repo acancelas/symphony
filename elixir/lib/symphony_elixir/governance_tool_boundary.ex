@@ -128,7 +128,8 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
 
   defp observed_evidence?("bos_record_evidence", artifact, context) do
     checks = artifact["checks"] || []
-    asserted = artifact["status"] == "passed" or (is_list(checks) and Enum.any?(checks, &(is_map(&1) and &1["verified"] == true)))
+    host_only = artifact["phase"] == "readiness" or Enum.any?(artifact["artifacts"] || [], &(is_map(&1) and &1["kind"] in ~w(host_environment_observation development_execution_observation)))
+    asserted = host_only or artifact["status"] == "passed" or (is_list(checks) and Enum.any?(checks, &(is_map(&1) and &1["verified"] == true)))
     not asserted or get_in(context, [:host_observed_evidence, artifact["evidenceId"]]) == artifact
   end
 

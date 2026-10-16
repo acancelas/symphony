@@ -85,6 +85,26 @@ defmodule SymphonyElixir.GovernanceToolBoundaryTest do
     end
   end
 
+  test "inconclusive operational usage still needs the exact host seal" do
+    context = %{issue: %{native_ref: %{"issueNumber" => 69, "runId" => "run69"}}, sha: String.duplicate("a", 40), principal: %{subject_id: "logical"}}
+
+    artifact = %{
+      "evidenceId" => "usage-one",
+      "runId" => "run69",
+      "commitSha" => context.sha,
+      "phase" => "implementation",
+      "status" => "inconclusive",
+      "artifacts" => [%{"kind" => "development_execution_observation", "usage" => %{"uncachedInputTokens" => 10}}]
+    }
+
+    assert {:error, _} = GovernanceToolBoundary.arguments("bos_record_evidence", %{"artifact" => artifact}, context, ["bos_record_evidence"])
+    sealed = Map.put(context, :host_observed_evidence, %{artifact["evidenceId"] => artifact})
+    assert {:ok, _} = GovernanceToolBoundary.arguments("bos_record_evidence", %{"artifact" => artifact}, sealed, ["bos_record_evidence"])
+
+    assert {:error, _} =
+             GovernanceToolBoundary.arguments("bos_record_evidence", %{"artifact" => put_in(artifact, ["artifacts", Access.at(0), "usage", "uncachedInputTokens"], 0)}, sealed, ["bos_record_evidence"])
+  end
+
   test "MCP failures and credential fields never become successful model output" do
     assert {:error, _} = GovernanceToolBoundary.decode_result(%{"isError" => true, "content" => []})
     assert %{"nested" => [%{"authorization" => "[REDACTED]"}]} = GovernanceToolBoundary.safe_output(%{"nested" => [%{"authorization" => "synthetic-secret"}]})

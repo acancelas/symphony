@@ -75,9 +75,14 @@ defmodule SymphonyElixir.GovernanceSession do
     end
   end
 
+  defp prepare_context(context, policy) do
+    if function_exported?(context.broker, :prepare_context, 2), do: context.broker.prepare_context(context, policy), else: {:ok, context}
+  end
+
   def run(context, role, prompt, policy) do
     try do
       with :ok <- available?(context),
+           {:ok, context} <- prepare_context(context, policy),
            {:ok, identity} <- principal(context, role),
            {:ok, policy} <- isolation(context, role, policy) do
         prompt =

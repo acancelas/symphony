@@ -2,6 +2,25 @@ defmodule SymphonyElixir.GovernanceBuildReceiptTest do
   use ExUnit.Case, async: true
   alias SymphonyElixir.GovernanceBuildReceipt
 
+  test "whole-root receipts also seal new top-level imports" do
+    root = Path.join(System.tmp_dir!(), "bos-root-receipt-#{System.unique_integer([:positive])}")
+    File.mkdir!(root)
+    receipt = root <> ".receipt.json"
+
+    on_exit(fn ->
+      File.rm(receipt)
+      File.rm_rf!(root)
+    end)
+
+    File.write!(root <> "/module", "trusted")
+    bytes = Jason.encode!(%{"files" => %{"module" => GovernanceBuildReceipt.file_digest(root <> "/module")}, "sealedDirectories" => ["."]})
+    File.write!(receipt, bytes)
+    digest = Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
+    assert {:ok, _} = GovernanceBuildReceipt.verify(root, receipt, digest)
+    File.write!(root <> "/extra", "untrusted")
+    assert {:error, _} = GovernanceBuildReceipt.verify(root, receipt, digest)
+  end
+
   test "full build pins contents, rejects added imports and outside symlink dependencies" do
     root = Path.join(System.tmp_dir!(), "governance-receipt-#{System.unique_integer([:positive])}")
     File.mkdir_p!(Path.join(root, "dist"))

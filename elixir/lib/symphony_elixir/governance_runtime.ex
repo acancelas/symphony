@@ -25,8 +25,90 @@ defmodule SymphonyElixir.GovernanceRuntime do
 
   def launch(configuration, context, role, policy) do
     with :ok <- validate(configuration),
-         true <- policy.sandbox["type"] == "readOnly",
-         {:ok, runtime_root} <- PathSafety.canonicalize(configuration.worker_root),
+         {:ok, directory, profile, permission} <- worker(configuration, context, role, policy) do
+      overrides = %{
+        "permissions" => %{permission => profile},
+        "default_permissions" => permission,
+        "plugins" => %{},
+        "hooks" => Map.new(@hook_events, &{&1, []}),
+        "web_search" => "disabled",
+        "shell_environment_policy" => %{"inherit" => "none"},
+        "features.apps" => false,
+        "features.plugins" => false,
+        "features.multi_agent" => false,
+        "features.shell_snapshot" => false,
+        "features.workspace_dependencies" => false
+      }
+
+      managed = %{
+        executable: configuration.executable,
+        arguments: startup_arguments(configuration),
+        permissions: permission,
+        allowed_workspace_roots: [directory],
+        environment: %{
+          "PATH" => "/usr/bin:/bin",
+          "HOME" => Path.dirname(configuration.auth_home),
+          "CODEX_HOME" => configuration.auth_home,
+          "LANG" => "C.UTF-8"
+        }
+      }
+
+      {:ok, %{workspace: directory, managed: managed, thread_parameters: %{"permissions" => permission, "config" => overrides, "ephemeral" => true, "selectedCapabilityRoots" => []}}}
+    else
+      true -> {:error, :governance_private_runtime_inside_agent_workspace}
+      false -> {:error, :governance_workspace_write_runtime_not_certified}
+      _ -> {:error, :governance_runtime_worker_rejected}
+    end
+  end
+
+  def validate_implementation(configuration) do
+    with path when is_binary(path) <- configuration[:implementation_proof_path],
+         expected when is_binary(expected) <- configuration[:implementation_proof_sha256],
+         {:ok, bytes} <- File.read(path),
+         true <- digest(bytes) == expected,
+         {:ok, proof} <- Jason.decode(bytes),
+         true <- proof["nativeExecutableSha256"] == configuration.executable_sha256,
+         true <- proof["nativeConfigSha256"] == configuration.native_config_sha256,
+         true <- proof["recipeSha256"] == SymphonyElixir.GovernanceWorkspaceProfile.recipe_sha256(),
+         true <- proof["dependencyReceiptsSha256"] == digest(SymphonyElixir.Audit.CanonicalJson.encode(configuration[:dependency_receipts] || [])),
+         true <- proof["effectiveConfigVerified"] == true and proof["processReaped"] == true,
+         true <- proof["allowedRead"] == true and proof["workspaceWrite"] == true,
+         true <- Enum.all?(SymphonyElixir.GovernanceWorkspaceProfile.required_denials(), &(proof[&1] == false)),
+         {:ok, _} <- dependencies(configuration) do
+      :ok
+    else
+      _ -> {:error, :governance_workspace_write_runtime_not_certified}
+    end
+  rescue
+    _ -> {:error, :governance_workspace_write_runtime_not_certified}
+  end
+
+  def dependency_roots(configuration), do: dependencies(configuration)
+
+  defp dependencies(configuration) do
+    Enum.reduce_while(configuration[:dependency_receipts] || [], {:ok, []}, fn item, {:ok, roots} ->
+      with %{"root" => root, "receiptPath" => path, "receiptSha256" => expected} <- item,
+           {:ok, canonical} <- PathSafety.canonicalize(root),
+           true <- canonical == Path.expand(root),
+           true <- root != "/" and not inside?(configuration.auth_home, root) and not inside?(root, configuration.auth_home),
+           {:ok, _} <- GovernanceBuildReceipt.verify(root, path, expected) do
+        {:cont, {:ok, [root | roots]}}
+      else
+        _ -> {:halt, {:error, :governance_dependency_receipt_rejected}}
+      end
+    end)
+  end
+
+  defp worker(configuration, context, "task-orchestrator", %{sandbox: %{"type" => "workspaceWrite"}}) do
+    with :ok <- validate_implementation(configuration),
+         {:ok, roots} <- dependencies(configuration),
+         {:ok, profile} <- SymphonyElixir.GovernanceWorkspaceProfile.build(context.workspace, configuration.vendor_root, roots) do
+      {:ok, context.workspace, profile, "bos-implementation"}
+    end
+  end
+
+  defp worker(configuration, context, role, %{sandbox: %{"type" => "readOnly"}}) do
+    with {:ok, runtime_root} <- PathSafety.canonicalize(configuration.worker_root),
          false <- inside?(runtime_root, context.workspace),
          directory = Path.join(runtime_root, worker_name(context, role)),
          :ok <- File.mkdir_p(directory),
@@ -44,45 +126,17 @@ defmodule SymphonyElixir.GovernanceRuntime do
         "network" => %{"enabled" => false}
       }
 
-      overrides = %{
-        "permissions" => %{"bos-review" => profile},
-        "default_permissions" => "bos-review",
-        "mcp_servers" => Map.new(configuration.disabled_mcp_servers, &{&1, %{"enabled" => false}}),
-        "plugins" => %{},
-        "hooks" => Map.new(@hook_events, &{&1, []}),
-        "web_search" => "disabled",
-        "shell_environment_policy" => %{"inherit" => "none"},
-        "features.apps" => false,
-        "features.plugins" => false,
-        "features.multi_agent" => false,
-        "features.shell_snapshot" => false,
-        "features.workspace_dependencies" => false
-      }
-
-      managed = %{
-        executable: configuration.executable,
-        arguments: startup_arguments(configuration),
-        permissions: "bos-review",
-        allowed_workspace_roots: [directory],
-        environment: %{
-          "PATH" => "/usr/bin:/bin",
-          "HOME" => Path.dirname(configuration.auth_home),
-          "CODEX_HOME" => configuration.auth_home,
-          "LANG" => "C.UTF-8"
-        }
-      }
-
-      {:ok, %{workspace: directory, managed: managed, thread_parameters: %{"permissions" => "bos-review", "config" => overrides, "ephemeral" => true, "selectedCapabilityRoots" => []}}}
+      {:ok, directory, profile, "bos-review"}
     else
-      true -> {:error, :governance_private_runtime_inside_agent_workspace}
-      false -> {:error, :governance_workspace_write_runtime_not_certified}
       _ -> {:error, :governance_runtime_worker_rejected}
     end
   end
 
-  defp startup_arguments(configuration) do
+  defp worker(_, _, _, _), do: {:error, :governance_workspace_write_runtime_not_certified}
+  @doc false
+  def startup_arguments(configuration) do
     overrides = [
-      {"mcp_servers", %{}},
+      {"mcp_servers", Map.new(configuration.disabled_mcp_servers, &{&1, %{"command" => "/usr/bin/false", "args" => [], "env" => %{}, "enabled" => false}})},
       {"plugins", %{}},
       {"hooks", %{}},
       {"web_search", "disabled"},
@@ -94,9 +148,14 @@ defmodule SymphonyElixir.GovernanceRuntime do
       {"shell_environment_policy", %{"inherit" => "none"}}
     ]
 
-    overrides = overrides ++ Enum.map(configuration.disabled_mcp_servers, &{"mcp_servers." <> &1 <> ".enabled", false}) ++ Enum.map(@hook_events, &{"hooks." <> &1, []})
+    overrides = overrides ++ Enum.map(@hook_events, &{"hooks." <> &1, []})
 
     Enum.flat_map(overrides, fn {key, value} -> ["-c", key <> "=" <> toml(value)] end) ++ ["app-server"]
+  end
+
+  @doc false
+  def permission_arguments(profile, name) when name in ["bos-review", "bos-implementation"] do
+    ["-c", "permissions." <> name <> "=" <> toml(profile), "-c", "default_permissions=" <> Jason.encode!(name)]
   end
 
   defp toml(value) when is_map(value), do: "{" <> Enum.map_join(value, ",", fn {key, nested} -> Jason.encode!(key) <> "=" <> toml(nested) end) <> "}"

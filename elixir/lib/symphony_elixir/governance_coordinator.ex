@@ -337,7 +337,8 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     if ready?(context, state["readiness"]) do
       :ok
     else
-      with {:ok, _} <-
+      with {:ok, _host_evidence_id} <- prepare_host_readiness(context),
+           {:ok, _} <-
              record(
                context,
                "task-orchestrator",
@@ -352,6 +353,10 @@ defmodule SymphonyElixir.GovernanceCoordinator do
   end
 
   defp finish(%{phase: "implementation"}, _state), do: :ok
+
+  defp prepare_host_readiness(context) do
+    if function_exported?(context.broker, :prepare_readiness, 1), do: context.broker.prepare_readiness(context), else: {:ok, nil}
+  end
 
   defp record(context, role, event, round, detail, confirmed?) do
     key = [context.issue.native_ref["runId"], context.phase, event, round, context.sha, context.manifest["planHash"], role] |> Jason.encode!()

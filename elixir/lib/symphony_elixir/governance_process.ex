@@ -18,6 +18,15 @@ defmodule SymphonyElixir.GovernanceProcess do
     ArgumentError -> :ok
   end
 
+  @doc false
+  def witness(pid, marker) when is_integer(pid) and pid > 1 and is_binary(marker) do
+    with {^pid, ticks} <- identity(pid), {:ok, boot} <- File.read("/proc/sys/kernel/random/boot_id") do
+      {:ok, %{"pid" => pid, "startTicks" => ticks, "bootId" => String.trim(boot), "marker" => marker}}
+    else
+      _ -> {:error, :governance_process_witness_unavailable}
+    end
+  end
+
   defp close(port) do
     if Port.info(port), do: Port.close(port)
     :ok

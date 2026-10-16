@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-16 — Offline bootstrap checkpoint (Issue #69, incomplete)
+
+Preserve unfinished host evidence, launch journal, authority monitoring and native QA/publication scaffolding for review. Reject changed Git symlink/gitlink modes and filesystem aliases before staging. Synthetic isolated QA demonstrates internal loopback with host TCP/Unix denied and sources read-only; real QA certification remains pending. Native AppServer startup is blocked by AGENTS glob denial. Whole-run accounting, publication handoff/source guard and final pipeline remain unfinished. See docs/issues/69/offline-bootstrap-2026-10-16.md.
+
+Offline validation: 495 tests, 0 failures, 6 skipped; 21 focal tests passed. Full sandbox QA and independent final review remain pending.
+
+No pilot API calls, READY, planning round, activation/pin changes, main integration or production deployment. Active worktree and evidence retained; old container exit does not imply RAM preservation.
+
 ## 2026-10-15 — Opt-in Agent Governance adapter (Issue #69)
 
 Added the canonical catalog pin, existing-coordinator gates and durable recovery contract. The host session boundary fails closed without distinct verified M2M identities, server role assignments and effective tool allowlists. Existing legacy behavior is preserved; global activation remains disabled. No production, service installation or main integration performed.

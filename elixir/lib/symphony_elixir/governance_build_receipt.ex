@@ -60,7 +60,9 @@ defmodule SymphonyElixir.GovernanceBuildReceipt do
   end
 
   defp sealed?(root, relative, included) do
-    relative?(relative) and Enum.sort(inventory(root, relative)) == Enum.sort(Enum.filter(included, &String.starts_with?(&1, String.trim_trailing(relative, "/") <> "/")))
+    prefix = if relative == ".", do: "", else: String.trim_trailing(relative, "/") <> "/"
+    observed = inventory(root, relative) |> Enum.map(&(Path.expand(&1, root) |> Path.relative_to(root))) |> Enum.sort()
+    relative?(relative) and observed == Enum.sort(Enum.filter(included, &String.starts_with?(&1, prefix)))
   end
 
   defp inventory(root, relative) do

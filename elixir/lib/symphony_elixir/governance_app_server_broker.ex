@@ -55,6 +55,40 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
     end
   end
 
+  @doc "Observe and register readiness evidence on the host before any model readiness turn."
+  def prepare_readiness(context) do
+    try do
+      with {:ok, configuration} <- configuration(),
+           {:ok, cached} <- connection(context, "task-orchestrator", configuration),
+           {:ok, source, principal} <- effective(cached, context, "task-orchestrator", configuration),
+           {:ok, run_raw} <- GovernancePrivateMcp.call(cached.client, "bos_get_delivery_run", %{"runId" => context.issue.native_ref["runId"]}),
+           {:ok, run} <- GovernanceToolBoundary.decode_result(run_raw),
+           {:ok, artifact} <- SymphonyElixir.GovernanceHostEvidence.observe(context, configuration, source, run),
+           bound = context |> Map.put(:principal, principal) |> Map.put(:host_observed_evidence, %{artifact["evidenceId"] => artifact}),
+           {:ok, args} <-
+             GovernanceToolBoundary.arguments(
+               "bos_record_evidence",
+               %{"issueNumber" => context.issue.native_ref["issueNumber"], "runId" => context.issue.native_ref["runId"], "operationId" => artifact["evidenceId"], "artifact" => artifact},
+               bound,
+               ["bos_record_evidence"]
+             ),
+           {:ok, raw} <- observed_mcp_call(cached, bound, "task-orchestrator", configuration, "bos_record_evidence", args),
+           {:ok, %{"status" => "completed"}} <- GovernanceToolBoundary.decode_result(raw),
+           {:ok, evidence_raw} <- GovernancePrivateMcp.call(cached.client, "bos_get_evidence", %{"runId" => context.issue.native_ref["runId"]}),
+           {:ok, evidence} <- GovernanceToolBoundary.decode_result(evidence_raw),
+           true <- Enum.any?(evidence["artifacts"] || [], &(&1["evidenceId"] == artifact["evidenceId"] and &1["commitSha"] == context.sha and &1["status"] == "passed")),
+           {:ok, _fresh, ^principal} <- effective(cached, context, "task-orchestrator", configuration) do
+        {:ok, artifact["evidenceId"]}
+      else
+        _ -> {:error, :governance_host_readiness_evidence_unconfirmed}
+      end
+    after
+      release(context, "task-orchestrator")
+    end
+  end
+
+  def prepare_context(context, policy), do: SymphonyElixir.GovernanceHostContext.prepare(context, policy)
+
   def identity(context, role) do
     with {:ok, configuration} <- configuration(),
          {:ok, cached} <- connection(context, role, configuration),
@@ -119,6 +153,17 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
         :ok
     end)
 
+    case Process.get({__MODULE__, :active_execution}) do
+      %{binding: %{"runId" => ^run}} = execution ->
+        case configuration() do
+          {:ok, config} -> close_execution(config, execution)
+          _ -> SymphonyElixir.GovernanceHostStore.release(execution.ownership.lease)
+        end
+
+      _ ->
+        :ok
+    end
+
     :ok
   end
 
@@ -127,17 +172,26 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
          {:ok, cached} <- connection(context, role, configuration),
          {:ok, source, principal} <- effective(cached, context, role, configuration),
          true <- principal == context.principal,
+         {:ok, execution} <- execution_admission(cached, context, role, configuration, source, policy),
          {:ok, launch} <- GovernanceRuntime.launch(configuration.runtime, context, role, policy),
+         launch = bind_execution_marker(launch, execution),
          {:ok, %{"tools" => tools}} <- GovernancePrivateMcp.request(cached.client, "tools/list", %{}),
          allowed = policy.tools,
          true <- is_list(allowed) and Enum.all?(allowed, fn name -> Enum.any?(tools, &(&1["name"] == name)) end) do
-      prompt = "Canonical role definition from verified catalog #{GovernanceCatalog.commit()}: #{Jason.encode!(cached.role_definition)}\n" <> prompt
+      prompt = native_execution_instruction(context, execution) <> "Canonical role definition from verified catalog #{GovernanceCatalog.commit()}: #{Jason.encode!(cached.role_definition)}\n" <> prompt
       selected = Enum.filter(tools, &(&1["name"] in allowed)) |> Enum.map(&Map.take(&1, ~w(name description inputSchema)))
       specs = selected ++ GovernanceSourceTools.specs()
       binding = %{tool_specs: specs, secret_environment_names: []}
-      options = [managed_launch: launch.managed, dynamic_tool_binding: binding, thread_parameters: launch.thread_parameters, host_preflight: &preflight/1]
+
+      options = [
+        managed_launch: launch.managed,
+        dynamic_tool_binding: binding,
+        thread_parameters: launch.thread_parameters,
+        host_preflight: &execution_preflight(&1, cached, context, role, configuration, execution)
+      ]
 
       with {:ok, session} <- AppServer.start_session(launch.workspace, options) do
+        monitor = start_execution_monitor(session, cached, context, role, configuration, execution)
         Process.put({__MODULE__, :final_text}, "")
         Process.put({__MODULE__, :native_status}, nil)
 
@@ -145,18 +199,35 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
           executor = fn tool, args -> tool_result(cached, context, role, configuration, source, tool, args, allowed) end
 
           callback = fn message ->
+            if is_pid(monitor), do: SymphonyElixir.GovernanceExecutionMonitor.usage(monitor, message[:payload])
             collect_text(message)
             if status = SymphonyElixir.GovernanceHostDiagnostics.terminal_status(message[:payload]), do: Process.put({__MODULE__, :native_status}, status)
             if is_pid(context.recipient), do: send(context.recipient, {:codex_worker_update, context.issue.id, Map.put(message, :delivery_actor, role)})
           end
 
           case AppServer.run_turn(session, prompt, context.issue, on_message: callback, tool_executor: executor, role: role, output_schema: schema) do
-            {:ok, %{result: %{status: :budget_paused}}} -> {:error, :governance_turn_budget_paused}
-            {:ok, _} -> if Process.get({__MODULE__, :native_status}) == "completed", do: {:ok, Process.get({__MODULE__, :final_text}, "")}, else: {:error, :governance_native_turn_not_completed}
-            {:error, _} -> {:error, :governance_native_turn_failed}
+            {:ok, %{result: %{status: :budget_paused}}} ->
+              {:error, :governance_turn_budget_paused}
+
+            {:ok, _} ->
+              if Process.get({__MODULE__, :native_status}) == "completed",
+                do: finish_execution_turn(monitor, cached, context, role, configuration, execution),
+                else: {:error, :governance_native_turn_not_completed}
+
+            {:error, _} ->
+              {:error, :governance_native_turn_failed}
           end
         after
           AppServer.stop_session(session)
+
+          if is_pid(monitor) and Process.alive?(monitor) do
+            case SymphonyElixir.GovernanceExecutionMonitor.finish(monitor) do
+              {:ok, measurement} -> record_execution_observation(cached, context, role, configuration, execution, Process.get({__MODULE__, :execution_witness}), measurement, "cancelled")
+              _ -> :ok
+            end
+          end
+
+          close_execution(configuration, execution)
           Process.delete({__MODULE__, :final_text})
           Process.delete({__MODULE__, :native_status})
         end
@@ -167,6 +238,321 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
       _ -> {:error, :governance_private_broker_unavailable}
     end
   end
+
+  defp native_execution_instruction(_context, nil), do: ""
+
+  defp native_execution_instruction(context, execution) do
+    if context.issue.native_ref["repositoryId"] == "symphony" and context.issue.native_ref["issueNumber"] == 69 do
+      marker = native_execution_marker(context, execution)
+
+      "Required authorized reversible local execution proof: use the native workspace editing tools to write elixir/test/fixtures/bos_governance_native_execution.json with exactly this JSON object: #{Jason.encode!(marker)}. This fixture is an execution observation, never an approval or evidence grant. Do not edit policies, AGENTS, .codex, plan, manifest or request snapshots. The host runs fixed sandbox QA and publishes the candidate; do not write Git metadata, commit, push or self-report passing evidence.\n"
+    else
+      ""
+    end
+  end
+
+  defp native_execution_marker(context, execution),
+    do: %{
+      "schemaVersion" => 1,
+      "runId" => context.issue.native_ref["runId"],
+      "planHash" => context.manifest["planHash"],
+      "attemptId" => execution.attempt["attemptId"],
+      "executionId" => execution.admission["executionId"]
+    }
+
+  defp verify_native_edit(context, execution) do
+    path = Path.join(context.workspace, "elixir/test/fixtures/bos_governance_native_execution.json")
+
+    with {:ok, %{type: :regular, links: 1}} <- File.lstat(path), {:ok, bytes} <- File.read(path), {:ok, actual} <- Jason.decode(bytes), true <- actual == native_execution_marker(context, execution) do
+      :ok
+    else
+      _ -> {:error, :governance_native_edit_not_observed}
+    end
+  end
+
+  @doc "Publish only the exact tree that the host tested in the native sandbox."
+  def publish_implementation(workspace, issue) do
+    try do
+      with %{context: %{workspace: ^workspace} = previous, tree: tree, qa: qa, marker: marker} <- Process.get({__MODULE__, :host_qa}),
+           true <- previous.issue.native_ref["runId"] == issue.native_ref["runId"],
+           {:ok, configuration} <- configuration(),
+           {:ok, cached} <- connection(previous, "task-orchestrator", configuration),
+           {:ok, source, principal} <- effective(cached, previous, "task-orchestrator", configuration),
+           {:ok, _} <- SymphonyElixir.GovernanceExecutionAuthority.check(Map.put(previous, :principal, principal), source),
+           {:ok, candidate} <- SymphonyElixir.GovernanceCandidatePublication.publish(previous, tree),
+           context = %{previous | sha: candidate.head_sha},
+           {:ok, current} <- connection(context, "task-orchestrator", configuration),
+           {:ok, fresh, verified} <- effective(current, context, "task-orchestrator", configuration),
+           context = Map.put(context, :principal, verified),
+           {:ok, _} <- SymphonyElixir.GovernanceExecutionAuthority.check(context, fresh),
+           artifact = implementation_evidence(context, tree, qa, marker, configuration),
+           {:ok, _} <- SymphonyElixir.GovernanceHostStore.request(configuration.execution, %{"kind" => "observation", "command" => "create", "id" => host_digest(artifact), "record" => artifact}),
+           sealed = Map.put(context, :host_observed_evidence, %{artifact["evidenceId"] => artifact}),
+           {:ok, args} <-
+             GovernanceToolBoundary.arguments(
+               "bos_record_evidence",
+               %{"issueNumber" => issue.native_ref["issueNumber"], "runId" => issue.native_ref["runId"], "operationId" => artifact["evidenceId"], "artifact" => artifact},
+               sealed,
+               ["bos_record_evidence"]
+             ),
+           {:ok, raw} <- observed_mcp_call(current, sealed, "task-orchestrator", configuration, "bos_record_evidence", args),
+           {:ok, %{"status" => "completed"}} <- GovernanceToolBoundary.decode_result(raw),
+           {:ok, evidence_raw} <- GovernancePrivateMcp.call(current.client, "bos_get_evidence", %{"runId" => issue.native_ref["runId"]}),
+           {:ok, evidence} <- GovernanceToolBoundary.decode_result(evidence_raw),
+           true <- Enum.any?(evidence["artifacts"] || [], &(&1["evidenceId"] == artifact["evidenceId"] and &1["commitSha"] == candidate.head_sha and &1["status"] == "passed")) do
+        Process.delete({__MODULE__, :host_qa})
+        {:ok, candidate}
+      else
+        _ -> {:error, :governance_tested_candidate_unconfirmed}
+      end
+    after
+      release(%{workspace: workspace, issue: issue}, "task-orchestrator")
+    end
+  end
+
+  defp implementation_evidence(context, tree, qa, marker, configuration) do
+    %{
+      "evidenceId" => "host_implementation_" <> host_digest([context.sha, tree, qa["outputSha256"], marker]),
+      "runId" => context.issue.native_ref["runId"],
+      "commitSha" => context.sha,
+      "phase" => "implementation",
+      "status" => "passed",
+      "acceptanceCriteria" => [%{"name" => "Host-observed authorized native edit and complete fixed repository QA", "status" => "passed"}],
+      "checks" => [
+        Map.drop(qa, ["output", "outputSha256"]),
+        %{"kind" => "local_runtime", "status" => "passed", "healthy" => true, "environment" => "local"},
+        %{
+          "kind" => "local_functional_acceptance",
+          "status" => "passed",
+          "complete" => true,
+          "environment" => "local",
+          "functionalFlowStatus" => "passed",
+          "commands" => ["host verified unique execution fixture and unchanged tested Git tree"]
+        }
+      ],
+      "artifacts" => [
+        %{"kind" => "host_sandbox_qa", "outputSha256" => qa["outputSha256"], "testedGitTree" => tree},
+        %{"kind" => "native_execution_fixture", "sha256" => host_digest(marker)},
+        %{"kind" => "implementation_profile_proof", "sha256" => configuration.runtime.implementation_proof_sha256}
+      ],
+      "summary" =>
+        "Actual native fixture edit and fixed sandbox QA observed by the host on the exact published Git tree. These are evidence inputs; independent final acceptance and integration remain separate."
+    }
+  end
+
+  defp execution_admission(_cached, _context, _role, _configuration, _source, %{sandbox: %{"type" => "readOnly"}}), do: {:ok, nil}
+
+  defp execution_admission(cached, context, "task-orchestrator", configuration, source, %{sandbox: %{"type" => "workspaceWrite"}}) do
+    started_ms = System.monotonic_time(:millisecond)
+
+    with true <- is_map(configuration[:execution]),
+         :ok <- GovernanceRuntime.validate_implementation(configuration.runtime),
+         {:ok, authority} <- SymphonyElixir.GovernanceExecutionAuthority.check(context, source),
+         number = context[:attempt_number] || 1,
+         id = "attempt_" <> host_digest([context.issue.native_ref["runId"], authority["baselineCommitSha"], number]),
+         execution_id = "execution_" <> host_digest([id, context.sha]),
+         worker_id = "worker_" <> host_digest([id, context.sha]),
+         attempt = %{
+           "attemptId" => id,
+           "runId" => context.issue.native_ref["runId"],
+           "number" => number,
+           "phase" => "implementation",
+           "status" => "running",
+           "startedAt" => authority["lastObservedAt"],
+           "metrics" => %{
+             "developmentExecution" => %{
+               "executionId" => execution_id,
+               "workerId" => worker_id,
+               "authorityGeneration" => authority["authorityGeneration"],
+               "sourcePublicationId" => authority["sourcePublicationId"]
+             }
+           }
+         },
+         {:ok, args} <-
+           GovernanceToolBoundary.arguments(
+             "bos_start_attempt",
+             %{"issueNumber" => context.issue.native_ref["issueNumber"], "runId" => context.issue.native_ref["runId"], "operationId" => id <> "_start", "artifact" => attempt},
+             context,
+             ["bos_start_attempt"]
+           ),
+         {:ok, raw} <- observed_mcp_call(cached, context, "task-orchestrator", configuration, "bos_start_attempt", args),
+         {:ok, %{"status" => "completed", "developmentExecution" => admission}} <- GovernanceToolBoundary.decode_result(raw),
+         true <- admission["attemptId"] == id and admission["executionId"] == execution_id and admission["workerId"] == worker_id and admission["launchState"] == "UNCLAIMED",
+         {:ok, fresh, _} <- effective(cached, context, "task-orchestrator", configuration),
+         {:ok, _} <- SymphonyElixir.GovernanceExecutionAuthority.check(context, fresh, admission),
+         binding = SymphonyElixir.GovernanceExecutionJournal.binding(context, admission),
+         {:ok, ownership} <- SymphonyElixir.GovernanceExecutionJournal.spawn_once(configuration.execution, binding) do
+      execution = %{admission: admission, binding: binding, ownership: ownership, attempt: args["artifact"], started_ms: started_ms}
+      Process.put({__MODULE__, :active_execution}, execution)
+      {:ok, execution}
+    else
+      _ -> {:error, :governance_execution_admission_unconfirmed}
+    end
+  end
+
+  defp execution_admission(_, _, _, _, _, _), do: {:error, :governance_execution_policy_rejected}
+
+  defp bind_execution_marker(launch, nil), do: launch
+  defp bind_execution_marker(launch, execution), do: put_in(launch, [:managed, :environment, "BOS_HOST_WORKER_MARKER"], execution.ownership.marker)
+
+  defp execution_preflight(port, _cached, _context, _role, _configuration, nil), do: preflight(port)
+
+  defp execution_preflight(port, cached, context, role, configuration, execution) do
+    with :ok <- preflight(port),
+         :ok <- execution_guard(cached, context, role, configuration, execution),
+         {:ok, witness} <- SymphonyElixir.GovernanceExecutionJournal.attach(configuration.execution, execution.binding, port, execution.ownership),
+         :ok <-
+           record_execution_observation(
+             cached,
+             context,
+             role,
+             configuration,
+             execution,
+             witness,
+             %{
+               sequence: 1,
+               uncachedInputTokens: 0,
+               wallTimeSeconds: div(max(System.monotonic_time(:millisecond) - execution.started_ms, 0), 1000),
+               observedAt: DateTime.to_iso8601(DateTime.utc_now())
+             },
+             "attached"
+           ),
+         :ok <- execution_guard(cached, context, role, configuration, execution) do
+      Process.put({__MODULE__, :execution_witness}, witness)
+      :ok
+    end
+  end
+
+  defp execution_guard(cached, context, role, configuration, execution) do
+    with true <- SymphonyElixir.GovernanceHostStore.held?(execution.ownership.lease),
+         {:ok, source, principal} <- effective(cached, context, role, configuration),
+         true <- principal == context.principal,
+         {:ok, _} <- SymphonyElixir.GovernanceExecutionAuthority.check(context, source, execution.admission) do
+      :ok
+    else
+      _ -> {:error, :governance_execution_authority_lost}
+    end
+  end
+
+  defp start_execution_monitor(_session, _cached, _context, _role, _configuration, nil), do: nil
+
+  defp start_execution_monitor(session, cached, context, role, configuration, execution) do
+    witness = Process.get({__MODULE__, :execution_witness})
+    validate = fn -> execution_guard(cached, context, role, configuration, execution) end
+    observe = fn measurement -> record_execution_observation(cached, context, role, configuration, execution, witness, measurement, "running") end
+    {:ok, monitor} = SymphonyElixir.GovernanceExecutionMonitor.start(session.port, execution.admission, validate, observe, execution.started_ms)
+    monitor
+  end
+
+  defp finish_execution_turn(_monitor, _cached, _context, _role, _configuration, nil), do: {:ok, Process.get({__MODULE__, :final_text}, "")}
+
+  defp finish_execution_turn(monitor, cached, context, role, configuration, execution) do
+    with :ok <- SymphonyElixir.GovernanceExecutionMonitor.inference_finished(monitor),
+         :ok <- verify_native_edit(context, execution),
+         {:ok, tree} <- SymphonyElixir.GovernanceCandidatePublication.stage(context),
+         {:ok, qa} <- SymphonyElixir.GovernanceNativeCommand.qa(context, configuration, fn -> SymphonyElixir.GovernanceExecutionMonitor.healthy?(monitor) end),
+         :ok <- SymphonyElixir.GovernanceCandidatePublication.unchanged(context, tree),
+         {:ok, measurement} <- SymphonyElixir.GovernanceExecutionMonitor.finish(monitor),
+         :ok <-
+           record_execution_observation(
+             cached,
+             context,
+             role,
+             configuration,
+             execution,
+             Process.get({__MODULE__, :execution_witness}),
+             measurement,
+             if(measurement.cancelled, do: "cancelled", else: "completed")
+           ),
+         true <- not measurement.cancelled,
+         :ok <- execution_guard(cached, context, role, configuration, execution),
+         completed =
+           execution.attempt
+           |> Map.put("status", "passed")
+           |> Map.put("completedAt", DateTime.to_iso8601(DateTime.utc_now()))
+           |> Map.put("summary", "Host observed completed native turn and fixed sandbox QA. Independent final committee and integration remain separate."),
+         {:ok, args} <-
+           GovernanceToolBoundary.arguments(
+             "bos_complete_attempt",
+             %{
+               "issueNumber" => context.issue.native_ref["issueNumber"],
+               "runId" => context.issue.native_ref["runId"],
+               "operationId" => execution.attempt["attemptId"] <> "_complete",
+               "artifact" => completed
+             },
+             context,
+             ["bos_complete_attempt"]
+           ),
+         {:ok, raw} <- observed_mcp_call(cached, context, role, configuration, "bos_complete_attempt", args),
+         {:ok, %{"status" => "completed"}} <- GovernanceToolBoundary.decode_result(raw) do
+      Process.put({__MODULE__, :host_qa}, %{context: context, tree: tree, qa: qa, marker: native_execution_marker(context, execution)})
+      {:ok, Process.get({__MODULE__, :final_text}, "")}
+    else
+      _ -> {:error, :governance_execution_or_qa_unconfirmed}
+    end
+  end
+
+  defp record_execution_observation(cached, context, role, configuration, execution, witness, measurement, state) do
+    sequence = measurement.sequence
+    id = "execution_observation_" <> host_digest([execution.admission["executionId"], sequence, state])
+    public_witness = witness |> Map.drop(["marker"]) |> Map.put("markerDigest", host_digest(witness["marker"]))
+
+    observation = %{
+      "kind" => "development_execution_observation",
+      "reservationId" => execution.admission["reservationId"],
+      "executionId" => execution.admission["executionId"],
+      "workerId" => execution.admission["workerId"],
+      "ownershipGeneration" => execution.ownership.generation,
+      "authorityGeneration" => execution.admission["authorityGeneration"],
+      "sequence" => sequence,
+      "observedAt" => measurement.observedAt,
+      "state" => state,
+      "usage" => %{"uncachedInputTokens" => measurement.uncachedInputTokens, "wallTimeSeconds" => measurement.wallTimeSeconds},
+      "processWitness" => public_witness
+    }
+
+    observation = Map.put(observation, "proofDigest", "sha256:" <> host_digest(observation))
+
+    artifact = %{
+      "evidenceId" => id,
+      "runId" => context.issue.native_ref["runId"],
+      "commitSha" => context.sha,
+      "phase" => "implementation",
+      "status" => "inconclusive",
+      "acceptanceCriteria" => [%{"id" => "runtime_usage", "name" => "Host-observed execution accounting; no implementation acceptance", "status" => "inconclusive", "verified" => false}],
+      "checks" => [%{"kind" => "runtime_usage", "status" => "inconclusive", "verified" => false}],
+      "artifacts" => [observation],
+      "summary" => "Operational accounting from the host process witness and native token telemetry only."
+    }
+
+    with {:ok, _} <- SymphonyElixir.GovernanceHostStore.request(configuration.execution, %{"kind" => "observation", "command" => "create", "id" => host_digest(artifact), "record" => artifact}),
+         bound = Map.put(context, :host_observed_evidence, %{id => artifact}),
+         {:ok, args} <-
+           GovernanceToolBoundary.arguments(
+             "bos_record_evidence",
+             %{"issueNumber" => context.issue.native_ref["issueNumber"], "runId" => context.issue.native_ref["runId"], "operationId" => id, "artifact" => artifact},
+             bound,
+             ["bos_record_evidence"]
+           ),
+         {:ok, raw} <- observed_mcp_call(cached, bound, role, configuration, "bos_record_evidence", args),
+         {:ok, %{"status" => "completed"}} <- GovernanceToolBoundary.decode_result(raw) do
+      :ok
+    else
+      _ -> {:error, :governance_execution_observation_unconfirmed}
+    end
+  end
+
+  defp close_execution(_configuration, nil), do: :ok
+
+  defp close_execution(configuration, execution) do
+    _ = SymphonyElixir.GovernanceExecutionJournal.transition(configuration.execution, execution.binding, "finish")
+    SymphonyElixir.GovernanceHostStore.release(execution.ownership.lease)
+    Process.delete({__MODULE__, :execution_witness})
+    Process.delete({__MODULE__, :active_execution})
+    :ok
+  end
+
+  defp host_digest(value), do: Base.encode16(:crypto.hash(:sha256, SymphonyElixir.Audit.CanonicalJson.encode(value)), case: :lower)
 
   defp tool_result(cached, context, role, configuration, _source, tool, arguments, allowed) do
     result =

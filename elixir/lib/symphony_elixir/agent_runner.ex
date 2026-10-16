@@ -88,6 +88,20 @@ defmodule SymphonyElixir.AgentRunner do
     end
   end
 
+  @doc "Continue the existing governed product/review path after planning reaches actual READY."
+  def run_governed_implementation(workspace, issue, recipient, opts, worker_host) do
+    with {:ok, started?} <- DeliveryCoordinator.review_stage_started?(issue, opts) do
+      if started? do
+        DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
+      else
+        with :ok <- run_codex_turns(workspace, issue, recipient, opts, worker_host),
+             {:ok, _candidate} <- SymphonyElixir.GovernanceAppServerBroker.publish_implementation(workspace, issue) do
+          DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
+        end
+      end
+    end
+  end
+
   defp start_worker_context(issue, attempt, opts, tracker) do
     if SymphonyElixir.GovernanceCoordinator.enabled?(issue, opts) do
       with :ok <- SymphonyElixir.GovernanceSession.available_for?(opts), do: tracker.start_coordination(issue)
@@ -260,7 +274,7 @@ defmodule SymphonyElixir.AgentRunner do
 
       policy = %{
         sandbox: %{"type" => "workspaceWrite", "networkAccess" => false},
-        tools: ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_goal_execution bos_get_evidence bos_record_progress bos_record_evidence),
+        tools: ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_goal_execution bos_get_evidence bos_record_evidence),
         native_operations: [:read, :workspace_edit, :local_validation],
         verified_m2m: true,
         fresh_session: true,

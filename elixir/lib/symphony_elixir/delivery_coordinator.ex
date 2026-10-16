@@ -91,7 +91,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
         policy = %{
           sandbox: %{"type" => "readOnly", "networkAccess" => false},
           tools:
-            ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_evidence bos_create_pull_request bos_get_pull_request bos_get_pull_request_checks bos_record_evidence bos_complete_attempt bos_transition_issue bos_record_governance),
+            ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_evidence bos_create_pull_request bos_get_pull_request bos_get_pull_request_checks bos_record_evidence bos_transition_issue bos_record_governance),
           native_operations: [:read],
           verified_m2m: true,
           fresh_session: true,
