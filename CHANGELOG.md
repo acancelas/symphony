@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-16 — Reject staged policy drift before model admission (Issue #69)
+
+Compare policy filename changes against the exact candidate, including already staged additions. A reproduced recovery gap is fixed; 15 policy/authority tests pass. Preserve failed auxiliary diagnostics and disclose stale development-BEAM evaluations; future privileged diagnostics require a private build outside QA-writable paths. Native future-file enforcement and full runtime certification remain unresolved.
+
 ## 2026-10-16 — Reject new policy overrides before staging (Issue #69)
 
 Reproduce and fix host publication accepting a new AGENTS.override.md from writable source. Reject it before any index change; 14 authority/policy tests pass. Preserve the separate failed no-model minimal-root QA report: proc/host-secret isolation subchecks pass, but a future override file in writable cache can still be created despite its glob. Runtime certification remains blocked; no criterion was dropped or installed permission changed. See the policy dossier for exact evidence and remaining fresh-build/proc requirements.

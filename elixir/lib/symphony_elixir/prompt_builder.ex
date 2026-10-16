@@ -111,7 +111,8 @@ defmodule SymphonyElixir.PromptBuilder do
          entries = String.split(raw, <<0>>, trim: true),
          {:ok, policies} <- parse_policy_tree(entries, names),
          {:ok, policies} <- nonempty_policy_blobs(context.workspace, policies),
-         :ok <- reject_untracked_policies(context.workspace, names) do
+         :ok <- reject_untracked_policies(context.workspace, names),
+         :ok <- reject_policy_tree_changes(context, names) do
       selected = policies |> Enum.group_by(&Path.dirname(&1.path)) |> Enum.sort_by(fn {directory, _} -> {length(Path.split(directory)), directory} end)
       paths = Enum.map(selected, fn {_, files} -> Enum.min_by(files, &policy_priority(&1, names)) end)
       policy_entries(paths, &repository_policy(context, &1))
@@ -138,6 +139,16 @@ defmodule SymphonyElixir.PromptBuilder do
       |> GovernanceTrustedGit.run(["ls-files", "--others", "--exclude-standard", "-z"] ++ flags ++ ["--" | scopes])
       |> untracked_policy_result(names)
     end)
+  end
+
+  defp reject_policy_tree_changes(context, names) do
+    case GovernanceTrustedGit.run(context.workspace, ["diff", "--no-ext-diff", "--name-only", "-z", context.sha]) do
+      {raw, 0} ->
+        if Enum.any?(String.split(raw, <<0>>, trim: true), &(Path.basename(&1) in names)), do: {:error, :governance_policy_tree_changed}, else: :ok
+
+      _ ->
+        {:error, :governance_policy_tree_unavailable}
+    end
   end
 
   defp policy_priority(policy, names), do: Enum.find_index(names, &(&1 == Path.basename(policy.path)))

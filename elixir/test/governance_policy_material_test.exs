@@ -104,6 +104,13 @@ defmodule SymphonyElixir.GovernancePolicyMaterialTest do
     assert String.contains?(material.prompt, workspace)
   end
 
+  test "a staged new policy is rejected before model admission even though it is no longer untracked", ctx do
+    relative = "elixir/lib/AGENTS.override.md"
+    File.write!(Path.join(ctx.context.workspace, relative), "staged unapproved policy")
+    {_, 0} = git(ctx.context.workspace, ["add", "--", relative])
+    assert {:error, _} = PromptBuilder.governed_policy_material(ctx.context, ctx.configuration)
+  end
+
   defp pin(path), do: %{"path" => path, "sha256" => Base.encode16(:crypto.hash(:sha256, File.read!(path)), case: :lower)}
   defp git(workspace, args), do: System.cmd("/usr/bin/git", args, cd: workspace, stderr_to_stdout: true)
 end
