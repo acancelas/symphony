@@ -116,3 +116,15 @@ host environment results, runtime certification and independent Goal authorizati
 - Ten authority/publication tests pass; document the still-unimplemented host
   application and lifecycle obligations. No plan approval, launch, write path,
   native write certificate, integration or publication authority is inferred.
+
+
+## 2026-10-16 — Restore strict source quality gate (#69)
+
+- Extract existing session, identity, transport, projection and fixture branches
+  into smaller functions, preserving scope/authority checks, lifecycle order and
+  denial classifications. Keep the privileged receipted host build unchanged.
+- Canonical lint now passes all public specifications and69 Credo checks with
+  no issues; formatting passes. Full suite527 tests passes with six existing
+  skips (seed325866). No lint disablement, threshold reduction or test waiver.
+- Native isolated QA, whole-Run execution and final independent acceptance still
+  require their own evidence; ordinary source tests do not certify them.

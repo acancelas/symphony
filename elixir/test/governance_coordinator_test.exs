@@ -43,48 +43,51 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
           state = Process.get(:gov_state)
           phase = get_in(state, ["phases", context.phase])
 
-          state =
-            case event do
-              "candidate" ->
-                put_in(
-                  state,
-                  ["phases", context.phase],
-                  Map.merge(artifact, %{"votes" => %{}, "verdict" => nil, "exception" => nil})
-                )
-
-              "round_started" ->
-                state
-                |> put_in(["phases", context.phase, "round"], artifact["round"])
-                |> put_in(["counters", context.phase], artifact["round"])
-
-              "applicability" ->
-                put_in(
-                  state,
-                  ["phases", context.phase, "votes", role],
-                  Map.merge(artifact, %{"applicable" => false, "summary" => "No affected flow"})
-                )
-
-              "verdict" ->
-                put_in(
-                  state,
-                  ["phases", context.phase, "verdict"],
-                  Map.merge(artifact, %{"status" => "passed", "verdict" => "APPROVED"})
-                )
-
-              "exception" ->
-                put_in(
-                  state,
-                  ["phases", context.phase, "exception"],
-                  Map.put(artifact, "summary", "Independent evidence justifies one final review")
-                )
-
-              "readiness" ->
-                Map.put(state, "readiness", Map.merge(artifact, %{"status" => "passed", "state" => "READY"}))
-            end
+          state = apply_event(state, event, context, artifact, role)
 
           Process.put(:gov_state, state)
           assert phase == nil or is_map(phase)
           :ok
+      end
+    end
+
+    defp apply_event(state, event, context, artifact, role) do
+      case event do
+        "candidate" ->
+          put_in(
+            state,
+            ["phases", context.phase],
+            Map.merge(artifact, %{"votes" => %{}, "verdict" => nil, "exception" => nil})
+          )
+
+        "round_started" ->
+          state
+          |> put_in(["phases", context.phase, "round"], artifact["round"])
+          |> put_in(["counters", context.phase], artifact["round"])
+
+        "applicability" ->
+          put_in(
+            state,
+            ["phases", context.phase, "votes", role],
+            Map.merge(artifact, %{"applicable" => false, "summary" => "No affected flow"})
+          )
+
+        "verdict" ->
+          put_in(
+            state,
+            ["phases", context.phase, "verdict"],
+            Map.merge(artifact, %{"status" => "passed", "verdict" => "APPROVED"})
+          )
+
+        "exception" ->
+          put_in(
+            state,
+            ["phases", context.phase, "exception"],
+            Map.put(artifact, "summary", "Independent evidence justifies one final review")
+          )
+
+        "readiness" ->
+          Map.put(state, "readiness", Map.merge(artifact, %{"status" => "passed", "state" => "READY"}))
       end
     end
   end

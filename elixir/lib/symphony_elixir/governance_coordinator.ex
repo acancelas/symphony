@@ -58,17 +58,20 @@ defmodule SymphonyElixir.GovernanceCoordinator do
         context = Map.merge(context, %{catalog: catalog, manifest: manifest, sha: candidate.head_sha})
         planning = get_in(state, ["phases", "planning"])
 
-        context =
-          if phase == :planning and is_map(planning) and planning["planHash"] == manifest["planHash"] and
-               planning["catalogCommitSha"] == GovernanceCatalog.commit(),
-             do: %{context | sha: planning["candidateCommitSha"]},
-             else: context
+        context = resume_planning_candidate(context, planning, phase, manifest)
 
         convene(context, state)
       end
     else
       :ok
     end
+  end
+
+  defp resume_planning_candidate(context, planning, phase, manifest) do
+    if phase == :planning and is_map(planning) and planning["planHash"] == manifest["planHash"] and
+         planning["catalogCommitSha"] == GovernanceCatalog.commit(),
+       do: %{context | sha: planning["candidateCommitSha"]},
+       else: context
   end
 
   defp prepare_candidate(context) do
@@ -78,15 +81,19 @@ defmodule SymphonyElixir.GovernanceCoordinator do
           {:ok, candidate, manifest}
 
         {:error, :governance_manifest_missing} ->
-          with :ok <- prepare_draft(context, "Prepare the original approved task plan; do not implement product code."),
-               {:ok, next} <- context.candidate_head.confirm(context.workspace, context.issue, context.worker_host),
-               {:ok, manifest} <- read_manifest(context, next.head_sha) do
-            {:ok, next, manifest}
-          end
+          prepare_missing_candidate(context)
 
         {:error, reason} ->
           {:error, reason}
       end
+    end
+  end
+
+  defp prepare_missing_candidate(context) do
+    with :ok <- prepare_draft(context, "Prepare the original approved task plan; do not implement product code."),
+         {:ok, next} <- context.candidate_head.confirm(context.workspace, context.issue, context.worker_host),
+         {:ok, manifest} <- read_manifest(context, next.head_sha) do
+      {:ok, next, manifest}
     end
   end
 
@@ -165,20 +172,20 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     if "bos:goal" in (context.issue.labels || []) do
       native = context.issue.native_ref
 
-      with {:ok, %{"proposal" => proposal} = planning} when is_map(proposal) <-
-             context.client.fetch_goal_planning(native["repositoryId"], native["issueNumber"]) do
-        hash = planning["goalBreakdownHash"]
-
-        if is_binary(hash) and Regex.match?(~r/^sha256:[0-9a-f]{64}$/, hash),
-          do: {:ok, hash},
-          else: {:error, :governance_goal_proposal_hash_unavailable}
-      else
+      case context.client.fetch_goal_planning(native["repositoryId"], native["issueNumber"]) do
+        {:ok, %{"proposal" => proposal} = planning} when is_map(proposal) -> goal_hash(planning["goalBreakdownHash"])
         {:error, reason} -> {:error, reason}
         _ -> {:error, :governance_goal_proposal_incomplete}
       end
     else
       {:ok, nil}
     end
+  end
+
+  defp goal_hash(hash) do
+    if is_binary(hash) and Regex.match?(~r/^sha256:[0-9a-f]{64}$/, hash),
+      do: {:ok, hash},
+      else: {:error, :governance_goal_proposal_hash_unavailable}
   end
 
   defp verify_definition(manifest, bindings) do
@@ -285,29 +292,33 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     end
   end
 
+  defp review_role(context, latest, role) do
+    phase = current(context, latest)
+
+    if is_map(phase["votes"][role["id"]]) do
+      {:cont, {:ok, latest}}
+    else
+      detail =
+        "Evaluate applicability first. Persist a justified NOT_APPLICABLE (applicable=false), or record a version-bound Review and applicability with applicable=true, matching status and reviewIds. Missing mandatory evidence is UNVERIFIED. Use original evidence; never invent a review or authority.\nCanonical role definition: #{Jason.encode!(role)}"
+
+      case record(
+             context,
+             role["id"],
+             "applicability",
+             phase["round"],
+             detail,
+             &is_map(get_in(&1, ["phases", context.phase, "votes", role["id"]]))
+           ) do
+        {:ok, next} -> {:cont, {:ok, next}}
+        error -> {:halt, error}
+      end
+    end
+  end
+
   defp review_round(context, state) do
     result =
       Enum.reduce_while(context.catalog["committee"], {:ok, state}, fn role, {:ok, latest} ->
-        phase = current(context, latest)
-
-        if is_map(phase["votes"][role["id"]]) do
-          {:cont, {:ok, latest}}
-        else
-          detail =
-            "Evaluate applicability first. Persist a justified NOT_APPLICABLE (applicable=false), or record a version-bound Review and applicability with applicable=true, matching status and reviewIds. Missing mandatory evidence is UNVERIFIED. Use original evidence; never invent a review or authority.\nCanonical role definition: #{Jason.encode!(role)}"
-
-          case record(
-                 context,
-                 role["id"],
-                 "applicability",
-                 phase["round"],
-                 detail,
-                 &is_map(get_in(&1, ["phases", context.phase, "votes", role["id"]]))
-               ) do
-            {:ok, next} -> {:cont, {:ok, next}}
-            error -> {:halt, error}
-          end
-        end
+        review_role(context, latest, role)
       end)
 
     with {:ok, latest} <- result,

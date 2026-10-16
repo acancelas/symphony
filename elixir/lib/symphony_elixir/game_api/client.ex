@@ -270,12 +270,16 @@ defmodule SymphonyElixir.GameApi.Client do
           {:error, :governance_run_issue_mismatch}
 
         {:error, {:game_api_http_error, 404}} ->
-          with {:ok, _} <- record_run(repository, issue, native["runId"], native["issueNumber"], nil, nil), do: {:ok, issue}
+          record_coordination_run(repository, issue, native)
 
         error ->
           error
       end
     end
+  end
+
+  defp record_coordination_run(repository, issue, native) do
+    with {:ok, _} <- record_run(repository, issue, native["runId"], native["issueNumber"], nil, nil), do: {:ok, issue}
   end
 
   @spec start_execution(Issue.t(), pos_integer()) :: {:ok, String.t()} | {:error, term()}

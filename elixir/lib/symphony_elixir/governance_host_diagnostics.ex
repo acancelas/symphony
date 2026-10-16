@@ -62,25 +62,8 @@ defmodule SymphonyElixir.GovernanceHostDiagnostics do
   def outcome({:ok, raw}) when is_map(raw) do
     case raw["content"] do
       entries when is_list(entries) ->
-        value = entries |> Enum.find_value(fn entry -> if entry["type"] == "text", do: entry["text"] end)
-
-        case Jason.decode(value || "") do
-          {:ok, %{"error" => error}} when is_map(error) ->
-            code = error["code"]
-            details = error["details"] || %{}
-            status = details["status"]
-
-            %{
-              privateMcpInvoked: true,
-              success: false,
-              errorCode: safe_code(code),
-              httpStatus: if(is_integer(status) and status in 100..599, do: status, else: nil),
-              validationIssues: safe_validation_issues(details["issues"])
-            }
-
-          _ ->
-            %{privateMcpInvoked: true, success: raw["isError"] != true}
-        end
+        value = Enum.find_value(entries, &text_value/1)
+        decoded_outcome(Jason.decode(value || ""), raw)
 
       _ ->
         %{privateMcpInvoked: true, success: false, errorCode: "invalid_mcp_result"}
@@ -89,6 +72,24 @@ defmodule SymphonyElixir.GovernanceHostDiagnostics do
 
   def outcome({:error, reason}) when is_atom(reason), do: %{success: false, errorCode: Atom.to_string(reason)}
   def outcome(_), do: %{success: false, errorCode: "unclassified_host_failure"}
+
+  defp text_value(%{"type" => "text"} = entry), do: entry["text"]
+  defp text_value(_), do: nil
+
+  defp decoded_outcome({:ok, %{"error" => error}}, _raw) when is_map(error) do
+    details = error["details"] || %{}
+    status = details["status"]
+
+    %{
+      privateMcpInvoked: true,
+      success: false,
+      errorCode: safe_code(error["code"]),
+      httpStatus: if(is_integer(status) and status in 100..599, do: status, else: nil),
+      validationIssues: safe_validation_issues(details["issues"])
+    }
+  end
+
+  defp decoded_outcome(_, raw), do: %{privateMcpInvoked: true, success: raw["isError"] != true}
 
   @validation_fields ~w(request body artifact repository repositoryId owner repo issueNumber runId operationId kind governanceId phase event planHash catalogCommitSha candidateCommitSha round summary applicable status verdict reviewIds evidenceIds recoveryKind pullRequestNumber targetProjectId)
   @validation_types ~w(missing extra_forbidden value_error literal_error enum string_pattern_mismatch string_type int_type bool_type greater_than_equal less_than_equal)

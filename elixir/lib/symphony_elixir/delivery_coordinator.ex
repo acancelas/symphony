@@ -34,9 +34,8 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     native_ref = issue.native_ref || %{}
 
     if SymphonyElixir.GovernanceCoordinator.enabled?(issue, opts) do
-      with {:ok, %{"governance" => state}} <- client.fetch_issue(native_ref["repositoryId"], native_ref["issueNumber"]) do
-        {:ok, is_map(get_in(state, ["phases", "implementation"]))}
-      else
+      case client.fetch_issue(native_ref["repositoryId"], native_ref["issueNumber"]) do
+        {:ok, %{"governance" => state}} -> {:ok, is_map(get_in(state, ["phases", "implementation"]))}
         {:error, reason} -> {:error, reason}
         _ -> {:error, :governance_projection_missing}
       end

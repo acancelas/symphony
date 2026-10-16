@@ -76,15 +76,11 @@ defmodule SymphonyElixir.GovernanceSession do
       case context.broker.identity(context, role) do
         {:ok, %{subject_id: subject, service_id: service, role: ^role, repository_id: repository} = identity}
         when is_binary(subject) and subject != "" and is_binary(service) and service != "" ->
-          if repository == context.issue.native_ref["repositoryId"],
-            do: {:ok, identity},
-            else: {:error, :governance_principal_repository_mismatch}
+          principal_repository(context, repository, identity)
 
         {:ok, %{machine_id: id, role: ^role, repository_id: repository} = legacy}
         when is_binary(id) and id != "" ->
-          if repository == context.issue.native_ref["repositoryId"],
-            do: {:ok, Map.merge(legacy, %{subject_id: id, service_id: id})},
-            else: {:error, :governance_principal_repository_mismatch}
+          principal_repository(context, repository, Map.merge(legacy, %{subject_id: id, service_id: id}))
 
         _ ->
           {:error, :governance_verified_principal_unavailable}
@@ -92,6 +88,12 @@ defmodule SymphonyElixir.GovernanceSession do
     else
       {:error, :governance_verified_principal_unavailable}
     end
+  end
+
+  defp principal_repository(context, repository, identity) do
+    if repository == context.issue.native_ref["repositoryId"],
+      do: {:ok, identity},
+      else: {:error, :governance_principal_repository_mismatch}
   end
 
   defp prepare_context(context, policy) do

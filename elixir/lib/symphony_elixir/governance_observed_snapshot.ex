@@ -38,25 +38,37 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
 
   defp refresh_settings(%{sha: sha, issue: %{native_ref: native}}, settings, execution, fetch)
        when is_map(native) and is_map(execution) and is_function(fetch, 2) do
-    custody = settings[:custody]
-
     valid =
       sha?(sha) and Map.take(native, ~w(repositoryId issueNumber runId)) == Map.take(@scope, ~w(repositoryId issueNumber runId)) and
-        Enum.sort(Map.keys(settings)) == Enum.sort(~w(enabled contract_path contract_sha256 provenance custody)a) and
-        absolute_path?(settings[:contract_path]) and raw_digest?(settings[:contract_sha256]) and
-        is_map(settings[:provenance]) and is_map(custody) and
-        Enum.sort(Map.keys(custody)) == Enum.sort(~w(directory directoryDevice directoryInode lockDevice lockInode)) and
-        absolute_path?(custody["directory"]) and
-        Enum.all?(~w(directoryDevice lockDevice), &(is_integer(custody[&1]) and custody[&1] >= 0)) and
-        Enum.all?(~w(directoryInode lockInode), &(is_integer(custody[&1]) and custody[&1] > 0)) and
-        absolute_path?(execution[:journal_root]) and absolute_path?(execution[:python_executable]) and
-        raw_digest?(execution[:python_sha256]) and
-        GovernanceBuildReceipt.file_digest(execution.python_executable) == execution.python_sha256
+        refresh_shape?(settings) and refresh_custody?(settings[:custody]) and refresh_execution?(execution)
 
     if valid, do: :ok, else: {:error, :snapshot_settings_invalid}
   end
 
   defp refresh_settings(_, _, _, _), do: {:error, :snapshot_settings_invalid}
+
+  defp refresh_shape?(settings) do
+    contract_valid = absolute_path?(settings[:contract_path]) and raw_digest?(settings[:contract_sha256])
+
+    Enum.sort(Map.keys(settings)) == Enum.sort(~w(enabled contract_path contract_sha256 provenance custody)a) and
+      contract_valid and is_map(settings[:provenance])
+  end
+
+  defp refresh_custody?(custody) when is_map(custody) do
+    Enum.sort(Map.keys(custody)) == Enum.sort(~w(directory directoryDevice directoryInode lockDevice lockInode)) and
+      absolute_path?(custody["directory"]) and
+      Enum.all?(~w(directoryDevice lockDevice), &(is_integer(custody[&1]) and custody[&1] >= 0)) and
+      Enum.all?(~w(directoryInode lockInode), &(is_integer(custody[&1]) and custody[&1] > 0))
+  end
+
+  defp refresh_custody?(_), do: false
+
+  defp refresh_execution?(execution) do
+    absolute_path?(execution[:journal_root]) and absolute_path?(execution[:python_executable]) and
+      raw_digest?(execution[:python_sha256]) and
+      GovernanceBuildReceipt.file_digest(execution.python_executable) == execution.python_sha256
+  end
+
   defp absolute_path?(value), do: is_binary(value) and Path.type(value) == :absolute
   defp raw_digest?(value), do: is_binary(value) and Regex.match?(~r/^[a-f0-9]{64}$/, value)
 
@@ -103,13 +115,7 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
   @doc "Build from authentic raw reads and a pinned projection schema. Unknown metrics remain absent/null."
   @spec build(map(), map(), map(), map(), DateTime.t(), DateTime.t()) :: {:ok, map()} | {:error, atom()}
   def build(context, texts, provenance, schema, read_at, now) do
-    with true <- Map.take(context.issue.native_ref, ~w(repositoryId issueNumber runId)) == Map.take(@scope, ~w(repositoryId issueNumber runId)),
-         true <- sha?(context.sha) and sha?(provenance["backendCommitSha"]),
-         true <- provenance["origin"] == "http://127.0.0.1:8110" and provenance["providerKind"] == "synthetic",
-         true <- identifier?(provenance["epoch"]) and not Map.has_key?(provenance, "hostObservationId"),
-         true <- is_nil(provenance["receiptId"]) or identifier?(provenance["receiptId"]),
-         true <- Enum.sort(Map.keys(texts)) == ~w(issue run timeline),
-         true <- Enum.all?(Map.values(texts), &(is_binary(&1) and byte_size(&1) <= 1_048_576)),
+    with true <- build_inputs?(context, texts, provenance),
          {:ok, issue} <- Jason.decode(texts["issue"]),
          {:ok, run} <- Jason.decode(texts["run"]),
          {:ok, timeline} <- Jason.decode(texts["timeline"]),
@@ -170,6 +176,19 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
     end
   rescue
     _ -> {:error, :snapshot_observation_unverified}
+  end
+
+  defp build_inputs?(context, texts, provenance) do
+    Map.take(context.issue.native_ref, ~w(repositoryId issueNumber runId)) == Map.take(@scope, ~w(repositoryId issueNumber runId)) and
+      build_provenance?(context, provenance) and Enum.sort(Map.keys(texts)) == ~w(issue run timeline) and
+      Enum.all?(Map.values(texts), &(is_binary(&1) and byte_size(&1) <= 1_048_576))
+  end
+
+  defp build_provenance?(context, provenance) do
+    sha?(context.sha) and sha?(provenance["backendCommitSha"]) and
+      provenance["origin"] == "http://127.0.0.1:8110" and provenance["providerKind"] == "synthetic" and
+      identifier?(provenance["epoch"]) and not Map.has_key?(provenance, "hostObservationId") and
+      (is_nil(provenance["receiptId"]) or identifier?(provenance["receiptId"]))
   end
 
   @doc "Persist an immutable host observation then atomically replace the fixed DEV export. Directory and lock must already be provisioned and pinned."
@@ -334,14 +353,11 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
         not is_map(next) ->
           {:halt, {:error, :snapshot_schema}}
 
-        not Map.has_key?(properties, key) and not Regex.match?(~r/^[a-z][a-z-]{0,60}$/, key) ->
+        not projection_key?(properties, key) ->
           {:halt, {:error, :snapshot_key}}
 
         true ->
-          case project(item, next, depth + 1) do
-            {:ok, projected} -> {:cont, {:ok, Map.put(acc, key, projected)}}
-            error -> {:halt, error}
-          end
+          project_property(item, next, depth, key, acc)
       end
     end)
   end
@@ -364,11 +380,26 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
 
   defp project(value, %{"type" => types}, _) do
     types = List.wrap(types)
-    valid = ("string" in types and safe_string?(value)) or ("number" in types and is_number(value)) or ("boolean" in types and is_boolean(value))
+    valid = Enum.any?(types, &typed_value?(&1, value))
     if valid, do: {:ok, value}, else: {:error, :snapshot_value}
   end
 
   defp project(_, _, _), do: {:error, :snapshot_shape}
+
+  defp projection_key?(properties, key),
+    do: Map.has_key?(properties, key) or Regex.match?(~r/^[a-z][a-z-]{0,60}$/, key)
+
+  defp project_property(item, schema, depth, key, acc) do
+    case project(item, schema, depth + 1) do
+      {:ok, projected} -> {:cont, {:ok, Map.put(acc, key, projected)}}
+      error -> {:halt, error}
+    end
+  end
+
+  defp typed_value?("string", value), do: safe_string?(value)
+  defp typed_value?("number", value), do: is_number(value)
+  defp typed_value?("boolean", value), do: is_boolean(value)
+  defp typed_value?(_, _), do: false
 
   defp sanitize_text_fields(value) do
     value = if value["number"] == 69 and Map.has_key?(value, "title"), do: Map.put(value, "title", "Symphony #69 (observed DEV projection)"), else: value
@@ -398,14 +429,21 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
     count = get_in(timeline, ["verification", "eventCount"])
 
     (is_nil(count) or (is_integer(count) and count >= 0)) and length(timeline["events"]) <= 100 and
-      Enum.all?(timeline["events"], fn event ->
-        is_map(event) and Enum.all?(~w(eventId occurredAt eventType status), &is_binary(event[&1])) and
-          is_integer(event["sequence"]) and event["sequence"] >= 0 and
-          get_in(event, ["actor", "type"]) in ~w(human agent runner system integration) and
-          is_binary(get_in(event, ["actor", "subjectId"])) and
-          (not Map.has_key?(event, "runId") or event["runId"] == @run) and
-          (not Map.has_key?(event, "issueNumber") or event["issueNumber"] == 69)
-      end)
+      Enum.all?(timeline["events"], &valid_event?/1)
+  end
+
+  defp valid_event?(event) when is_map(event) do
+    Enum.all?(~w(eventId occurredAt eventType status), &is_binary(event[&1])) and
+      is_integer(event["sequence"]) and event["sequence"] >= 0 and
+      get_in(event, ["actor", "type"]) in ~w(human agent runner system integration) and
+      is_binary(get_in(event, ["actor", "subjectId"])) and valid_event_scope?(event)
+  end
+
+  defp valid_event?(_), do: false
+
+  defp valid_event_scope?(event) do
+    (not Map.has_key?(event, "runId") or event["runId"] == @run) and
+      (not Map.has_key?(event, "issueNumber") or event["issueNumber"] == 69)
   end
 
   defp nested_scope?(value) when is_map(value) do
@@ -423,10 +461,7 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
     floor = provenance["counterFloor"]
     counters = get_in(issue, ["governance", "counters"]) || %{}
 
-    valid_floor =
-      is_nil(floor) or
-        (is_map(floor) and Enum.sort(Map.keys(floor)) == ~w(implementation planning technical transport) and
-           Enum.all?(floor, fn {key, value} -> is_integer(value) and value >= 0 and is_integer(counters[key]) and counters[key] >= value end))
+    valid_floor = valid_recovery_floor?(floor, counters)
 
     if valid_floor and (not Map.has_key?(provenance, "rawHistoryUnknown") or is_boolean(provenance["rawHistoryUnknown"])) do
       {:ok, Map.take(provenance, ~w(rawHistoryUnknown counterFloor))}
@@ -434,6 +469,17 @@ defmodule SymphonyElixir.GovernanceObservedSnapshot do
       {:error, :snapshot_recovery_unverified}
     end
   end
+
+  defp valid_recovery_floor?(nil, _), do: true
+
+  defp valid_recovery_floor?(floor, counters) when is_map(floor) do
+    Enum.sort(Map.keys(floor)) == ~w(implementation planning technical transport) and
+      Enum.all?(floor, fn {key, value} ->
+        is_integer(value) and value >= 0 and is_integer(counters[key]) and counters[key] >= value
+      end)
+  end
+
+  defp valid_recovery_floor?(_, _), do: false
 
   defp original_texts(responses) do
     Enum.reduce_while(responses, {:ok, %{}}, fn

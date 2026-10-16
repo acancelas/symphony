@@ -67,6 +67,13 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
           SymphonyElixir.GovernanceBootstrapTest.trace(:goal_approval_queue)
           reply(200, %{"status" => "completed"})
 
+        true ->
+          request_delivery(path, options, state)
+      end
+    end
+
+    defp request_delivery(path, options, state) do
+      cond do
         String.ends_with?(path, "/issues/claim") ->
           SymphonyElixir.GovernanceBootstrapTest.trace(:lease)
 
@@ -96,28 +103,36 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
           if run = Process.get(:bootstrap_run), do: reply(200, run), else: reply(404, %{})
 
         String.ends_with?(path, "/artifacts") ->
-          body = options[:json]
-          refute Map.has_key?(body, "auditBatch")
-          artifact = body["artifact"]
-
-          case body["kind"] do
-            "run" ->
-              SymphonyElixir.GovernanceBootstrapTest.trace(:run)
-              Process.put(:bootstrap_run, artifact)
-              reply(200, %{"status" => "completed"})
-
-            "attempt_started" ->
-              if get_in(state, ["readiness", "state"]) == "READY" do
-                SymphonyElixir.GovernanceBootstrapTest.trace(:implementation_attempt)
-                Process.put(:bootstrap_attempts, [artifact])
-                reply(200, %{"status" => "completed"})
-              else
-                reply(422, %{"error" => "governance_readiness_required"})
-              end
-          end
+          request_artifact(options, state)
 
         true ->
           flunk("Unexpected normalized backend path #{path}")
+      end
+    end
+
+    defp request_artifact(options, state) do
+      body = options[:json]
+      refute Map.has_key?(body, "auditBatch")
+      artifact = body["artifact"]
+
+      case body["kind"] do
+        "run" ->
+          SymphonyElixir.GovernanceBootstrapTest.trace(:run)
+          Process.put(:bootstrap_run, artifact)
+          reply(200, %{"status" => "completed"})
+
+        "attempt_started" ->
+          request_attempt(state, artifact)
+      end
+    end
+
+    defp request_attempt(state, artifact) do
+      if get_in(state, ["readiness", "state"]) == "READY" do
+        SymphonyElixir.GovernanceBootstrapTest.trace(:implementation_attempt)
+        Process.put(:bootstrap_attempts, [artifact])
+        reply(200, %{"status" => "completed"})
+      else
+        reply(422, %{"error" => "governance_readiness_required"})
       end
     end
 
@@ -175,26 +190,30 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
         Test.trace(:product_session)
         :ok
       else
-        if String.contains?(prompt, "bos_propose_goal_breakdown") do
-          Process.put(:bootstrap_goal_proposal, %{
-            "rationale" => "Original Goal",
-            "capabilities" => [%{"key" => "product"}],
-            "dependencies" => [],
-            "risks" => []
-          })
+        run_planning_fixture(context, role, prompt, policy)
+      end
+    end
 
-          Process.put(:bootstrap_goal_execution, %{"version" => 1})
-          Test.trace(:goal_proposals)
-          :ok
-        else
-          case Regex.run(~r/Required artifact base: (.*)\. Add a concise/, prompt) do
-            [_, json] ->
-              record(context, role, Jason.decode!(json), policy)
+    defp run_planning_fixture(context, role, prompt, policy) do
+      if String.contains?(prompt, "bos_propose_goal_breakdown") do
+        Process.put(:bootstrap_goal_proposal, %{
+          "rationale" => "Original Goal",
+          "capabilities" => [%{"key" => "product"}],
+          "dependencies" => [],
+          "risks" => []
+        })
 
-            nil ->
-              Test.trace(:scoped_finalizer)
-              :ok
-          end
+        Process.put(:bootstrap_goal_execution, %{"version" => 1})
+        Test.trace(:goal_proposals)
+        :ok
+      else
+        case Regex.run(~r/Required artifact base: (.*)\. Add a concise/, prompt) do
+          [_, json] ->
+            record(context, role, Jason.decode!(json), policy)
+
+          nil ->
+            Test.trace(:scoped_finalizer)
+            :ok
         end
       end
     end

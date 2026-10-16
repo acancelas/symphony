@@ -1,4 +1,5 @@
 defmodule SymphonyElixir.GovernanceCandidatePublication do
+  alias SymphonyElixir.Audit.CanonicalJson
   @moduledoc "Host-only staged tree confirmation; the worker cannot change Git administration or the plan."
   @doc "Read bounded targets from the exact approved hashed plan; this grants no write or launch authority."
   @spec proposal_paths(map(), map()) :: {:ok, [String.t()]} | {:error, atom()}
@@ -17,7 +18,7 @@ defmodule SymphonyElixir.GovernanceCandidatePublication do
          [[_, json]] <- Regex.scan(~r/^```bos-implementation-files\n([^\n]+)\n```$/m, plan),
          {:ok, %{"version" => 1, "files" => paths} = inventory} <- Jason.decode(json),
          true <- Enum.sort(Map.keys(inventory)) == ~w(files version),
-         true <- IO.iodata_to_binary(SymphonyElixir.Audit.CanonicalJson.encode(inventory)) == json,
+         true <- IO.iodata_to_binary(CanonicalJson.encode(inventory)) == json,
          true <- is_list(paths) and length(paths) in 1..100,
          true <- length(Enum.uniq(paths)) == length(paths),
          true <- Enum.all?(paths, &proposal_path?/1) do

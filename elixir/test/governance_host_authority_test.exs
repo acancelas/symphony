@@ -1,4 +1,5 @@
 defmodule SymphonyElixir.GovernanceHostAuthorityTest do
+  alias SymphonyElixir.Audit.CanonicalJson
   use ExUnit.Case, async: true
 
   alias SymphonyElixir.GovernanceCandidatePublication
@@ -80,7 +81,7 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
     do: System.cmd("/usr/bin/git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root | args], stderr_to_stdout: true)
 
   test "proposal targets come only from the server-approved exact baseline plan", ctx do
-    json = SymphonyElixir.Audit.CanonicalJson.encode(%{"version" => 1, "files" => ["elixir/lib/value.txt"]}) |> IO.iodata_to_binary()
+    json = CanonicalJson.encode(%{"version" => 1, "files" => ["elixir/lib/value.txt"]}) |> IO.iodata_to_binary()
     plan = "Approved work\n\n```bos-implementation-files\n" <> json <> "\n```\n"
     {context, source} = proposal_plan(ctx, plan)
     assert {:ok, ["elixir/lib/value.txt"]} = GovernanceCandidatePublication.proposal_paths(context, source)
@@ -106,7 +107,7 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
         if inventory,
           do:
             "```bos-implementation-files\n" <>
-              IO.iodata_to_binary(SymphonyElixir.Audit.CanonicalJson.encode(inventory)) <> "\n```\n",
+              IO.iodata_to_binary(CanonicalJson.encode(inventory)) <> "\n```\n",
           else: "Plan without file inventory\n"
 
       {context, source} = proposal_plan(ctx, plan)

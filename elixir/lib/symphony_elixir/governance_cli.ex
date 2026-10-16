@@ -89,17 +89,7 @@ defmodule SymphonyElixir.GovernanceCLI do
 
       case GovernanceCoordinator.run(phase, context.workspace, issue, nil, options, nil) do
         :ok ->
-          with :ok <- continue_after_planning(phase, context, options) do
-            {:ok,
-             %{
-               status: if(phase == :planning and "bos:goal" not in issue.labels, do: "local-verified", else: "phase-passed"),
-               phase: context.phase,
-               issueNumber: issue.native_ref["issueNumber"],
-               runId: issue.native_ref["runId"],
-               catalogCommitSha: GovernanceCatalog.commit(),
-               implementationStarted: phase == :planning and "bos:goal" not in issue.labels
-             }}
-          end
+          successful_phase(phase, context, options, issue)
 
         {:error, _} = error ->
           error
@@ -107,6 +97,20 @@ defmodule SymphonyElixir.GovernanceCLI do
     end
   after
     GovernanceAppServerBroker.release(context, "task-orchestrator")
+  end
+
+  defp successful_phase(phase, context, options, issue) do
+    with :ok <- continue_after_planning(phase, context, options) do
+      {:ok,
+       %{
+         status: if(phase == :planning and "bos:goal" not in issue.labels, do: "local-verified", else: "phase-passed"),
+         phase: context.phase,
+         issueNumber: issue.native_ref["issueNumber"],
+         runId: issue.native_ref["runId"],
+         catalogCommitSha: GovernanceCatalog.commit(),
+         implementationStarted: phase == :planning and "bos:goal" not in issue.labels
+       }}
+    end
   end
 
   defp continue_after_planning(:planning, context, options) do

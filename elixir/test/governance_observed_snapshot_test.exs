@@ -1,4 +1,6 @@
 defmodule SymphonyElixir.GovernanceObservedSnapshotTest do
+  alias SymphonyElixir.GovernanceBuildReceipt, as: BuildReceipt
+  alias SymphonyElixir.GovernanceHostStore, as: HostStore
   use ExUnit.Case, async: true
   alias SymphonyElixir.GovernanceObservedSnapshot, as: Snapshot
   @sha String.duplicate("a", 40)
@@ -77,8 +79,16 @@ defmodule SymphonyElixir.GovernanceObservedSnapshotTest do
     lock_stat = File.stat!(lock)
     custody = %{"directory" => directory, "directoryDevice" => dir_stat.major_device, "directoryInode" => dir_stat.inode, "lockDevice" => lock_stat.major_device, "lockInode" => lock_stat.inode}
     python = "/usr/bin/python3"
-    execution = %{journal_root: Path.join(root, "journal"), python_executable: python, python_sha256: SymphonyElixir.GovernanceBuildReceipt.file_digest(python)}
-    settings = %{enabled: true, contract_path: contract, contract_sha256: SymphonyElixir.GovernanceBuildReceipt.file_digest(contract), provenance: provenance(), custody: custody}
+    execution = %{journal_root: Path.join(root, "journal"), python_executable: python, python_sha256: BuildReceipt.file_digest(python)}
+
+    settings = %{
+      enabled: true,
+      contract_path: contract,
+      contract_sha256: BuildReceipt.file_digest(contract),
+      provenance: provenance(),
+      custody: custody
+    }
+
     expiry = DateTime.utc_now() |> DateTime.add(40, :second) |> DateTime.truncate(:millisecond) |> DateTime.to_iso8601()
     values = put_in(reads(), ["issue", "claim", "leaseExpiresAt"], expiry)
     %{execution: execution, settings: settings, values: values, file: Path.join(directory, "symphony-69.snapshot.json")}
@@ -134,8 +144,22 @@ defmodule SymphonyElixir.GovernanceObservedSnapshotTest do
       assert {:error, _} = Snapshot.refresh(context(), settings, fixture.execution, fetch)
     end
 
-    assert {:error, _} = Snapshot.refresh(put_in(context(), [:issue, :native_ref, "issueNumber"], 70), fixture.settings, fixture.execution, fetch)
-    assert {:error, _} = Snapshot.refresh(context(), fixture.settings, %{fixture.execution | python_sha256: String.duplicate("0", 64)}, fetch)
+    assert {:error, _} =
+             Snapshot.refresh(
+               put_in(context(), [:issue, :native_ref, "issueNumber"], 70),
+               fixture.settings,
+               fixture.execution,
+               fetch
+             )
+
+    assert {:error, _} =
+             Snapshot.refresh(
+               context(),
+               fixture.settings,
+               %{fixture.execution | python_sha256: String.duplicate("0", 64)},
+               fetch
+             )
+
     assert Process.get(:unexpected_refresh_calls) == 0
     refute File.exists?(fixture.file)
     refute File.exists?(fixture.execution.journal_root)
@@ -161,7 +185,7 @@ defmodule SymphonyElixir.GovernanceObservedSnapshotTest do
     basis = Map.update!(exported, "source", &Map.delete(&1, "hostObservationId"))
 
     assert {:ok, %{"record" => ^basis}} =
-             SymphonyElixir.GovernanceHostStore.request(
+             HostStore.request(
                fixture.execution,
                %{"kind" => "observation", "command" => "read", "id" => metadata["hostObservationId"]}
              )
@@ -189,14 +213,29 @@ defmodule SymphonyElixir.GovernanceObservedSnapshotTest do
         end
       end
 
-      assert {:error, :snapshot_read_unavailable} = Snapshot.refresh(context(), fixture.settings, fixture.execution, fetch)
+      assert {:error, :snapshot_read_unavailable} =
+               Snapshot.refresh(
+                 context(),
+                 fixture.settings,
+                 fixture.execution,
+                 fetch
+               )
+
       assert List.last(Process.get(:refresh_calls)) == rejected
       refute File.exists?(fixture.file)
       refute File.exists?(fixture.execution.journal_root)
     end
 
     unauthenticated = put_in(fixture.values, ["issue", "governanceIdentity", "verified"], false)
-    assert {:error, _} = Snapshot.refresh(context(), fixture.settings, fixture.execution, refresh_fetch(unauthenticated))
+
+    assert {:error, _} =
+             Snapshot.refresh(
+               context(),
+               fixture.settings,
+               fixture.execution,
+               refresh_fetch(unauthenticated)
+             )
+
     refute File.exists?(fixture.file)
     refute File.exists?(fixture.execution.journal_root)
   end
@@ -285,13 +324,19 @@ defmodule SymphonyElixir.GovernanceObservedSnapshotTest do
     lock_stat = File.stat!(lock)
     custody = %{"directory" => directory, "directoryDevice" => dir_stat.major_device, "directoryInode" => dir_stat.inode, "lockDevice" => lock_stat.major_device, "lockInode" => lock_stat.inode}
     python = "/usr/bin/python3"
-    execution = %{journal_root: Path.join(root, "journal"), python_executable: python, python_sha256: SymphonyElixir.GovernanceBuildReceipt.file_digest(python)}
+    execution = %{journal_root: Path.join(root, "journal"), python_executable: python, python_sha256: BuildReceipt.file_digest(python)}
     assert {:ok, envelope} = build()
     assert {:error, _} = Snapshot.publish(execution, custody, put_in(envelope, ["source", "hostObservationId"], "fake-reference"))
     assert {:ok, %{"ok" => true}} = Snapshot.publish(execution, custody, envelope)
     observation_id = envelope["source"]["hostObservationId"]
     basis = Map.update!(envelope, "source", &Map.delete(&1, "hostObservationId"))
-    assert {:ok, %{"record" => ^basis}} = SymphonyElixir.GovernanceHostStore.request(execution, %{"kind" => "observation", "command" => "read", "id" => observation_id})
+
+    assert {:ok, %{"record" => ^basis}} =
+             HostStore.request(
+               execution,
+               %{"kind" => "observation", "command" => "read", "id" => observation_id}
+             )
+
     file = Path.join(directory, "symphony-69.snapshot.json")
     assert Jason.decode!(File.read!(file)) == envelope
     assert Bitwise.band(File.stat!(file).mode, 0o777) == 0o600

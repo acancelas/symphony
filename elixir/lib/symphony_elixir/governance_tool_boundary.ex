@@ -27,25 +27,26 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
         "bindingDigest" => binding,
         "isolation" => isolation,
         "attestationScope" => scope
-      }
-      when is_binary(service) and service != "" and is_binary(subject) and subject != "" and is_binary(binding) ->
-        if authenticated_by in allowed_authenticators and repository == expected and
-             Enum.sort(permissions) == Enum.sort(required) and
-             readonly == (role != "task-orchestrator") and catalog == GovernanceCatalog.commit() and
-             isolation == if(role == "task-orchestrator", do: "executor", else: "read-only-worker") and
-             Regex.match?(~r/^sha256:[0-9a-f]{64}$/, binding) do
-          {:ok,
-           %{
-             service_id: service,
-             subject_id: subject,
-             role: role,
-             repository_id: repository["repositoryId"],
-             invocation_id: invocation,
-             binding_digest: binding,
-             attestation_scope: scope
-           }}
-        else
-          {:error, :governance_effective_principal_mismatch}
+      } ->
+        cond do
+          not identity_subjects?(service, subject, binding) ->
+            {:error, :governance_effective_principal_unverified}
+
+          identity_permissions?(authenticated_by, allowed_authenticators, permissions, required, readonly, role) and
+              identity_binding?(repository, expected, catalog, isolation, role, binding) ->
+            {:ok,
+             %{
+               service_id: service,
+               subject_id: subject,
+               role: role,
+               repository_id: repository["repositoryId"],
+               invocation_id: invocation,
+               binding_digest: binding,
+               attestation_scope: scope
+             }}
+
+          true ->
+            {:error, :governance_effective_principal_mismatch}
         end
 
       _ ->
@@ -54,6 +55,20 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
   rescue
     _ -> {:error, :governance_effective_principal_unverified}
   end
+
+  defp identity_subjects?(service, subject, binding),
+    do: is_binary(service) and service != "" and is_binary(subject) and subject != "" and is_binary(binding)
+
+  defp identity_permissions?(authenticator, allowed, permissions, required, readonly, role),
+    do:
+      authenticator in allowed and Enum.sort(permissions) == Enum.sort(required) and
+        readonly == (role != "task-orchestrator")
+
+  defp identity_binding?(repository, expected, catalog, isolation, role, binding),
+    do:
+      repository == expected and catalog == GovernanceCatalog.commit() and
+        isolation == if(role == "task-orchestrator", do: "executor", else: "read-only-worker") and
+        Regex.match?(~r/^sha256:[0-9a-f]{64}$/, binding)
 
   @spec arguments(String.t(), map(), map(), [String.t()]) :: {:ok, map()} | {:error, atom()}
   def arguments(tool, args, context, allowed) when is_map(args) do
@@ -188,13 +203,15 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
         )
 
     asserted =
-      host_only or artifact["status"] == "passed" or
-        (is_list(checks) and Enum.any?(checks, &(is_map(&1) and &1["verified"] == true)))
+      host_only or artifact["status"] == "passed" or verified_checks?(checks)
 
     not asserted or get_in(context, [:host_observed_evidence, artifact["evidenceId"]]) == artifact
   end
 
   defp observed_evidence?(_, _, _), do: true
+
+  defp verified_checks?(checks),
+    do: is_list(checks) and Enum.any?(checks, &(is_map(&1) and &1["verified"] == true))
 
   defp exact_candidate?(artifact, %{sha: sha}) do
     Enum.all?(~w(commitSha candidateCommitSha), &same_or_absent?(artifact, &1, sha))

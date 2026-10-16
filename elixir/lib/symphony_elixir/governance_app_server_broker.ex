@@ -355,7 +355,7 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
          launch = bind_execution_marker(launch, execution),
          {:ok, %{"tools" => tools}} <- GovernancePrivateMcp.request(cached.client, "tools/list", %{}),
          allowed = policy.tools,
-         true <- is_list(allowed) and Enum.all?(allowed, fn name -> Enum.any?(tools, &(&1["name"] == name)) end) do
+         true <- supported_tools?(allowed, tools) do
       prompt =
         original_policy_prompt(original_policies) <>
           native_execution_instruction(context, execution) <>
@@ -368,81 +368,31 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
       specs = selected ++ GovernanceSourceTools.specs()
       binding = %{tool_specs: specs, secret_environment_names: []}
 
+      thread_preflight = fn port, response ->
+        original_policy_preflight(port, response, context, configuration, original_policies, prompt, launch)
+      end
+
       options = [
         managed_launch: launch.managed,
         dynamic_tool_binding: binding,
         thread_parameters: launch.thread_parameters,
         host_preflight: &execution_preflight(&1, cached, context, role, configuration, execution),
-        host_thread_preflight: &original_policy_preflight(&1, &2, context, configuration, original_policies, prompt, launch)
+        host_thread_preflight: thread_preflight
       ]
 
-      with {:ok, session} <- AppServer.start_session(launch.workspace, options) do
-        monitor = start_execution_monitor(session, cached, context, role, configuration, execution)
-        Process.put({__MODULE__, :final_text}, "")
-        Process.put({__MODULE__, :native_status}, nil)
+      state = %{
+        cached: cached,
+        context: context,
+        role: role,
+        configuration: configuration,
+        source: source,
+        execution: execution,
+        allowed: allowed,
+        schema: schema,
+        prompt: prompt
+      }
 
-        try do
-          executor = fn tool, args -> tool_result(cached, context, role, configuration, source, tool, args, allowed) end
-
-          callback = fn message ->
-            if is_pid(monitor), do: SymphonyElixir.GovernanceExecutionMonitor.usage(monitor, message[:payload])
-            collect_text(message)
-
-            if status = SymphonyElixir.GovernanceHostDiagnostics.terminal_status(message[:payload]),
-              do: Process.put({__MODULE__, :native_status}, status)
-
-            if is_pid(context.recipient),
-              do:
-                send(
-                  context.recipient,
-                  {:codex_worker_update, context.issue.id, Map.put(message, :delivery_actor, role)}
-                )
-          end
-
-          case AppServer.run_turn(session, prompt, context.issue,
-                 on_message: callback,
-                 tool_executor: executor,
-                 role: role,
-                 output_schema: schema
-               ) do
-            {:ok, %{result: %{status: :budget_paused}}} ->
-              {:error, :governance_turn_budget_paused}
-
-            {:ok, _} ->
-              if Process.get({__MODULE__, :native_status}) == "completed",
-                do: finish_execution_turn(monitor, cached, context, role, configuration, execution),
-                else: {:error, :governance_native_turn_not_completed}
-
-            {:error, _} ->
-              {:error, :governance_native_turn_failed}
-          end
-        after
-          AppServer.stop_session(session)
-
-          if is_pid(monitor) and Process.alive?(monitor) do
-            case SymphonyElixir.GovernanceExecutionMonitor.finish(monitor) do
-              {:ok, measurement} ->
-                record_execution_observation(
-                  cached,
-                  context,
-                  role,
-                  configuration,
-                  execution,
-                  Process.get({__MODULE__, :execution_witness}),
-                  measurement,
-                  "cancelled"
-                )
-
-              _ ->
-                :ok
-            end
-          end
-
-          close_execution(configuration, execution)
-          Process.delete({__MODULE__, :final_text})
-          Process.delete({__MODULE__, :native_status})
-        end
-      end
+      execute_session(launch.workspace, options, state)
     else
       false -> {:error, :governance_principal_or_toolset_changed}
       {:error, reason} -> {:error, reason}
@@ -851,6 +801,68 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
     end
   end
 
+  defp supported_tools?(allowed, tools) do
+    is_list(allowed) and Enum.all?(allowed, fn name -> Enum.any?(tools, &(&1["name"] == name)) end)
+  end
+
+  defp execute_session(workspace, options, state) do
+    with {:ok, session} <- AppServer.start_session(workspace, options), do: execute_started_session(session, state)
+  end
+
+  defp execute_started_session(session, state) do
+    %{cached: cached, context: context, role: role, configuration: configuration, execution: execution} = state
+    monitor = start_execution_monitor(session, cached, context, role, configuration, execution)
+    Process.put({__MODULE__, :final_text}, "")
+    Process.put({__MODULE__, :native_status}, nil)
+
+    try do
+      executor = fn tool, args -> tool_result(cached, context, role, configuration, state.source, tool, args, state.allowed) end
+      callback = fn message -> observe_native_message(message, monitor, context, role) end
+      result = AppServer.run_turn(session, state.prompt, context.issue, on_message: callback, tool_executor: executor, role: role, output_schema: state.schema)
+      execution_turn_result(result, monitor, state)
+    after
+      AppServer.stop_session(session)
+      finish_cancelled_monitor(monitor, state)
+      close_execution(configuration, execution)
+      Process.delete({__MODULE__, :final_text})
+      Process.delete({__MODULE__, :native_status})
+    end
+  end
+
+  defp observe_native_message(message, monitor, context, role) do
+    if is_pid(monitor), do: SymphonyElixir.GovernanceExecutionMonitor.usage(monitor, message[:payload])
+    collect_text(message)
+
+    if status = SymphonyElixir.GovernanceHostDiagnostics.terminal_status(message[:payload]),
+      do: Process.put({__MODULE__, :native_status}, status)
+
+    if is_pid(context.recipient),
+      do: send(context.recipient, {:codex_worker_update, context.issue.id, Map.put(message, :delivery_actor, role)})
+  end
+
+  defp execution_turn_result({:ok, %{result: %{status: :budget_paused}}}, _monitor, _state),
+    do: {:error, :governance_turn_budget_paused}
+
+  defp execution_turn_result({:ok, _}, monitor, state) do
+    if Process.get({__MODULE__, :native_status}) == "completed",
+      do: finish_execution_turn(monitor, state.cached, state.context, state.role, state.configuration, state.execution),
+      else: {:error, :governance_native_turn_not_completed}
+  end
+
+  defp execution_turn_result({:error, _}, _, _), do: {:error, :governance_native_turn_failed}
+
+  defp finish_cancelled_monitor(monitor, state) do
+    if is_pid(monitor) and Process.alive?(monitor) do
+      case SymphonyElixir.GovernanceExecutionMonitor.finish(monitor) do
+        {:ok, measurement} ->
+          record_execution_observation(state.cached, state.context, state.role, state.configuration, state.execution, Process.get({__MODULE__, :execution_witness}), measurement, "cancelled")
+
+        _ ->
+          :ok
+      end
+    end
+  end
+
   defp close_execution(_configuration, nil), do: :ok
 
   defp close_execution(configuration, execution) do
@@ -864,19 +876,23 @@ defmodule SymphonyElixir.GovernanceAppServerBroker do
   defp host_digest(value),
     do: Base.encode16(:crypto.hash(:sha256, CanonicalJson.encode(value)), case: :lower)
 
+  defp scoped_tool_result(cached, context, role, configuration, source, tool, arguments, allowed) do
+    if tool in Enum.map(GovernanceSourceTools.specs(), & &1["name"]) do
+      GovernanceSourceTools.execute(tool, arguments, context, source)
+    else
+      with {:ok, args} <- GovernanceToolBoundary.arguments(tool, arguments, context, allowed),
+           {:ok, raw} <- observed_mcp_call(cached, context, role, configuration, tool, args),
+           {:ok, value} <- GovernanceToolBoundary.decode_result(raw) do
+        {:ok, GovernanceToolBoundary.safe_output(value)}
+      end
+    end
+  end
+
   defp tool_result(cached, context, role, configuration, _source, tool, arguments, allowed) do
     result =
       with {:ok, source, current} <- effective(cached, context, role, configuration),
            true <- current == context.principal do
-        if tool in Enum.map(GovernanceSourceTools.specs(), & &1["name"]) do
-          GovernanceSourceTools.execute(tool, arguments, context, source)
-        else
-          with {:ok, args} <- GovernanceToolBoundary.arguments(tool, arguments, context, allowed),
-               {:ok, raw} <- observed_mcp_call(cached, context, role, configuration, tool, args),
-               {:ok, value} <- GovernanceToolBoundary.decode_result(raw) do
-            {:ok, GovernanceToolBoundary.safe_output(value)}
-          end
-        end
+        scoped_tool_result(cached, context, role, configuration, source, tool, arguments, allowed)
       else
         _ -> {:error, :governance_live_binding_changed}
       end

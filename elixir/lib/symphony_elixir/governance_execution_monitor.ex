@@ -132,7 +132,13 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
             "usage" => %{"inputTokens" => total.inputTokens, "cachedInputTokens" => total.cachedInputTokens}
           })
 
-        %{state | native_usage: usage, budget: %{budget | uncached_input_tokens: total.uncachedInputTokens}, metric_at: System.monotonic_time(:millisecond), has_metrics: true}
+        %{
+          state
+          | native_usage: usage,
+            budget: %{budget | uncached_input_tokens: total.uncachedInputTokens},
+            metric_at: System.monotonic_time(:millisecond),
+            has_metrics: true
+        }
 
       _ ->
         fail(state, :governance_execution_measurement_missing)

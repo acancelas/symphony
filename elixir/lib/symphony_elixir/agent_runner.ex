@@ -94,14 +94,17 @@ defmodule SymphonyElixir.AgentRunner do
         ) :: :ok | {:error, term()}
   def run_governed_implementation(workspace, issue, recipient, opts, worker_host) do
     with {:ok, started?} <- DeliveryCoordinator.review_stage_started?(issue, opts) do
-      if started? do
-        DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
-      else
-        with :ok <- run_codex_turns(workspace, issue, recipient, opts, worker_host),
-             {:ok, _candidate} <- SymphonyElixir.GovernanceAppServerBroker.publish_implementation(workspace, issue) do
-          DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
-        end
-      end
+      continue_governed_implementation(started?, workspace, issue, recipient, opts, worker_host)
+    end
+  end
+
+  defp continue_governed_implementation(true, workspace, issue, recipient, opts, worker_host),
+    do: DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
+
+  defp continue_governed_implementation(false, workspace, issue, recipient, opts, worker_host) do
+    with :ok <- run_codex_turns(workspace, issue, recipient, opts, worker_host),
+         {:ok, _candidate} <- SymphonyElixir.GovernanceAppServerBroker.publish_implementation(workspace, issue) do
+      DeliveryCoordinator.run(workspace, issue, recipient, opts, worker_host)
     end
   end
 

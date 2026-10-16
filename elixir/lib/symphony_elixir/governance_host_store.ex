@@ -32,35 +32,37 @@ defmodule SymphonyElixir.GovernanceHostStore do
 
   @spec hold(map(), String.t()) :: {:ok, port()} | {:error, atom()}
   def hold(configuration, id) do
-    with true <- GovernanceBuildReceipt.file_digest(configuration.python_executable) == configuration.python_sha256 do
-      cleared = Enum.map(System.get_env(), fn {key, _} -> {String.to_charlist(key), false} end)
+    case GovernanceBuildReceipt.file_digest(configuration.python_executable) == configuration.python_sha256 do
+      true ->
+        cleared = Enum.map(System.get_env(), fn {key, _} -> {String.to_charlist(key), false} end)
 
-      port =
-        Port.open({:spawn_executable, String.to_charlist(configuration.python_executable)}, [
-          :binary,
-          :exit_status,
-          :use_stdio,
-          :stderr_to_stdout,
-          {:args, ["-I", "-S", "-c", program()]},
-          {:env, cleared ++ [{~c"LANG", ~c"C.UTF-8"}]}
-        ])
+        port =
+          Port.open({:spawn_executable, String.to_charlist(configuration.python_executable)}, [
+            :binary,
+            :exit_status,
+            :use_stdio,
+            :stderr_to_stdout,
+            {:args, ["-I", "-S", "-c", program()]},
+            {:env, cleared ++ [{~c"LANG", ~c"C.UTF-8"}]}
+          ])
 
-      Port.command(
-        port,
-        Jason.encode!(%{"root" => configuration.journal_root, "kind" => "execution", "id" => id, "command" => "hold"}) <>
-          "\n"
-      )
+        Port.command(
+          port,
+          Jason.encode!(%{"root" => configuration.journal_root, "kind" => "execution", "id" => id, "command" => "hold"}) <>
+            "\n"
+        )
 
-      case frame(port, "") do
-        {:ok, %{"ok" => true, "held" => true}} ->
-          {:ok, port}
+        case frame(port, "") do
+          {:ok, %{"ok" => true, "held" => true}} ->
+            {:ok, port}
 
-        _ ->
-          SymphonyElixir.GovernanceProcess.stop(port)
-          {:error, :governance_launch_owner_busy}
-      end
-    else
-      _ -> {:error, :governance_host_store_pin_rejected}
+          _ ->
+            SymphonyElixir.GovernanceProcess.stop(port)
+            {:error, :governance_launch_owner_busy}
+        end
+
+      _ ->
+        {:error, :governance_host_store_pin_rejected}
     end
   rescue
     _ -> {:error, :governance_launch_owner_unavailable}

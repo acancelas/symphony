@@ -41,15 +41,17 @@ defmodule SymphonyElixir.GovernanceProcess do
       {:ok, children} ->
         children
         |> String.split()
-        |> Enum.flat_map(fn text ->
-          case Integer.parse(text) do
-            {pid, ""} -> descendants(pid) ++ [identity(pid)]
-            _ -> []
-          end
-        end)
+        |> Enum.flat_map(&descendant_identity/1)
 
       _ ->
         []
+    end
+  end
+
+  defp descendant_identity(text) do
+    case Integer.parse(text) do
+      {pid, ""} -> descendants(pid) ++ [identity(pid)]
+      _ -> []
     end
   end
 

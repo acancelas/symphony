@@ -25,21 +25,44 @@ defmodule SymphonyElixir.GovernanceToolBoundaryTest do
   end
 
   test "raw snapshot callback only binds three exact read operations to the enrolled run" do
-    context = %{issue: %{native_ref: %{"repositoryId" => "symphony", "issueNumber" => 69, "runId" => "symphony-governance-69"}}, principal: %{invocation_id: "host-invocation"}}
+    context = %{
+      issue: %{native_ref: %{"repositoryId" => "symphony", "issueNumber" => 69, "runId" => "symphony-governance-69"}},
+      principal: %{invocation_id: "host-invocation"}
+    }
+
     reads = [{"bos_get_issue", %{"issueNumber" => 69}}, {"bos_get_delivery_run", %{"runId" => "symphony-governance-69"}}, {"bos_get_run_history", %{"runId" => "symphony-governance-69"}}]
 
     for {tool, args} <- reads do
       assert {:ok, ^args} = GovernanceToolBoundary.snapshot_read_arguments(tool, args, context)
       assert {:ok, ^args} = GovernanceToolBoundary.snapshot_read_arguments(tool, args, Map.delete(context, :principal))
       assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments(tool, Map.put(args, "artifact", %{}), context)
-      assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments(tool, args, put_in(context, [:issue, :native_ref, "issueNumber"], 70))
-      assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments(tool, args, put_in(context, [:issue, :native_ref, "repositoryId"], "game-api"))
+
+      assert {:error, _} =
+               GovernanceToolBoundary.snapshot_read_arguments(
+                 tool,
+                 args,
+                 put_in(context, [:issue, :native_ref, "issueNumber"], 70)
+               )
+
+      assert {:error, _} =
+               GovernanceToolBoundary.snapshot_read_arguments(
+                 tool,
+                 args,
+                 put_in(context, [:issue, :native_ref, "repositoryId"], "game-api")
+               )
     end
 
     assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments("bos_get_agent_run", %{}, context)
     assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments("bos_get_issue_timeline", %{}, context)
     assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments("bos_record_evidence", %{}, context)
-    assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments("bos_get_delivery_run", %{"runId" => "foreign"}, context)
+
+    assert {:error, _} =
+             GovernanceToolBoundary.snapshot_read_arguments(
+               "bos_get_delivery_run",
+               %{"runId" => "foreign"},
+               context
+             )
+
     assert {:error, _} = SymphonyElixir.GovernanceAppServerBroker.host_snapshot_read(context, "bos_record_evidence", %{})
   end
 
@@ -59,7 +82,11 @@ defmodule SymphonyElixir.GovernanceToolBoundaryTest do
   end
 
   test "host boundary rejects cross-scope, production and wrong candidate before transport" do
-    context = %{issue: %{native_ref: %{"issueNumber" => 536, "runId" => "run_536"}}, sha: String.duplicate("a", 40), principal: %{subject_id: "logical-subject"}}
+    context = %{
+      issue: %{native_ref: %{"issueNumber" => 536, "runId" => "run_536"}},
+      sha: String.duplicate("a", 40),
+      principal: %{subject_id: "logical-subject"}
+    }
 
     for {tool, args} <- [
           {"bos_get_issue", %{"issueNumber" => 537}},
@@ -75,7 +102,11 @@ defmodule SymphonyElixir.GovernanceToolBoundaryTest do
   end
 
   test "model evidence cannot self-certify readiness or implementation without exact host observations" do
-    context = %{issue: %{native_ref: %{"issueNumber" => 69, "runId" => "run69"}}, sha: String.duplicate("a", 40), principal: %{subject_id: "logical"}}
+    context = %{
+      issue: %{native_ref: %{"issueNumber" => 69, "runId" => "run69"}},
+      sha: String.duplicate("a", 40),
+      principal: %{subject_id: "logical"}
+    }
 
     report = %{
       "evidenceId" => "env-host-observed",
@@ -105,7 +136,11 @@ defmodule SymphonyElixir.GovernanceToolBoundaryTest do
   end
 
   test "inconclusive operational usage still needs the exact host seal" do
-    context = %{issue: %{native_ref: %{"issueNumber" => 69, "runId" => "run69"}}, sha: String.duplicate("a", 40), principal: %{subject_id: "logical"}}
+    context = %{
+      issue: %{native_ref: %{"issueNumber" => 69, "runId" => "run69"}},
+      sha: String.duplicate("a", 40),
+      principal: %{subject_id: "logical"}
+    }
 
     artifact = %{
       "evidenceId" => "usage-one",
