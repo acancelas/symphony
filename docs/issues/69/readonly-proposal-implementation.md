@@ -82,3 +82,39 @@ whole-Run accounting and independent acceptance remain pending.
 Full suite with these preparatory helpers:527 tests, zero failures, six existing
 skips (seed88091); formatting passes. Overall lint still fails on outstanding
 style/refactoring findings and has not been waived.
+
+
+## Host CAS application prototype
+
+`apply_proposal` now requires implementation phase, current bound admission,
+current boot and a COMPLETED existing execution journal whose actual child PID
+is absent (only ENOENT counts). It rechecks retirement under the existing source
+publication lock, validates the whole proposal and clean tree, pins the workspace
+device/inode and creates a single-use immutable PREPARED observation keyed by the
+existing execution journal identity. Another proposal or restored source cannot
+reuse that worker's application slot.
+
+The existing pinned host Python executes a fixed embedded writer with no inherited
+environment, script path or shell. It anchors directory descriptors, rejects
+links/unsupported modes, compares every original blob and inode before replacing
+any target, fsyncs exclusive temporary files and directories, rechecks deadlines
+through replacement, and verifies final named-path content and parent identities.
+The deadline is bounded by admission, lease and current observation freshness.
+Outcome observations record APPLIED or INDETERMINATE. An uncertain operation is
+never retried or treated as an atomic multi-file transaction; a partial write
+requires explicit technical recovery. Publication/QA/acceptance remain separate.
+
+Two additional isolated tests use an actual inert journalled child and temporary
+private source/store/guard paths. They verify live-child denial, application after
+actual stop/journal completion, rejection after restoring the original source,
+and mixed-batch rejection before any intent or target mutation. Twelve focused
+tests pass (seed164159); the final full suite passes529 tests with six existing
+skips (seed596468). The first application test caught two accidental embedded
+NUL literals in the new fixed helper argument; escaped Python literals corrected
+them before any commit. The failed fixture returned indeterminate, never success.
+
+No real native implementation worker, production source, API69, installed config
+or authoritative approval was used. This prototype is not yet wired into the
+broker. Actual abrupt death/persistence recovery, complete descendant custody,
+shared host/API namespace, revocation races and independent review remain
+mandatory. Preserve the old rejected native write profile and first SEC1 result.

@@ -128,3 +128,16 @@ host environment results, runtime certification and independent Goal authorizati
   skips (seed325866). No lint disablement, threshold reduction or test waiver.
 - Native isolated QA, whole-Run execution and final independent acceptance still
   require their own evidence; ordinary source tests do not certify them.
+
+
+## 2026-10-16 — Guarded host CAS prototype (#69)
+
+- Apply structured changes only after authority/admission checks, actual fixture
+  worker retirement and existing source lock. Persist a single-use prepared
+  intent before anchored blob/inode CAS, fixed pinned Python writes and fsync;
+  verify final named-path effects and retain indeterminate outcomes without retry.
+- Two real inert-child fixture cases verify live-worker denial, single application
+  and invalid-batch zero mutation. Final source suite529 tests passes (six existing
+  skips); no real model/source application or broker route is enabled yet.
+- Correct two embedded NUL helper literals caught by the first failing fixture.
+  Preserve incomplete crash/shared-namespace/whole-Run/native-QA acceptance work.

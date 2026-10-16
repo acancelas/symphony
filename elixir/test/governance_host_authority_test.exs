@@ -144,6 +144,146 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
     assert {:error, _} = GovernanceCandidatePublication.validate_proposal(context, source, proposal)
   end
 
+  test "host CAS requires the actual journalled child retired and applies once", ctx do
+    fixture = proposal_application_fixture(ctx)
+
+    assert {:error, _} =
+             GovernanceCandidatePublication.apply_proposal(
+               fixture.context,
+               fixture.source,
+               fixture.proposal,
+               fixture.execution,
+               fixture.admission
+             )
+
+    assert File.read!(ctx.root <> "/elixir/lib/value.txt") == "baseline"
+    retire_proposal_worker(fixture)
+
+    assert {:ok, %{"files" => 1, "outcome" => "APPLIED"}} =
+             GovernanceCandidatePublication.apply_proposal(
+               fixture.context,
+               fixture.source,
+               fixture.proposal,
+               fixture.execution,
+               fixture.admission
+             )
+
+    assert File.read!(ctx.root <> "/elixir/lib/value.txt") == "host-applied proposal"
+    # Restoring the fixture baseline cannot turn a consumed worker into another application.
+    File.write!(ctx.root <> "/elixir/lib/value.txt", "baseline")
+
+    assert {:error, _} =
+             GovernanceCandidatePublication.apply_proposal(
+               fixture.context,
+               fixture.source,
+               fixture.proposal,
+               fixture.execution,
+               fixture.admission
+             )
+
+    assert File.read!(ctx.root <> "/elixir/lib/value.txt") == "baseline"
+  end
+
+  test "host CAS rejects a mixed batch before consuming intent or writing any target", ctx do
+    fixture = proposal_application_fixture(ctx)
+    retire_proposal_worker(fixture)
+
+    invalid =
+      update_in(fixture.proposal, ["changes"], fn changes ->
+        changes ++ [%{"path" => "elixir/lib/unapproved.txt", "expectedBlobSha" => nil, "content" => "bad"}]
+      end)
+
+    assert {:error, _} =
+             GovernanceCandidatePublication.apply_proposal(
+               fixture.context,
+               fixture.source,
+               invalid,
+               fixture.execution,
+               fixture.admission
+             )
+
+    assert Path.wildcard(Path.join(fixture.execution.journal_root, "observation-*.json")) == []
+    assert File.read!(ctx.root <> "/elixir/lib/value.txt") == "baseline"
+    refute File.exists?(ctx.root <> "/elixir/lib/unapproved.txt")
+  end
+
+  defp proposal_application_fixture(ctx) do
+    plan = "```bos-implementation-files\n{\"files\":[\"elixir/lib/value.txt\"],\"version\":1}\n```\n"
+    {context, source} = proposal_plan(ctx, plan)
+    context = Map.put(context, :phase, "implementation")
+    {blob, 0} = fixture_git(ctx.root, ["rev-parse", context.sha <> ":elixir/lib/value.txt"])
+
+    proposal = %{
+      "candidateCommitSha" => context.sha,
+      "planHash" => context.manifest["planHash"],
+      "changes" => [%{"path" => "elixir/lib/value.txt", "expectedBlobSha" => String.trim(blob), "content" => "host-applied proposal"}]
+    }
+
+    host = Path.join(System.tmp_dir!(), "bos-proposal-host-#{System.unique_integer([:positive])}")
+
+    for directory <- [host, host <> "/journal", host <> "/guard"] do
+      File.mkdir!(directory)
+      File.chmod!(directory, 0o700)
+    end
+
+    File.write!(host <> "/guard/.writer.lock", "")
+    File.chmod!(host <> "/guard/.writer.lock", 0o600)
+
+    on_exit(fn ->
+      true = String.starts_with?(Path.expand(host), Path.expand(System.tmp_dir!()) <> "/bos-proposal-host-")
+      File.rm_rf!(host)
+    end)
+
+    root_stat = File.stat!(host <> "/guard")
+    lock = File.stat!(host <> "/guard/.writer.lock")
+
+    execution = %{
+      journal_root: host <> "/journal",
+      python_executable: "/usr/bin/python3",
+      python_sha256: SymphonyElixir.GovernanceBuildReceipt.file_digest("/usr/bin/python3"),
+      source_guard_directory: host <> "/guard",
+      source_guard_identity: %{"directoryDev" => root_stat.major_device, "directoryIno" => root_stat.inode, "lockDev" => lock.major_device, "lockIno" => lock.inode}
+    }
+
+    admission = %{
+      "attemptId" => "attempt-one",
+      "reservationId" => "reservation-one",
+      "executionId" => "execution-one",
+      "workerId" => "worker-one",
+      "authorityGeneration" => 1,
+      "sourcePublicationId" => "pub-one",
+      "budgetScopeId" => "scope-one",
+      "ownerInvocationId" => "inv-one",
+      "reservedUncachedInputTokens" => 100,
+      "reservedDurationSeconds" => 30,
+      "deadline" => DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), 45))
+    }
+
+    binding = SymphonyElixir.GovernanceExecutionJournal.binding(context, admission)
+    {:ok, launch} = SymphonyElixir.GovernanceExecutionJournal.spawn_once(execution, binding)
+    env = Enum.map(System.get_env(), fn {key, _} -> {String.to_charlist(key), false} end)
+    port = Port.open({:spawn_executable, ~c"/usr/bin/cat"}, [:binary, :exit_status, {:env, env ++ [{~c"BOS_HOST_WORKER_MARKER", String.to_charlist(launch.marker)}]}])
+
+    on_exit(fn ->
+      GovernanceProcess.stop(port)
+      SymphonyElixir.GovernanceHostStore.release(launch.lease)
+    end)
+
+    {:ok, _} = SymphonyElixir.GovernanceExecutionJournal.attach(execution, binding, port, launch)
+    %{context: context, source: source, proposal: proposal, execution: execution, admission: admission, binding: binding, port: port, lease: launch.lease}
+  end
+
+  defp retire_proposal_worker(fixture) do
+    GovernanceProcess.stop(fixture.port)
+
+    {:ok, %{"record" => %{"state" => "COMPLETED"}}} =
+      SymphonyElixir.GovernanceExecutionJournal.transition(
+        fixture.execution,
+        fixture.binding,
+        "finish"
+      )
+  end
+
   defp proposal_plan(ctx, plan) do
     File.mkdir_p!(ctx.root <> "/docs/issues/69")
     File.write!(ctx.root <> "/docs/issues/69/plan.md", plan)
