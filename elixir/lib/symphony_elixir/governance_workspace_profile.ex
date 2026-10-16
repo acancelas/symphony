@@ -47,10 +47,29 @@ defmodule SymphonyElixir.GovernanceWorkspaceProfile do
   def required_denials, do: @checks
 
   @spec build(String.t(), String.t(), [String.t()]) :: {:ok, map()} | {:error, atom()}
-  def build(workspace, vendor_root, dependency_roots \\ []) do
+  def build(workspace, vendor_root, dependency_roots \\ []),
+    do: build_profile(workspace, vendor_root, dependency_roots, :implementation)
+
+  @spec build_qa(String.t(), String.t(), [String.t()]) :: {:ok, map()} | {:error, atom()}
+  def build_qa(workspace, vendor_root, dependency_roots),
+    do: build_profile(workspace, vendor_root, dependency_roots, :qa)
+
+  @spec qa_audit_recipe_sha256() :: String.t()
+  def qa_audit_recipe_sha256 do
+    digest(
+      CanonicalJson.encode(%{
+        parent: recipe_sha256(),
+        version: 1,
+        maskedOutputs: ~w(elixir/_build elixir/bin elixir/cover),
+        condition: "only-real-directory-mountpoints-fully-overlaid-by-exclusive-empty-QA-cache"
+      })
+    )
+  end
+
+  defp build_profile(workspace, vendor_root, dependency_roots, mode) do
     with {:ok, root} <- SymphonyElixir.PathSafety.canonicalize(workspace),
          true <- root == Path.expand(workspace),
-         {:ok, protected} <- audit(root, "", %{}, 0),
+         {:ok, protected} <- audit(root, "", %{}, 0, mode),
          true <- Enum.all?(dependency_roots, &(is_binary(&1) and Path.type(&1) == :absolute and not inside?(&1, root))) do
       rules = Map.merge(@rules, protected)
 
@@ -73,17 +92,17 @@ defmodule SymphonyElixir.GovernanceWorkspaceProfile do
     end
   end
 
-  defp audit(root, relative, rules, depth) when depth <= 64 do
+  defp audit(root, relative, rules, depth, mode) when depth <= 64 do
     with {:ok, names} <- File.ls(Path.join(root, relative)), true <- length(names) <= 20_000 do
-      Enum.reduce_while(names, {:ok, rules}, &audit_entry(root, relative, &1, &2, depth))
+      Enum.reduce_while(names, {:ok, rules}, &audit_entry(root, relative, &1, &2, depth, mode))
     else
       _ -> {:error, :governance_workspace_unreadable}
     end
   end
 
-  defp audit(_, _, _, _), do: {:error, :governance_workspace_depth_exceeded}
+  defp audit(_, _, _, _, _), do: {:error, :governance_workspace_depth_exceeded}
 
-  defp audit_entry(root, relative, name, {:ok, rules}, depth) do
+  defp audit_entry(root, relative, name, {:ok, rules}, depth, mode) do
     path = Path.join(relative, name)
 
     case File.lstat(Path.join(root, path)) do
@@ -94,7 +113,7 @@ defmodule SymphonyElixir.GovernanceWorkspaceProfile do
         {:halt, {:error, :governance_workspace_hardlink}}
 
       {:ok, %{type: type}} ->
-        audit_kind(root, path, name, type, rules, depth)
+        audit_kind(root, path, name, type, rules, depth, mode)
 
       _ ->
         {:halt, {:error, :governance_workspace_changed}}
@@ -109,7 +128,7 @@ defmodule SymphonyElixir.GovernanceWorkspaceProfile do
       else: {:cont, {:ok, Map.put(rules, path, "deny")}}
   end
 
-  defp audit_kind(root, path, name, type, rules, depth) do
+  defp audit_kind(root, path, name, type, rules, depth, mode) do
     cond do
       name in @secret or String.starts_with?(name, ".env") ->
         {:cont, {:ok, Map.put(rules, path, "deny")}}
@@ -117,8 +136,11 @@ defmodule SymphonyElixir.GovernanceWorkspaceProfile do
       name == "AGENTS.md" ->
         {:cont, {:ok, Map.put(rules, path, "read")}}
 
+      masked_qa_output?(type, mode, path) ->
+        {:cont, {:ok, rules}}
+
       type == :directory ->
-        descend(root, path, rules, depth + 1)
+        descend(root, path, rules, depth + 1, mode)
 
       type == :regular ->
         {:cont, {:ok, rules}}
@@ -128,8 +150,11 @@ defmodule SymphonyElixir.GovernanceWorkspaceProfile do
     end
   end
 
-  defp descend(root, path, rules, depth) do
-    case audit(root, path, rules, depth) do
+  defp masked_qa_output?(:directory, :qa, path), do: path in ~w(elixir/_build elixir/bin elixir/cover)
+  defp masked_qa_output?(_, _, _), do: false
+
+  defp descend(root, path, rules, depth, mode) do
+    case audit(root, path, rules, depth, mode) do
       {:ok, next} -> {:cont, {:ok, next}}
       error -> {:halt, error}
     end

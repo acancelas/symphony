@@ -1,6 +1,46 @@
 defmodule SymphonyElixir.GovernanceCandidatePublication do
   alias SymphonyElixir.Audit.CanonicalJson
   @moduledoc "Host-only staged tree confirmation; the worker cannot change Git administration or the plan."
+  @spec proposal_schema() :: map()
+  def proposal_schema do
+    %{
+      "type" => "object",
+      "additionalProperties" => false,
+      "properties" => %{
+        "candidateCommitSha" => %{"type" => "string", "pattern" => "^[a-f0-9]{40}$"},
+        "planHash" => %{"type" => "string", "pattern" => "^sha256:[a-f0-9]{64}$"},
+        "changes" => %{
+          "type" => "array",
+          "minItems" => 1,
+          "maxItems" => 100,
+          "items" => %{
+            "type" => "object",
+            "additionalProperties" => false,
+            "properties" => %{
+              "path" => %{"type" => "string", "minLength" => 1, "maxLength" => 1024},
+              "expectedBlobSha" => %{"anyOf" => [%{"type" => "null"}, %{"type" => "string", "pattern" => "^[a-f0-9]{40}$"}]},
+              "content" => %{"type" => "string", "maxLength" => 262_144}
+            },
+            "required" => ~w(path expectedBlobSha content)
+          }
+        }
+      },
+      "required" => ~w(candidateCommitSha planHash changes)
+    }
+  end
+
+  @spec application_recipe_sha256() :: String.t()
+  def application_recipe_sha256 do
+    digest(
+      CanonicalJson.encode(%{
+        version: 1,
+        writer: digest(proposal_writer()),
+        schema: proposal_schema(),
+        gate: "approved-hashed-plan+fresh-admission+actual-retired-journal+SourceGuard+immutable-intent+CAS+fsync+named-effects"
+      })
+    )
+  end
+
   @doc "Read bounded targets from the exact approved hashed plan; this grants no write or launch authority."
   @spec proposal_paths(map(), map()) :: {:ok, [String.t()]} | {:error, atom()}
   def proposal_paths(context, source) do
@@ -41,7 +81,9 @@ defmodule SymphonyElixir.GovernanceCandidatePublication do
 
   @doc "Validate the whole structured proposal without writing files or consuming a launch."
   @spec validate_proposal(map(), map(), map()) :: {:ok, [map()]} | {:error, atom()}
-  def validate_proposal(context, source, proposal) when is_map(proposal) do
+  def validate_proposal(context, source, proposal), do: validated_proposal(context, source, proposal, true)
+
+  defp validated_proposal(context, source, proposal, require_clean) when is_map(proposal) do
     with {:ok, allowed} <- proposal_paths(context, source),
          true <- Enum.sort(Map.keys(proposal)) == ~w(candidateCommitSha changes planHash),
          true <- proposal["candidateCommitSha"] == context.sha and proposal["planHash"] == context.manifest["planHash"],
@@ -50,7 +92,7 @@ defmodule SymphonyElixir.GovernanceCandidatePublication do
          true <- Enum.all?(changes, &valid_proposal_change?(context, &1, allowed)),
          true <- length(Enum.uniq_by(changes, & &1["path"])) == length(changes),
          true <- Enum.sum(Enum.map(changes, &byte_size(&1["content"]))) <= 1_048_576,
-         {"", 0} <- git(context, ["status", "--porcelain", "--untracked-files=all"]) do
+         true <- not require_clean or git(context, ["status", "--porcelain", "--untracked-files=all"]) == {"", 0} do
       {:ok, changes}
     else
       _ -> {:error, :governance_structured_proposal_rejected}
@@ -59,7 +101,7 @@ defmodule SymphonyElixir.GovernanceCandidatePublication do
     _ -> {:error, :governance_structured_proposal_rejected}
   end
 
-  def validate_proposal(_, _, _), do: {:error, :governance_structured_proposal_rejected}
+  defp validated_proposal(_, _, _, _), do: {:error, :governance_structured_proposal_rejected}
 
   defp valid_proposal_change?(context, change, allowed) when is_map(change) do
     path = change["path"]
@@ -350,6 +392,34 @@ defmodule SymphonyElixir.GovernanceCandidatePublication do
     else
       _ -> {:error, :governance_candidate_scope_rejected}
     end
+  end
+
+  @doc "Stage only the exact applied proposal contents; reject unrelated source/index changes."
+  @spec stage_proposal(map(), map(), map()) :: {:ok, String.t()} | {:error, atom()}
+  def stage_proposal(context, source, proposal) do
+    with {:ok, changes} <- validated_proposal(context, source, proposal, false),
+         {tracked, 0} <- git(context, ["diff", "--name-only", "-z", "HEAD"]),
+         {untracked, 0} <- git(context, ["ls-files", "--others", "--exclude-standard", "-z"]),
+         paths = String.split(tracked <> untracked, <<0>>, trim: true) |> Enum.uniq(),
+         true <- paths != [] and Enum.all?(paths, &(&1 in Enum.map(changes, fn change -> change["path"] end))),
+         true <- Enum.all?(changes, &expected_proposal_content?(context.workspace, &1)),
+         {:ok, tree} <- stage(context),
+         true <- Enum.all?(changes, &staged_proposal_blob?(context, tree, &1)) do
+      {:ok, tree}
+    else
+      _ -> {:error, :governance_applied_proposal_tree_unverified}
+    end
+  rescue
+    _ -> {:error, :governance_applied_proposal_tree_unverified}
+  end
+
+  defp expected_proposal_content?(root, change) do
+    regular_change?(root, change["path"]) and File.read(Path.join(root, change["path"])) == {:ok, change["content"]}
+  end
+
+  defp staged_proposal_blob?(context, tree, change) do
+    expected = Base.encode16(:crypto.hash(:sha, ["blob ", Integer.to_string(byte_size(change["content"])), <<0>>, change["content"]]), case: :lower)
+    git(context, ["rev-parse", tree <> ":" <> change["path"]]) == {expected <> "\n", 0}
   end
 
   @spec unchanged(map(), String.t()) :: :ok | {:error, atom()}

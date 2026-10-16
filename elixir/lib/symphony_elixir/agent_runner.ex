@@ -279,15 +279,7 @@ defmodule SymphonyElixir.AgentRunner do
       context = SymphonyElixir.GovernanceSession.context(workspace, issue, codex_update_recipient, opts, worker_host)
       prompt = build_turn_prompt(issue, opts, 1, max_turns)
 
-      policy = %{
-        sandbox: %{"type" => "workspaceWrite", "networkAccess" => false},
-        tools: ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_goal_execution bos_get_evidence bos_record_evidence),
-        native_operations: [:read, :workspace_edit, :local_validation],
-        verified_m2m: true,
-        fresh_session: true,
-        check_goal_authorization: true,
-        execution_scope: :implementation
-      }
+      policy = SymphonyElixir.GovernanceSession.implementation_policy()
 
       SymphonyElixir.GovernanceSession.run(context, "task-orchestrator", prompt, policy)
     else

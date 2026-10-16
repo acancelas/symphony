@@ -11,11 +11,25 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
 
   @spec start(port(), map(), gate(), observer(), integer(), thread_id()) :: GenServer.on_start()
   def start(port, admission, validate, observe, started_ms, thread_id \\ nil) do
-    GenServer.start(__MODULE__, {port, admission, validate, observe, started_ms, thread_id})
+    GenServer.start(__MODULE__, {port, admission, validate, observe, started_ms, thread_id, self()})
+  end
+
+  @doc "Host-only fixed QA transport: the independent monitor owns the port and forwards output to its Run owner."
+  @spec open_command(pid(), String.t(), list()) :: {:ok, port()} | {:error, atom()}
+  def open_command(pid, executable, options), do: GenServer.call(pid, {:open_command, executable, options}, 2_000)
+
+  @spec close_command(pid(), port()) :: :ok | {:error, atom()}
+  def close_command(pid, port) do
+    if Process.alive?(pid), do: GenServer.call(pid, {:close_command, port}, 2_000), else: GovernanceProcess.stop(port)
+  catch
+    :exit, _ -> GovernanceProcess.stop(port)
   end
 
   @spec inference_finished(pid()) :: :ok | {:error, atom()}
   def inference_finished(pid), do: GenServer.call(pid, :inference_finished, 1_000)
+
+  @spec worker_retired(pid()) :: :ok | {:error, atom()}
+  def worker_retired(pid), do: GenServer.call(pid, :worker_retired, 1_000)
 
   @spec healthy?(pid()) :: :ok | {:error, atom()}
   def healthy?(pid) do
@@ -35,14 +49,18 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
   end
 
   @impl true
-  @spec init({port(), map(), gate(), observer(), integer(), thread_id()}) :: {:ok, map()}
-  def init({port, admission, validate, observe, started_ms, thread_id}) do
+  @spec init({port(), map(), gate(), observer(), integer(), thread_id(), pid()}) :: {:ok, map()}
+  def init({port, admission, validate, observe, started_ms, thread_id, owner}) do
+    Process.flag(:trap_exit, true)
     now = System.monotonic_time(:millisecond)
     {:ok, deadline, _} = DateTime.from_iso8601(admission["deadline"])
     remaining = max(DateTime.diff(deadline, DateTime.utc_now(), :millisecond), 0)
 
     state = %{
       port: port,
+      owner: owner,
+      owner_ref: Process.monitor(owner),
+      command_ports: %{},
       validate: validate,
       observe: observe,
       started: started_ms,
@@ -57,6 +75,7 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
       failed: nil,
       sequence: 1,
       inference_finished: false,
+      worker_retired: false,
       published_at: now
     }
 
@@ -66,6 +85,19 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
 
   @impl true
   @spec handle_info(term(), map()) :: {:noreply, map()}
+  def handle_info({:DOWN, ref, :process, owner, _}, %{owner_ref: ref, owner: owner} = state) do
+    stop_owned_ports(state)
+    {:stop, :normal, %{state | failed: :governance_run_owner_lost}}
+  end
+
+  def handle_info({port, payload}, state) when is_port(port) do
+    if Map.has_key?(state.command_ports, port), do: send(state.owner, {port, payload})
+    commands = if match?({:exit_status, _}, payload), do: Map.delete(state.command_ports, port), else: state.command_ports
+    {:noreply, %{state | command_ports: commands}}
+  end
+
+  def handle_info({:EXIT, port, _}, state) when is_port(port), do: {:noreply, state}
+
   def handle_info({:native_usage, payload}, state) do
     next =
       case GovernanceNativeUsage.observe(state.native_usage, payload) do
@@ -97,6 +129,30 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
 
   @impl true
   @spec handle_call(term(), GenServer.from(), map()) :: {:reply, term(), map()} | {:stop, :normal, term(), map()}
+  def handle_call({:open_command, executable, options}, {owner, _}, %{owner: owner, worker_retired: true, has_metrics: true} = state) do
+    next = check_limits(state, System.monotonic_time(:millisecond))
+
+    if next.failed == nil do
+      port = Port.open({:spawn_executable, String.to_charlist(executable)}, options)
+      {:reply, {:ok, port}, %{next | command_ports: Map.put(next.command_ports, port, true)}}
+    else
+      {:reply, {:error, next.failed}, next}
+    end
+  rescue
+    _ -> {:reply, {:error, :governance_qa_port_unavailable}, state}
+  end
+
+  def handle_call({:open_command, _, _}, _from, state),
+    do: {:reply, {:error, :governance_qa_custody_unverified}, state}
+
+  def handle_call({:close_command, port}, {owner, _}, %{owner: owner} = state) do
+    if Map.has_key?(state.command_ports, port), do: GovernanceProcess.stop(port)
+    {:reply, :ok, %{state | command_ports: Map.delete(state.command_ports, port)}}
+  end
+
+  def handle_call({:close_command, _}, _from, state),
+    do: {:reply, {:error, :governance_qa_custody_unverified}, state}
+
   def handle_call(:health, _from, state),
     do: {:reply, if(state.failed == nil, do: :ok, else: {:error, state.failed}), state}
 
@@ -106,8 +162,20 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
   def handle_call(:inference_finished, _from, state),
     do: {:reply, {:error, :governance_execution_measurement_missing}, state}
 
+  def handle_call(:worker_retired, _from, %{has_metrics: true} = state) do
+    case Port.info(state.port) do
+      nil -> {:reply, :ok, %{state | worker_retired: true, inference_finished: true}}
+      _ -> {:reply, {:error, :governance_worker_still_attached}, state}
+    end
+  rescue
+    ArgumentError -> {:reply, :ok, %{state | worker_retired: true, inference_finished: true}}
+  end
+
+  def handle_call(:worker_retired, _from, state),
+    do: {:reply, {:error, :governance_execution_measurement_missing}, state}
+
   def handle_call(:finish, _from, state) do
-    GovernanceProcess.stop(state.port)
+    stop_owned_ports(state)
 
     result =
       if state.has_metrics,
@@ -119,9 +187,15 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
 
   @impl true
   @spec terminate(term(), map()) :: :ok
-  def terminate(reason, state) do
-    if reason != :normal, do: GovernanceProcess.stop(state.port)
+  def terminate(_reason, state) do
+    stop_owned_ports(state)
+    Process.demonitor(state.owner_ref, [:flush])
     :ok
+  end
+
+  defp stop_owned_ports(state) do
+    GovernanceProcess.stop(state.port)
+    Enum.each(Map.keys(state.command_ports), &GovernanceProcess.stop/1)
   end
 
   defp apply_usage(state, usage) do
@@ -200,6 +274,7 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
   defp metrics(state, now) do
     %{
       sequence: state.sequence + 1,
+      workerState: if(state.worker_retired, do: "worker_stopped", else: "running"),
       uncachedInputTokens: if(state.has_metrics, do: state.budget.uncached_input_tokens, else: nil),
       wallTimeSeconds: div(max(now - state.started, 0), 1000),
       observedAt: DateTime.to_iso8601(DateTime.utc_now())
@@ -207,7 +282,7 @@ defmodule SymphonyElixir.GovernanceExecutionMonitor do
   end
 
   defp fail(%{failed: nil} = state, reason) do
-    GovernanceProcess.stop(state.port)
+    stop_owned_ports(state)
     %{state | failed: reason}
   end
 

@@ -122,6 +122,20 @@ defmodule SymphonyElixir.GovernanceHostExecutionTest do
              })
   end
 
+  test "QA audit skips only old output directories that the sandbox fully overlays", %{root: root} do
+    File.mkdir_p!(root <> "/elixir/_build/old")
+    File.mkdir_p!(root <> "/elixir/lib")
+    File.ln_s!("/outside-synthetic", root <> "/elixir/_build/old/dependency")
+    assert {:error, _} = GovernanceWorkspaceProfile.build(root, "/pinned-vendor")
+    assert {:ok, _} = GovernanceWorkspaceProfile.build_qa(root, "/pinned-vendor", [])
+    File.ln_s!("/outside-synthetic", root <> "/elixir/lib/unsafe")
+    assert {:error, _} = GovernanceWorkspaceProfile.build_qa(root, "/pinned-vendor", [])
+    File.rm!(root <> "/elixir/lib/unsafe")
+    File.rename!(root <> "/elixir/_build", root <> "/old-build")
+    File.ln_s!(root <> "/old-build", root <> "/elixir/_build")
+    assert {:error, _} = GovernanceWorkspaceProfile.build_qa(root, "/pinned-vendor", [])
+  end
+
   test "pre-existing writable symlinks fail before native launch", %{root: root} do
     File.mkdir_p!(root <> "/elixir/lib")
     File.ln_s!("/outside-synthetic", root <> "/elixir/lib/alias")

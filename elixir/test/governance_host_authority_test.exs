@@ -169,6 +169,9 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
              )
 
     assert File.read!(ctx.root <> "/elixir/lib/value.txt") == "host-applied proposal"
+    assert {:ok, tree} = GovernanceCandidatePublication.stage_proposal(fixture.context, fixture.source, fixture.proposal)
+    assert {"host-applied proposal", 0} = fixture_git(ctx.root, ["show", tree <> ":elixir/lib/value.txt"])
+    {_, 0} = fixture_git(ctx.root, ["reset", "-q", "HEAD", "--", "elixir/lib/value.txt"])
     # Restoring the fixture baseline cannot turn a consumed worker into another application.
     File.write!(ctx.root <> "/elixir/lib/value.txt", "baseline")
 
@@ -205,6 +208,24 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
     assert Path.wildcard(Path.join(fixture.execution.journal_root, "observation-*.json")) == []
     assert File.read!(ctx.root <> "/elixir/lib/value.txt") == "baseline"
     refute File.exists?(ctx.root <> "/elixir/lib/unapproved.txt")
+  end
+
+  test "staging the proposal rejects changed contents before touching the index", ctx do
+    fixture = proposal_application_fixture(ctx)
+    retire_proposal_worker(fixture)
+
+    assert {:ok, _} =
+             GovernanceCandidatePublication.apply_proposal(
+               fixture.context,
+               fixture.source,
+               fixture.proposal,
+               fixture.execution,
+               fixture.admission
+             )
+
+    File.write!(ctx.root <> "/elixir/lib/value.txt", "concurrent edit")
+    assert {:error, _} = GovernanceCandidatePublication.stage_proposal(fixture.context, fixture.source, fixture.proposal)
+    assert {"", 0} = fixture_git(ctx.root, ["diff", "--cached", "--name-only"])
   end
 
   defp proposal_application_fixture(ctx) do
@@ -302,6 +323,17 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
       |> put_in(["governance", "readiness", "planHash"], hash)
 
     {context, source}
+  end
+
+  test "incomplete whole-Run continuation blocks before any Git publication", ctx do
+    broker = SymphonyElixir.GovernanceAppServerBroker
+    issue = %SymphonyElixir.Tracker.Issue{id: "fixture-source", native_ref: ctx.context.issue.native_ref}
+    Process.put({broker, :host_qa}, %{mode: :structured_read_only, whole_run_continuation_ready: false})
+    assert {:error, :governance_whole_run_continuation_not_implemented} = broker.publish_implementation(ctx.root, issue)
+    assert {head, 0} = fixture_git(ctx.root, ["rev-parse", "HEAD"])
+    assert String.trim(head) == ctx.context.sha
+    assert {"", 0} = fixture_git(ctx.root, ["status", "--porcelain"])
+    Process.delete({broker, :host_qa})
   end
 
   test "authority remains valid at the admitted attempt ceiling but denies stale/revoked/changed plan", ctx do

@@ -3,7 +3,7 @@ defmodule SymphonyElixir.GovernanceHostConfig do
   @keys ~w(service_subject service_secret_file catalog_path allowed_authenticated_by repositories workspaces api_base_url target_project_id private_home private_cache_root mcp runtime)
   @mcp ~w(executable executable_sha256 entrypoint build_root receipt_path receipt_sha256 timeout_ms)
   @runtime ~w(package_root receipt_path receipt_sha256 executable executable_sha256 proof_path proof_sha256 vendor_root auth_home worker_root native_config_sha256 disabled_mcp_servers)
-  @optional_runtime ~w(implementation_proof_path implementation_proof_sha256 dependency_receipts policy_sources policy_fallback_filenames)
+  @optional_runtime ~w(implementation_proof_path implementation_proof_sha256 dependency_receipts policy_sources policy_fallback_filenames qa_proof_path qa_proof_sha256)
   @execution ~w(python_executable python_sha256 journal_root qa_executable qa_executable_sha256 source_guard_directory source_guard_identity)
   @snapshot ~w(enabled contract_path contract_sha256 provenance custody)
   @atoms Map.new(

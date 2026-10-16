@@ -59,7 +59,7 @@ defmodule SymphonyElixir.GovernanceRuntime do
 
       overrides = primary_policy_overrides(overrides, permission)
       arguments = startup_arguments(configuration)
-      arguments = if permission == "bos-implementation", do: Enum.drop(arguments, -1) ++ ["-c", "project_doc_max_bytes=0", "-c", "project_doc_fallback_filenames=[]", "app-server"], else: arguments
+      arguments = Enum.drop(arguments, -1) ++ ["-c", "project_doc_max_bytes=0", "-c", "project_doc_fallback_filenames=[]", "app-server"]
 
       managed = %{
         executable: configuration.executable,
@@ -92,10 +92,68 @@ defmodule SymphonyElixir.GovernanceRuntime do
     end
   end
 
-  defp primary_policy_overrides(overrides, "bos-implementation"),
+  defp primary_policy_overrides(overrides, _),
     do: overrides |> Map.put("project_doc_max_bytes", 0) |> Map.put("project_doc_fallback_filenames", [])
 
-  defp primary_policy_overrides(overrides, _), do: overrides
+  @spec primary_recipe_sha256() :: String.t()
+  def primary_recipe_sha256 do
+    digest(
+      CanonicalJson.encode(%{
+        version: 1,
+        mode: "structured_read_only",
+        documentBytes: 0,
+        policy: "full-original-global-and-subtree-scopes+premodel-effective-readonly-fsync",
+        sourceTools: "exact-candidate-git-only",
+        nativeCommands: false,
+        modelMcpWrites: false,
+        hostApplicationRecipe: SymphonyElixir.GovernanceCandidatePublication.application_recipe_sha256()
+      })
+    )
+  end
+
+  @spec validate_primary(map()) :: :ok | {:error, atom()}
+  def validate_primary(configuration) do
+    with :ok <- validate(configuration),
+         path when is_binary(path) <- configuration[:implementation_proof_path],
+         expected when is_binary(expected) <- configuration[:implementation_proof_sha256],
+         {:ok, bytes} <- File.read(path),
+         true <- digest(bytes) == expected,
+         {:ok, proof} <- Jason.decode(bytes),
+         :ok <- validate_primary_proof(configuration, proof),
+         {:ok, _} <- dependencies(configuration) do
+      :ok
+    else
+      _ -> {:error, :governance_readonly_primary_not_certified}
+    end
+  rescue
+    _ -> {:error, :governance_readonly_primary_not_certified}
+  end
+
+  @spec validate_primary_proof(map(), map()) :: :ok | {:error, atom()}
+  def validate_primary_proof(configuration, proof) do
+    with true <- primary_proof_binding?(proof, configuration),
+         {:ok, expiry, _} <- DateTime.from_iso8601(proof["expiresAt"]),
+         true <- DateTime.compare(expiry, DateTime.utc_now()) == :gt,
+         true <-
+           Enum.all?(
+             ~w(effectiveConfigVerified actualReadonlyScopeVerified originalPoliciesInjected originalGlobalScopeVerified structuredProposalReturned hostCasApplied processReaped noModelMcpWrites hostSourceGuardHeld singleUseJournalVerified),
+             &(proof[&1] == true)
+           ),
+         true <- Enum.all?(~w(workspaceWrite networkConnect outsideRead secretRead policyWrite authEnvVisible), &(proof[&1] == false)) do
+      :ok
+    else
+      _ -> {:error, :governance_readonly_primary_not_certified}
+    end
+  rescue
+    _ -> {:error, :governance_readonly_primary_not_certified}
+  end
+
+  defp primary_proof_binding?(proof, configuration) do
+    proof["mode"] == "structured_read_only" and proof["recipeSha256"] == primary_recipe_sha256() and
+      proof["nativeExecutableSha256"] == configuration.executable_sha256 and
+      proof["nativeConfigSha256"] == configuration.native_config_sha256 and
+      proof["dependencyReceiptsSha256"] == digest(CanonicalJson.encode(configuration[:dependency_receipts] || []))
+  end
 
   @spec validate_implementation(map()) :: :ok | {:error, atom()}
   def validate_implementation(configuration) do

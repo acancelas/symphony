@@ -141,3 +141,21 @@ host environment results, runtime certification and independent Goal authorizati
   skips); no real model/source application or broker route is enabled yet.
 - Correct two embedded NUL helper literals caught by the first failing fixture.
   Preserve incomplete crash/shared-namespace/whole-Run/native-QA acceptance work.
+
+
+## 2026-10-16 — Read-only broker, observed accounting and separate QA (#69)
+
+- Wire shared RO primary/repair policy, raw bounded proposal/schema, current
+  primary/QA proof gates, actual worker retirement, single-use CAS, exact staged
+  content and fixed QA. Disable native writes/commands and model MCP mutations.
+- Correct runtime-observation envelope to the existing strict536 contract;
+  signed isolated handler consumes actual Elixir artifacts for live/reaped/unknown
+  late-charge cases. Preserve unknown usage, birth/boot checks and raw-marker privacy.
+- Integrate Root's isolated QA adapter; independently own/reap QA transports on
+  Run-owner death, keeping source RO and build/cache separate from sealed host code.
+  Add QA-only auditing of fully overlaid output directories and a fresh actual
+  namespace probe; preserve older failed and superseded evidence.
+- Remove premature Attempt completion and hard-block publication until whole-Run
+  source handoff, all-session metering and final settlement are implemented.
+  Fresh approved plan inventory, actual primary canary and final review remain
+  prerequisites; no69 API, READY, installation, integration or production authority.

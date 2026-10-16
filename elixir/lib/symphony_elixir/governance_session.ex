@@ -8,6 +8,21 @@ defmodule SymphonyElixir.GovernanceSession do
   """
   @callback run(map(), String.t(), String.t(), map()) :: :ok | {:error, term()}
 
+  @doc "Shared fixed primary/repair policy: source reads and a structured proposal, with full execution admission."
+  @spec implementation_policy() :: map()
+  def implementation_policy do
+    %{
+      sandbox: %{"type" => "readOnly", "networkAccess" => false},
+      tools: [],
+      native_operations: [:read],
+      verified_m2m: true,
+      fresh_session: true,
+      check_goal_authorization: true,
+      execution_scope: :implementation,
+      proposal_mode: :structured
+    }
+  end
+
   @spec context(String.t() | nil, Issue.t() | nil, pid() | nil, keyword(), String.t() | nil) ::
           map()
   def context(workspace, issue, recipient, opts, worker_host) do

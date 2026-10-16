@@ -350,15 +350,7 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     if phase["round"] >= 3 do
       {:error, :governance_committee_exhausted}
     else
-      policy = %{
-        sandbox: %{"type" => "workspaceWrite", "networkAccess" => false},
-        tools: @read_tools ++ ~w(bos_record_evidence),
-        native_operations: [:read, :workspace_edit, :local_validation],
-        verified_m2m: true,
-        fresh_session: true,
-        check_goal_authorization: true,
-        task_kind: :derived_repair
-      }
+      policy = Map.put(GovernanceSession.implementation_policy(), :task_kind, :derived_repair)
 
       prompt =
         "Repair only the approved acceptance criteria from this durable verdict: #{Jason.encode!(phase["verdict"])}. Preserve this Issue/Run, Goal authorization, aggregate budgets, branch and evidence. Update the versioned plan dossier for planning revisions. Run required validation and publish a clean exact candidate through the existing governed contract; no merge or production."

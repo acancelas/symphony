@@ -118,3 +118,77 @@ or authoritative approval was used. This prototype is not yet wired into the
 broker. Actual abrupt death/persistence recovery, complete descendant custody,
 shared host/API namespace, revocation races and independent review remain
 mandatory. Preserve the old rejected native write profile and first SEC1 result.
+
+
+## Broker wiring checkpoint
+
+Primary execution and derived repairs now share one fixed read-only policy with
+source tools and a strict structured proposal schema. Native commands/writes and
+model MCP mutations are rejected; role identity and full execution admission
+remain required. The explicit implementation scope is dispatched before the
+ordinary read-only review path, so changing sandbox type cannot bypass admission.
+Current primary proof, separate QA proof and a file inventory inside the newly
+approved hashed plan are required before starting an Attempt. Existing votes or
+old workspace-write canaries cannot supply those prerequisites.
+
+The broker supplies complete original scoped policy material, disables automatic
+project-document discovery, checks the actual read-only/never/network-disabled
+thread response and fsyncs that same-session scope before inference. It retains
+raw structured source bytes privately. After inference it stops the actual
+worker, waits for PID absence, completes its local single-use journal, applies
+host CAS, verifies exact staged proposal contents and invokes fixed QA with the
+independent monitor's bounded health check.
+
+The monitor now owns the QA port and forwards its output to the logical Run
+owner. Authority/budget failure or owner death reaps that port as well as the
+retired primary's port. A real inert-process test kills the logical owner while
+the BEAM host remains alive and verifies QA PID absence. A separate test checks
+exact transport output forwarding. These are custody primitive tests, not full
+admitted-native/whole-Run acceptance.
+
+The previous premature `bos_complete_attempt` path has been removed. Source
+publication is deliberately blocked before any Git mutation while source handoff,
+aggregate metering across every review session and final settlement remain
+unimplemented. No successful primary/QA substep is reported as whole-Run success.
+The current environment remains unconfigured for actual69 execution.
+
+## Separate read-only QA integration
+
+Root delivered NativeCommand with strict proof preflight, source RO, exclusive
+fresh cache, private network/PID namespace, own loopback and fixed repository QA.
+Original Root handoff source3fc94cf1/test5c157bbc and its two tests/probe716dd910
+remain historical supporting evidence; no installed configuration changed.
+
+Integration added independent port custody and a QA-specific source audit that
+skips only real output directories (`_build`, `bin`, `cover`) fully hidden by the
+fresh cache overlays. The primary's stricter audit remains unchanged. Unsafe
+source links and symlinked output mountpoints still fail. This addresses existing
+Mix build aliases without making their old contents visible to QA.
+
+A new actual no-model probe calls the current production `sandbox/3`, includes an
+old output-cache alias and passes all required checks, with process reaped.
+Report SHA256 `8b72b2a83c7adcf4c6b09a3d9c27595c8b79bd70ea8d3cb50b68467ae17dac5c`;
+QA recipe `bb44d945ae17032769afd92e61785a216b7bcef44df41655c6dd491295c2a604`.
+The original failed probes and isolated cache-policy creation observation remain
+unchanged. The cache has no model and project instruction autoload is disabled;
+cache policy creation is not claimed denied. Actual full repository QA inside
+this namespace, primary current-recipe model canary, final independent committee,
+shared namespace and whole-Run proof remain pending.
+
+## Actual observation contract interoperability
+
+The host constructor now emits the exact existing536 accounting envelope:
+`Host runtime observation`, empty checks, inconclusive runtime criterion and one
+observation. Unknown charges remain null; terminal reaping is derived from the
+actual process/boot; retired children cannot be reported running. No raw marker
+is exported. The earlier host criterion text/checks mismatch was corrected.
+
+Backend536 consumed three artifacts emitted by the actual Elixir constructor,
+without repairing their JSON, through its signed in-process HTTP handlers:
+running200, worker_stopped200 after actual reaping, and unknown charge_only200
+after revocation, retaining lower bounds and prior current observation. The
+isolated proof SHA256 is7294b60f86a3a6407d4e970926d3ce9a4cc927278ed292a34ecbd965b5ac839b;
+its constructor-source pin is4f7df1d6460e7826a151d2002d88b040c24d43d520d1d8a5a659437081850024.
+Later module changes cover readiness wiring/refactoring; this prior full-file
+pin is not presented as acceptance of the later module. No live API/container,
+canonical human approval, model invocation or536 source edit was involved.
