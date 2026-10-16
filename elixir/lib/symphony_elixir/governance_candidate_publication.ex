@@ -1,5 +1,93 @@
 defmodule SymphonyElixir.GovernanceCandidatePublication do
   @moduledoc "Host-only staged tree confirmation; the worker cannot change Git administration or the plan."
+  @doc "Read bounded targets from the exact approved hashed plan; this grants no write or launch authority."
+  @spec proposal_paths(map(), map()) :: {:ok, [String.t()]} | {:error, atom()}
+  def proposal_paths(context, source) do
+    with {:ok, authority} <- SymphonyElixir.GovernanceExecutionAuthority.check(context, source),
+         baseline = authority["baselineCommitSha"],
+         true <- is_binary(baseline) and Regex.match?(~r/^[a-f0-9]{40}$/, baseline),
+         number = context.issue.native_ref["issueNumber"],
+         true <- is_integer(number) and number > 0,
+         plan_path = "docs/issues/#{number}/plan.md",
+         {mode, 0} <- git(context, ["ls-tree", baseline, "--", plan_path]),
+         true <- String.starts_with?(mode, "100644 blob "),
+         {plan, 0} <- git(context, ["show", baseline <> ":" <> plan_path]),
+         true <- byte_size(plan) <= 262_144,
+         true <- context.manifest["planHash"] == "sha256:" <> digest(plan),
+         [[_, json]] <- Regex.scan(~r/^```bos-implementation-files\n([^\n]+)\n```$/m, plan),
+         {:ok, %{"version" => 1, "files" => paths} = inventory} <- Jason.decode(json),
+         true <- Enum.sort(Map.keys(inventory)) == ~w(files version),
+         true <- IO.iodata_to_binary(SymphonyElixir.Audit.CanonicalJson.encode(inventory)) == json,
+         true <- is_list(paths) and length(paths) in 1..100,
+         true <- length(Enum.uniq(paths)) == length(paths),
+         true <- Enum.all?(paths, &proposal_path?/1) do
+      {:ok, paths}
+    else
+      _ -> {:error, :governance_approved_proposal_paths_unverified}
+    end
+  rescue
+    _ -> {:error, :governance_approved_proposal_paths_unverified}
+  end
+
+  defp proposal_path?(path) when is_binary(path) do
+    byte_size(path) <= 1024 and String.valid?(path) and
+      not Regex.match?(~r/[\x00-\x1f\x7f\\]/, path) and
+      Enum.join(Path.split(path), "/") == path and permitted?(path)
+  end
+
+  defp proposal_path?(_), do: false
+  defp digest(bytes), do: Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
+
+  @doc "Validate the whole structured proposal without writing files or consuming a launch."
+  @spec validate_proposal(map(), map(), map()) :: {:ok, [map()]} | {:error, atom()}
+  def validate_proposal(context, source, proposal) when is_map(proposal) do
+    with {:ok, allowed} <- proposal_paths(context, source),
+         true <- Enum.sort(Map.keys(proposal)) == ~w(candidateCommitSha changes planHash),
+         true <- proposal["candidateCommitSha"] == context.sha and proposal["planHash"] == context.manifest["planHash"],
+         changes when is_list(changes) <- proposal["changes"],
+         true <- length(changes) in 1..100,
+         true <- Enum.all?(changes, &valid_proposal_change?(context, &1, allowed)),
+         true <- length(Enum.uniq_by(changes, & &1["path"])) == length(changes),
+         true <- Enum.sum(Enum.map(changes, &byte_size(&1["content"]))) <= 1_048_576,
+         {"", 0} <- git(context, ["status", "--porcelain", "--untracked-files=all"]) do
+      {:ok, changes}
+    else
+      _ -> {:error, :governance_structured_proposal_rejected}
+    end
+  rescue
+    _ -> {:error, :governance_structured_proposal_rejected}
+  end
+
+  def validate_proposal(_, _, _), do: {:error, :governance_structured_proposal_rejected}
+
+  defp valid_proposal_change?(context, change, allowed) when is_map(change) do
+    path = change["path"]
+    content = change["content"]
+
+    Enum.sort(Map.keys(change)) == ~w(content expectedBlobSha path) and path in allowed and
+      is_binary(content) and byte_size(content) <= 262_144 and String.valid?(content) and
+      not String.contains?(content, <<0>>) and regular_change?(context.workspace, path) and
+      proposal_blob_matches?(context, path, change["expectedBlobSha"])
+  end
+
+  defp valid_proposal_change?(_, _, _), do: false
+
+  defp proposal_blob_matches?(context, path, expected) do
+    case git(context, ["ls-tree", "-z", context.sha, "--", path]) do
+      {"", 0} ->
+        is_nil(expected)
+
+      {entry, 0} ->
+        case String.split(entry, [" ", "\t"], parts: 4) do
+          [mode, "blob", sha, _] -> mode in ~w(100644 100755) and sha == expected
+          _ -> false
+        end
+
+      _ ->
+        false
+    end
+  end
+
   @spec stage(map()) :: {:ok, String.t()} | {:error, atom()}
   def stage(context) do
     with {text, 0} <- git(context, ["diff", "--name-only", "-z", "HEAD"]),

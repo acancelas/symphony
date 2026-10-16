@@ -105,3 +105,14 @@ host environment results, runtime certification and independent Goal authorizati
   behavior. Reuse existing fixed raw reads, immutable observations and publisher.
 - Verify13 isolated configuration/producer tests. Preserve the real producer
   freeze and installed configuration; live API/export/E2E remain unverified.
+
+
+## 2026-10-16 — Prepare read-only structured proposal validation (#69)
+
+- Derive bounded target paths from the server-approved exact Git plan, rather
+  than worker output or an unhashed manifest field. Validate every proposal
+  target and original blob before returning any proposed changes; reject mixed
+  invalid batches, dirty trees, policy paths, duplicates and unsupported bytes.
+- Ten authority/publication tests pass; document the still-unimplemented host
+  application and lifecycle obligations. No plan approval, launch, write path,
+  native write certificate, integration or publication authority is inferred.

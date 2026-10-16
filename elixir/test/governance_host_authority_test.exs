@@ -79,6 +79,90 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
   defp fixture_git(root, args),
     do: System.cmd("/usr/bin/git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root | args], stderr_to_stdout: true)
 
+  test "proposal targets come only from the server-approved exact baseline plan", ctx do
+    json = SymphonyElixir.Audit.CanonicalJson.encode(%{"version" => 1, "files" => ["elixir/lib/value.txt"]}) |> IO.iodata_to_binary()
+    plan = "Approved work\n\n```bos-implementation-files\n" <> json <> "\n```\n"
+    {context, source} = proposal_plan(ctx, plan)
+    assert {:ok, ["elixir/lib/value.txt"]} = GovernanceCandidatePublication.proposal_paths(context, source)
+    File.write!(ctx.root <> "/docs/issues/69/plan.md", "unapproved working-tree replacement")
+    assert {:ok, ["elixir/lib/value.txt"]} = GovernanceCandidatePublication.proposal_paths(context, source)
+    revoked = put_in(source, ["governance", "developmentExecution", "active"], false)
+    assert {:error, _} = GovernanceCandidatePublication.proposal_paths(context, revoked)
+    altered = put_in(context, [:manifest, "planHash"], "sha256:" <> String.duplicate("f", 64))
+    assert {:error, _} = GovernanceCandidatePublication.proposal_paths(altered, source)
+  end
+
+  test "ambiguous, absent, unapproved and policy target inventories fail closed", ctx do
+    for inventory <- [
+          nil,
+          %{"version" => 1, "files" => []},
+          %{"version" => 1, "files" => ["elixir/lib/value.txt", "elixir/lib/value.txt"]},
+          %{"version" => 1, "files" => ["elixir/lib/new/AGENTS.override.md"]},
+          %{"version" => 1, "files" => ["elixir/lib/../test/value.txt"]},
+          %{"version" => 1, "files" => ["docs/issues/69/plan.md"]},
+          %{"version" => 1, "files" => ["elixir/lib/value.txt"], "extra" => true}
+        ] do
+      plan =
+        if inventory,
+          do:
+            "```bos-implementation-files\n" <>
+              IO.iodata_to_binary(SymphonyElixir.Audit.CanonicalJson.encode(inventory)) <> "\n```\n",
+          else: "Plan without file inventory\n"
+
+      {context, source} = proposal_plan(ctx, plan)
+      assert {:error, _} = GovernanceCandidatePublication.proposal_paths(context, source)
+    end
+
+    valid = "```bos-implementation-files\n{\"files\":[\"elixir/lib/value.txt\"],\"version\":1}\n```\n"
+    {context, source} = proposal_plan(ctx, valid <> valid)
+    assert {:error, _} = GovernanceCandidatePublication.proposal_paths(context, source)
+  end
+
+  test "structured proposal validates every approved CAS target without any filesystem mutation", ctx do
+    plan = "```bos-implementation-files\n{\"files\":[\"elixir/lib/value.txt\"],\"version\":1}\n```\n"
+    {context, source} = proposal_plan(ctx, plan)
+    {blob, 0} = fixture_git(ctx.root, ["rev-parse", context.sha <> ":elixir/lib/value.txt"])
+    change = %{"path" => "elixir/lib/value.txt", "expectedBlobSha" => String.trim(blob), "content" => "proposed"}
+    proposal = %{"candidateCommitSha" => context.sha, "planHash" => context.manifest["planHash"], "changes" => [change]}
+    assert {:ok, [^change]} = GovernanceCandidatePublication.validate_proposal(context, source, proposal)
+
+    for invalid <- [
+          Map.put(proposal, "candidateCommitSha", String.duplicate("f", 40)),
+          Map.put(proposal, "changes", [change, Map.put(change, "path", "elixir/lib/unapproved.txt")]),
+          Map.put(proposal, "changes", [change, change]),
+          put_in(proposal, ["changes"], [Map.put(change, "expectedBlobSha", String.duplicate("f", 40))]),
+          put_in(proposal, ["changes"], [Map.put(change, "content", <<0>>)]),
+          Map.put(proposal, "command", "forbidden")
+        ] do
+      assert {:error, _} = GovernanceCandidatePublication.validate_proposal(context, source, invalid)
+      assert File.read!(ctx.root <> "/elixir/lib/value.txt") == "baseline"
+      assert {"", 0} = fixture_git(ctx.root, ["status", "--porcelain"])
+    end
+
+    File.write!(ctx.root <> "/elixir/lib/value.txt", "concurrent edit")
+    assert {:error, _} = GovernanceCandidatePublication.validate_proposal(context, source, proposal)
+  end
+
+  defp proposal_plan(ctx, plan) do
+    File.mkdir_p!(ctx.root <> "/docs/issues/69")
+    File.write!(ctx.root <> "/docs/issues/69/plan.md", plan)
+    {_, 0} = fixture_git(ctx.root, ["add", "docs/issues/69/plan.md"])
+    {_, 0} = fixture_git(ctx.root, ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "plan"])
+    {head, 0} = fixture_git(ctx.root, ["rev-parse", "HEAD"])
+    hash = "sha256:" <> Base.encode16(:crypto.hash(:sha256, plan), case: :lower)
+    context = %{ctx.context | sha: String.trim(head), manifest: Map.put(ctx.context.manifest, "planHash", hash)}
+
+    source =
+      ctx.source
+      |> put_in(["governance", "developmentExecution", "baselineCommitSha"], context.sha)
+      |> put_in(["governance", "phases", "planning", "candidateCommitSha"], context.sha)
+      |> put_in(["governance", "phases", "planning", "planHash"], hash)
+      |> put_in(["governance", "readiness", "candidateCommitSha"], context.sha)
+      |> put_in(["governance", "readiness", "planHash"], hash)
+
+    {context, source}
+  end
+
   test "authority remains valid at the admitted attempt ceiling but denies stale/revoked/changed plan", ctx do
     assert {:ok, _} = GovernanceExecutionAuthority.check(ctx.context, ctx.source, nil, ctx.now)
 
