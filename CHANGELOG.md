@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-16 — Reject new policy overrides before staging (Issue #69)
+
+Reproduce and fix host publication accepting a new AGENTS.override.md from writable source. Reject it before any index change; 14 authority/policy tests pass. Preserve the separate failed no-model minimal-root QA report: proc/host-secret isolation subchecks pass, but a future override file in writable cache can still be created despite its glob. Runtime certification remains blocked; no criterion was dropped or installed permission changed. See the policy dossier for exact evidence and remaining fresh-build/proc requirements.
+
 ## 2026-10-16 — Disabled host foundations follow-up checkpoint (Issue #69, incomplete)
 
 Preserve strict host-bound native usage, permanent inode-checked publication locking, raw scoped snapshot reads, sealed observed-snapshot production and original-policy preflight wiring. The stronger alternate-policy denial recipe intentionally invalidates older implementation proofs; installed configuration remains unchanged. Local suite: 517 tests, zero failures, six skipped; format/specs checks pass. Credo and real sandbox QA remain incomplete. Whole-run lifecycle, handoff, final committee and runtime activation remain pending. Retain active worktree and all unique evidence; no API69 gates, main integration or production changes.

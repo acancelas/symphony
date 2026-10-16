@@ -88,7 +88,7 @@ defmodule SymphonyElixir.GovernanceCandidatePublication do
       Enum.all?(
         Path.split(path),
         &(not String.starts_with?(&1, ".") and
-            &1 not in ~w(AGENTS.md WORKFLOW.md GOVERNANCE.md auth.json credentials.json secrets.json))
+            &1 not in ~w(AGENTS.md AGENTS.override.md WORKFLOW.md GOVERNANCE.md auth.json credentials.json secrets.json))
       )
   end
 

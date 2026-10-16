@@ -150,6 +150,17 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
     assert {:error, _} = GovernanceCandidatePublication.unchanged(ctx.context, tree)
   end
 
+  test "new override policies cannot be staged from writable source subtrees", ctx do
+    for relative <- ["elixir/lib/AGENTS.override.md", "elixir/test/nested/AGENTS.override.md"] do
+      path = Path.join(ctx.root, relative)
+      File.mkdir_p!(Path.dirname(path))
+      File.write!(path, "unapproved new override policy")
+      assert {:error, :governance_candidate_scope_rejected} = GovernanceCandidatePublication.stage(ctx.context)
+      assert {"", 0} = fixture_git(ctx.root, ["diff", "--cached", "--name-only"])
+      File.rm!(path)
+    end
+  end
+
   test "publication refuses created symlinks, protected aliases and tracked link deletions", ctx do
     link = ctx.root <> "/elixir/lib/alias"
     File.ln_s!("/outside-synthetic", link)
