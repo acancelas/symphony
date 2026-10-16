@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-16 — Correct policy scopes before independent acceptance (Issue #69)
+
+Correct the initial global scope label to GLOBAL, separate native global discovery from explicitly pinned additive BOS ancestors, and preserve scoped Git subtree originals. Add a conflicting-sibling regression. Seven policy tests and strict module Credo pass. Historical canary digests are not reused for changed scope material or the uncommitted new permission recipe; no activation or acceptance is granted.
+
 ## 2026-10-16 — Original policy preparation and synthetic model calibration (Issue #69, incomplete)
 
 Extend the existing PromptBuilder with exact-candidate original policy assembly, explicit host path/hash pins, scope labels, override/fallback precedence and fail-closed drift checks. Preserve every selected original byte. Six focused policy tests and strict module Credo pass. The helper remains disconnected from the primary broker; installed configuration and activation pins are unchanged.

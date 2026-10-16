@@ -29,7 +29,7 @@ defmodule SymphonyElixir.GovernancePolicyMaterialTest do
 
   test "original bytes and all candidate scopes are retained in ordered pinned material", ctx do
     assert {:ok, material} = PromptBuilder.governed_policy_material(ctx.context, ctx.configuration)
-    assert Enum.map(material.manifest, & &1["scope"]) == [ctx.configuration.auth_home, ".", "elixir", "elixir/lib/nested"]
+    assert Enum.map(material.manifest, & &1["scope"]) == ["GLOBAL", ".", "elixir", "elixir/lib/nested"]
 
     for text <- ["global original\n", "repository original\n", "elixir original\n", "nested original\n"] do
       assert String.contains?(material.prompt, text)
@@ -80,6 +80,28 @@ defmodule SymphonyElixir.GovernancePolicyMaterialTest do
     assert String.contains?(material.prompt, "repository original\n")
     assert String.contains?(material.prompt, "override original\n")
     refute String.contains?(material.prompt, "elixir original\n")
+  end
+
+  test "global scope covers the source workspace while conflicting siblings remain separate", ctx do
+    workspace = ctx.context.workspace
+    File.mkdir_p!(Path.join(workspace, "elixir/test"))
+    File.write!(Path.join(workspace, "elixir/test/AGENTS.md"), "TEST ONLY: use test-rule\n")
+    File.write!(Path.join(workspace, "elixir/lib/AGENTS.md"), "LIB ONLY: use lib-rule\n")
+    git(workspace, ["add", "."])
+    git(workspace, ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "siblings"])
+    {sha, 0} = git(workspace, ["rev-parse", "HEAD"])
+    assert {:ok, material} = PromptBuilder.governed_policy_material(%{ctx.context | sha: String.trim(sha)}, ctx.configuration)
+    global = hd(material.manifest)
+    assert global["scope"] == "GLOBAL"
+    assert global["scopeKind"] == "global"
+    assert global["path"] == Path.join(ctx.configuration.auth_home, "AGENTS.md")
+    assert Enum.any?(material.manifest, &(&1["scope"] == "elixir/lib" and &1["scopeKind"] == "repository-subtree"))
+    assert Enum.any?(material.manifest, &(&1["scope"] == "elixir/test" and &1["scopeKind"] == "repository-subtree"))
+    assert String.contains?(material.prompt, "GLOBAL applies to every operation")
+    assert String.contains?(material.prompt, "a sibling subtree policy never applies globally")
+    assert String.contains?(material.prompt, "TEST ONLY: use test-rule\n")
+    assert String.contains?(material.prompt, "LIB ONLY: use lib-rule\n")
+    assert String.contains?(material.prompt, workspace)
   end
 
   defp pin(path), do: %{"path" => path, "sha256" => Base.encode16(:crypto.hash(:sha256, File.read!(path)), case: :lower)}

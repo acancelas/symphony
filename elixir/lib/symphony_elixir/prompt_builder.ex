@@ -42,7 +42,7 @@ defmodule SymphonyElixir.PromptBuilder do
       entries = external ++ repository
       manifest = Enum.map(entries, &Map.drop(&1, ["text"]))
       digest = policy_digest(CanonicalJson.encode(manifest))
-      prompt = Enum.map_join(entries, "\n\n", &policy_message/1)
+      prompt = policy_scope_instructions(context.workspace) <> Enum.map_join(entries, "\n\n", &policy_message/1)
       {:ok, %{prompt: prompt, manifest: manifest, digest: digest}}
     else
       _ -> {:error, :governance_original_policy_material_rejected}
@@ -66,9 +66,17 @@ defmodule SymphonyElixir.PromptBuilder do
     pinned = Map.new(pins, &{&1["path"], &1["sha256"]})
 
     if global != [] and map_size(pinned) == length(pins) and Enum.sort(Map.keys(pinned)) == Enum.sort(selected) do
-      policy_entries(selected, fn path -> external_policy(path, pinned[path]) end)
+      policy_entries(selected, &scoped_external_policy(&1, pinned[&1], global))
     else
       {:error, :governance_external_policy_inventory_mismatch}
+    end
+  end
+
+  defp scoped_external_policy(path, expected, global) do
+    with {:ok, entry} <- external_policy(path, expected) do
+      if path in global,
+        do: {:ok, entry |> Map.put("scope", "GLOBAL") |> Map.put("scopeKind", "global")},
+        else: {:ok, Map.put(entry, "scopeKind", "bos-host-ancestor")}
     end
   end
 
@@ -168,7 +176,7 @@ defmodule SymphonyElixir.PromptBuilder do
          {:ok, ^absolute} <- PathSafety.canonicalize(absolute),
          {:ok, %{type: :regular, links: 1}} <- File.lstat(absolute),
          {:ok, ^bytes} <- File.read(absolute) do
-      {:ok, %{"path" => path, "scope" => Path.dirname(path), "source" => "git:" <> context.sha, "sha256" => policy_digest(bytes), "text" => bytes}}
+      {:ok, %{"path" => path, "scope" => Path.dirname(path), "source" => "git:" <> context.sha, "scopeKind" => "repository-subtree", "sha256" => policy_digest(bytes), "text" => bytes}}
     else
       _ -> {:error, :governance_repository_policy_drift}
     end
@@ -183,12 +191,29 @@ defmodule SymphonyElixir.PromptBuilder do
     end)
   end
 
+  defp policy_scope_instructions(workspace) do
+    """
+    Original policy scope rules for exact source workspace: #{workspace}
+    GLOBAL applies to every operation of this worker, including source paths outside CODEX_HOME.
+    A policy file location is provenance, not a restriction of global scope.
+    Repository subtree scopes are paths relative to this exact Git workspace.
+    For an operation on a source path, apply only repository scopes that are ancestors of that path;
+    a sibling subtree policy never applies globally or overrides another subtree.
+    Closer applicable repository scopes follow ancestor scopes.
+    bos-host-ancestor entries are additional, explicitly pinned BOS guards from recorded absolute ancestor scopes.
+    They apply only to this governed source workspace under those ancestors; they are not native Codex discovery
+    and are not Git policy objects of this candidate. They do not replace exact-candidate repository policies.
+    No policy expands host permissions or authorizes another project.
+
+    """
+  end
+
   defp policy_message(entry) do
     "# Original governed policy: " <>
       entry["path"] <>
       "\nScope: " <>
       entry["scope"] <>
-      "\nSource: " <> entry["source"] <> "\nSHA-256: " <> entry["sha256"] <> "\n\n" <> entry["text"]
+      "\nScope kind: " <> entry["scopeKind"] <> "\nSource: " <> entry["source"] <> "\nSHA-256: " <> entry["sha256"] <> "\n\n" <> entry["text"]
   end
 
   defp policy_digest(bytes), do: Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
