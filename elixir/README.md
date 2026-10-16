@@ -518,3 +518,9 @@ you.
 ## License
 
 This project is licensed under the [Apache License 2.0](../LICENSE).
+
+## Governed native policy preparation
+
+The opt-in private host configuration accepts `runtime.policy_sources` as an exact array of objects containing `path` and `sha256`, plus `runtime.policy_fallback_filenames`. Source policy originals come from the exact candidate Git objects and must match regular single-link working-tree files. Global scope is explicit; host-ancestor scope is an additional BOS guard; repository scopes are relative to the exact Git root and never apply to sibling subtrees. Missing material or drift fails before a primary model turn.
+
+The primary broker preparation disables automatic project document reading only while injecting complete pinned originals. It revalidates actual thread/start scope and persists a private host observation before model inference. Custom fallback names remain unsupported for primary execution until their permission recipe is certified. `AGENTS.override.md` protection changes the recipe and therefore invalidates older implementation proofs. Installed host configuration remains unchanged. These are incomplete bootstrap changes, with full sandbox QA and independent acceptance still pending; see [Issue 69](../docs/issues/69/original-policy-material.md).

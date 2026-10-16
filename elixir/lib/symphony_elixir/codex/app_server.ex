@@ -41,34 +41,42 @@ defmodule SymphonyElixir.Codex.AppServer do
   def start_session(workspace, opts \\ []) do
     worker_host = Keyword.get(opts, :worker_host)
     environment_overrides = validated_environment_overrides(Keyword.get(opts, :environment_overrides, []))
-    dynamic_tool_binding = DynamicTool.bind()
+    dynamic_tool_binding = Keyword.get_lazy(opts, :dynamic_tool_binding, &DynamicTool.bind/0)
+    managed = Keyword.get(opts, :managed_launch)
 
-    with {:ok, expanded_workspace} <- validate_workspace_cwd(workspace, worker_host),
-         {:ok, port} <- start_port(expanded_workspace, worker_host, dynamic_tool_binding, environment_overrides) do
+    with {:ok, expanded_workspace} <- validate_session_workspace(workspace, worker_host, managed),
+         {:ok, port} <-
+           start_session_port(expanded_workspace, worker_host, dynamic_tool_binding, environment_overrides, managed) do
       metadata = port_metadata(port, worker_host)
+      if managed, do: Process.put(:symphony_private_governance_stream, true)
 
-      with {:ok, session_policies} <- session_policies(expanded_workspace, worker_host),
-           {:ok, session_policies} <- override_turn_sandbox_policy(session_policies, opts),
-           {:ok, thread_id} <-
-             do_start_session(port, expanded_workspace, session_policies, dynamic_tool_binding) do
-        {:ok,
-         %{
-           port: port,
-           metadata: metadata,
-           approval_policy: session_policies.approval_policy,
-           auto_approve_requests: session_policies.approval_policy == "never",
-           thread_sandbox: session_policies.thread_sandbox,
-           turn_sandbox_policy: session_policies.turn_sandbox_policy,
-           thread_id: thread_id,
-           workspace: expanded_workspace,
-           worker_host: worker_host,
-           dynamic_tool_binding: dynamic_tool_binding
-         }}
-      else
-        {:error, reason} ->
-          stop_port(port)
-          {:error, reason}
-      end
+      initialize_session(port, expanded_workspace, worker_host, managed, dynamic_tool_binding, metadata, opts)
+    end
+  end
+
+  defp initialize_session(port, expanded_workspace, worker_host, managed, dynamic_tool_binding, metadata, opts) do
+    with {:ok, session_policies} <- session_policies_for(expanded_workspace, worker_host, managed),
+         {:ok, session_policies} <- override_turn_sandbox_policy(session_policies, opts),
+         {:ok, thread_id} <-
+           do_start_session(port, expanded_workspace, session_policies, dynamic_tool_binding, opts) do
+      {:ok,
+       %{
+         port: port,
+         metadata: metadata,
+         approval_policy: session_policies.approval_policy,
+         auto_approve_requests: session_policies.approval_policy == "never",
+         thread_sandbox: session_policies.thread_sandbox,
+         turn_sandbox_policy: session_policies.turn_sandbox_policy,
+         thread_id: thread_id,
+         workspace: expanded_workspace,
+         worker_host: worker_host,
+         dynamic_tool_binding: dynamic_tool_binding
+       }}
+    else
+      {:error, reason} ->
+        if managed, do: SymphonyElixir.GovernanceProcess.stop(port), else: stop_port(port)
+        Process.delete(:symphony_private_governance_stream)
+        {:error, reason}
     end
   end
 
@@ -95,7 +103,7 @@ defmodule SymphonyElixir.Codex.AppServer do
         DynamicTool.execute(tool, arguments, dynamic_tool_binding, issue: issue)
       end)
 
-    case start_turn(port, thread_id, prompt, issue, workspace, approval_policy, turn_sandbox_policy) do
+    case start_turn(port, thread_id, prompt, issue, workspace, approval_policy, turn_sandbox_policy, opts) do
       {:ok, turn_id} ->
         session_id = "#{thread_id}-#{turn_id}"
         Logger.info("Codex session started for #{issue_context(issue)} session_id=#{session_id}")
@@ -159,8 +167,65 @@ defmodule SymphonyElixir.Codex.AppServer do
 
   @spec stop_session(session()) :: :ok
   def stop_session(%{port: port}) when is_port(port) do
-    stop_port(port)
+    if Process.get(:symphony_private_governance_stream),
+      do: SymphonyElixir.GovernanceProcess.stop(port),
+      else: stop_port(port)
+
+    Process.delete(:symphony_private_governance_stream)
   end
+
+  @doc false
+  @spec host_request(port(), String.t(), map()) :: {:ok, term()} | {:error, term()}
+  def host_request(port, method, params) do
+    id = System.unique_integer([:positive]) + 100_000
+    send_message(port, %{"id" => id, "method" => method, "params" => params})
+
+    case await_response(port, id) do
+      {:ok, result} -> {:ok, result}
+      _ -> {:error, :governance_app_server_request_failed}
+    end
+  end
+
+  defp validate_session_workspace(workspace, host, nil), do: validate_workspace_cwd(workspace, host)
+
+  defp validate_session_workspace(workspace, nil, managed) do
+    with {:ok, actual} <- PathSafety.canonicalize(workspace),
+         true <-
+           Enum.any?(managed.allowed_workspace_roots, fn root ->
+             actual == root or String.starts_with?(actual, root <> "/")
+           end) do
+      {:ok, actual}
+    else
+      _ -> {:error, :governance_workspace_outside_host_policy}
+    end
+  end
+
+  defp validate_session_workspace(_, _, _), do: {:error, :governance_remote_worker_unavailable}
+
+  defp start_session_port(workspace, host, binding, overrides, nil), do: start_port(workspace, host, binding, overrides)
+
+  defp start_session_port(workspace, nil, _binding, _overrides, managed) do
+    unset = System.get_env() |> Map.keys() |> Enum.map(&{String.to_charlist(&1), false})
+
+    selected =
+      Enum.map(managed.environment, fn {key, value} -> {String.to_charlist(key), String.to_charlist(value)} end)
+
+    {:ok,
+     Port.open({:spawn_executable, String.to_charlist(managed.executable)}, [
+       :binary,
+       :exit_status,
+       :stderr_to_stdout,
+       line: @port_line_bytes,
+       args: Enum.map(managed.arguments, &String.to_charlist/1),
+       cd: String.to_charlist(workspace),
+       env: unset ++ selected
+     ])}
+  end
+
+  defp session_policies_for(workspace, host, nil), do: session_policies(workspace, host)
+
+  defp session_policies_for(_, _, managed),
+    do: {:ok, %{approval_policy: "never", thread_sandbox: nil, turn_sandbox_policy: nil, permissions: managed.permissions}}
 
   defp validate_workspace_cwd(workspace, nil) when is_binary(workspace) do
     expanded_workspace = Path.expand(workspace)
@@ -359,35 +424,43 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp do_start_session(port, workspace, session_policies, dynamic_tool_binding) do
-    case send_initialize(port) do
-      :ok -> start_thread(port, workspace, session_policies, dynamic_tool_binding)
-      {:error, reason} -> {:error, reason}
+  defp do_start_session(port, workspace, session_policies, dynamic_tool_binding, opts) do
+    with :ok <- send_initialize(port),
+         :ok <- Keyword.get(opts, :host_preflight, fn _ -> :ok end).(port) do
+      start_thread(port, workspace, session_policies, dynamic_tool_binding, opts)
     end
   end
 
   defp start_thread(
          port,
          workspace,
-         %{approval_policy: approval_policy, thread_sandbox: thread_sandbox},
-         dynamic_tool_binding
+         %{approval_policy: approval_policy, thread_sandbox: thread_sandbox} = policies,
+         dynamic_tool_binding,
+         opts
        ) do
+    params = %{
+      "approvalPolicy" => approval_policy,
+      "cwd" => workspace,
+      "dynamicTools" => dynamic_tool_binding.tool_specs
+    }
+
+    params =
+      if policies[:permissions],
+        do: Map.put(params, "permissions", policies.permissions),
+        else: Map.put(params, "sandbox", thread_sandbox)
+
+    params = Map.merge(params, Keyword.get(opts, :thread_parameters, %{}))
+
     send_message(port, %{
       "method" => "thread/start",
       "id" => @thread_start_id,
-      "params" => %{
-        "approvalPolicy" => approval_policy,
-        "sandbox" => thread_sandbox,
-        "cwd" => workspace,
-        "dynamicTools" => dynamic_tool_binding.tool_specs
-      }
+      "params" => params
     })
 
     case await_response(port, @thread_start_id) do
-      {:ok, %{"thread" => thread_payload}} ->
-        case thread_payload do
-          %{"id" => thread_id} -> {:ok, thread_id}
-          _ -> {:error, {:invalid_thread_payload, thread_payload}}
+      {:ok, %{"thread" => thread_payload} = response} ->
+        with :ok <- verify_host_thread_response(port, response, opts) do
+          thread_identifier(thread_payload)
         end
 
       other ->
@@ -395,23 +468,46 @@ defmodule SymphonyElixir.Codex.AppServer do
     end
   end
 
-  defp start_turn(port, thread_id, prompt, issue, workspace, approval_policy, turn_sandbox_policy) do
+  defp thread_identifier(%{"id" => thread_id}), do: {:ok, thread_id}
+  defp thread_identifier(payload), do: {:error, {:invalid_thread_payload, payload}}
+
+  defp verify_host_thread_response(port, response, opts) do
+    case Keyword.get(opts, :host_thread_preflight) do
+      nil ->
+        :ok
+
+      callback when is_function(callback, 2) ->
+        case callback.(port, response) do
+          :ok -> :ok
+          {:error, _} = error -> error
+          _ -> {:error, :host_thread_preflight_rejected}
+        end
+
+      _ ->
+        {:error, :host_thread_preflight_invalid}
+    end
+  rescue
+    _ -> {:error, :host_thread_preflight_failed}
+  catch
+    _, _ -> {:error, :host_thread_preflight_failed}
+  end
+
+  defp start_turn(port, thread_id, prompt, issue, workspace, approval_policy, turn_sandbox_policy, opts) do
+    params = %{
+      "threadId" => thread_id,
+      "input" => [%{"type" => "text", "text" => prompt}],
+      "cwd" => workspace,
+      "title" => "#{issue.identifier}: #{issue.title}",
+      "approvalPolicy" => approval_policy
+    }
+
+    params = if turn_sandbox_policy, do: Map.put(params, "sandboxPolicy", turn_sandbox_policy), else: params
+    params = if opts[:output_schema], do: Map.put(params, "outputSchema", opts[:output_schema]), else: params
+
     send_message(port, %{
       "method" => "turn/start",
       "id" => @turn_start_id,
-      "params" => %{
-        "threadId" => thread_id,
-        "input" => [
-          %{
-            "type" => "text",
-            "text" => prompt
-          }
-        ],
-        "cwd" => workspace,
-        "title" => "#{issue.identifier}: #{issue.title}",
-        "approvalPolicy" => approval_policy,
-        "sandboxPolicy" => turn_sandbox_policy
-      }
+      "params" => params
     })
 
     case await_response(port, @turn_start_id) do
@@ -1111,7 +1207,9 @@ defmodule SymphonyElixir.Codex.AppServer do
         {:error, {:response_error, response_payload}}
 
       {:ok, %{} = other} ->
-        Logger.debug("Ignoring message while waiting for response: #{inspect(other)}")
+        if Process.get(:symphony_private_governance_stream) != true,
+          do: Logger.debug("Ignoring message while waiting for response: #{inspect(other)}")
+
         with_timeout_response(port, request_id, timeout_ms, "")
 
       {:error, _} ->
@@ -1127,7 +1225,7 @@ defmodule SymphonyElixir.Codex.AppServer do
       |> String.trim()
       |> String.slice(0, @max_stream_log_bytes)
 
-    if text != "" do
+    if text != "" and Process.get(:symphony_private_governance_stream) != true do
       if String.match?(text, ~r/\b(error|warn|warning|failed|fatal|panic|exception)\b/i) do
         Logger.warning("Codex #{stream_label} output: #{text}")
       else

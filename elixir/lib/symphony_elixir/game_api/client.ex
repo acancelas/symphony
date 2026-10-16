@@ -256,6 +256,32 @@ defmodule SymphonyElixir.GameApi.Client do
     end
   end
 
+  @spec start_coordination(Issue.t()) :: {:ok, Issue.t()} | {:error, term()}
+  def start_coordination(%Issue{native_ref: native} = issue) do
+    number = native["issueNumber"]
+
+    with :ok <- SymphonyElixir.GovernanceTransport.require_repository(native["repositoryId"]),
+         {:ok, repository} <- find_repository(native["repositoryId"]) do
+      case fetch_run(native["repositoryId"], native["runId"]) do
+        {:ok, %{"issueNumber" => ^number}} ->
+          {:ok, issue}
+
+        {:ok, _} ->
+          {:error, :governance_run_issue_mismatch}
+
+        {:error, {:game_api_http_error, 404}} ->
+          record_coordination_run(repository, issue, native)
+
+        error ->
+          error
+      end
+    end
+  end
+
+  defp record_coordination_run(repository, issue, native) do
+    with {:ok, _} <- record_run(repository, issue, native["runId"], native["issueNumber"], nil, nil), do: {:ok, issue}
+  end
+
   @spec start_execution(Issue.t(), pos_integer()) :: {:ok, String.t()} | {:error, term()}
   def start_execution(%Issue{native_ref: native_ref} = issue, attempt_number)
       when is_integer(attempt_number) and attempt_number > 0 do
@@ -292,12 +318,23 @@ defmodule SymphonyElixir.GameApi.Client do
     configured_repositories = repositories(tracker_settings)
 
     cond do
-      blank?(endpoint(tracker_settings)) -> {:error, :missing_game_api_endpoint}
-      blank?(System.get_env("BOS_API_INTERNAL_TOKEN")) -> {:error, :missing_game_api_token}
-      blank?(System.get_env("BOS_API_TARGET_PROJECT_ID")) -> {:error, :missing_game_api_target_project_id}
-      configured_repositories == [] -> {:error, :missing_game_api_repositories}
-      Enum.any?(configured_repositories, &invalid_repository?/1) -> {:error, :invalid_game_api_repository}
-      true -> :ok
+      blank?(endpoint(tracker_settings)) ->
+        {:error, :missing_game_api_endpoint}
+
+      blank?(System.get_env("BOS_API_INTERNAL_TOKEN")) and not Enum.all?(configured_repositories, &(SymphonyElixir.GovernanceTransport.require_repository(&1["repository_id"]) == :ok)) ->
+        {:error, :missing_game_api_token}
+
+      blank?(System.get_env("BOS_API_TARGET_PROJECT_ID")) ->
+        {:error, :missing_game_api_target_project_id}
+
+      configured_repositories == [] ->
+        {:error, :missing_game_api_repositories}
+
+      Enum.any?(configured_repositories, &invalid_repository?/1) ->
+        {:error, :invalid_game_api_repository}
+
+      true ->
+        :ok
     end
   end
 
@@ -329,7 +366,10 @@ defmodule SymphonyElixir.GameApi.Client do
         retry: false
       )
 
-    with :ok <- ProviderCircuit.before_request(provider_circuit_scope) do
+    with {:ok, scoped_headers} <- SymphonyElixir.GovernanceTransport.for_request(options, headers),
+         :ok <- ProviderCircuit.before_request(provider_circuit_scope) do
+      options = Keyword.put(options, :headers, scoped_headers)
+
       case http_client_module().request(Keyword.merge(options, method: method, url: url)) do
         {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
           ProviderCircuit.succeeded(provider_circuit_scope)
@@ -581,18 +621,22 @@ defmodule SymphonyElixir.GameApi.Client do
          :existing,
          :existing
        ) do
-    with {:ok, event} <-
-           lifecycle_event(
-             repository,
-             issue,
-             run_id,
-             attempt_id,
-             run,
-             "recovery.resumed",
-             "Existing AgentRun and Attempt selected for idempotent restart recovery."
-           ),
-         {:ok, _receipt} <- append_recovery_event(repository, event) do
+    if SymphonyElixir.GovernanceTransport.configured?(repository["repository_id"]) do
       :ok
+    else
+      with {:ok, event} <-
+             lifecycle_event(
+               repository,
+               issue,
+               run_id,
+               attempt_id,
+               run,
+               "recovery.resumed",
+               "Existing AgentRun and Attempt selected for idempotent restart recovery."
+             ),
+           {:ok, _receipt} <- append_recovery_event(repository, event) do
+        :ok
+      end
     end
   end
 
@@ -621,22 +665,23 @@ defmodule SymphonyElixir.GameApi.Client do
   defp record_artifact(repository, issue_number, run_id, kind, artifact, event) do
     operation_id = event["operationId"]
 
-    request(:post, "/v1/internal/bos/delivery/artifacts",
-      json: %{
+    body = %{
+      "repository" => repository_body(repository),
+      "issueNumber" => issue_number,
+      "operationId" => operation_id,
+      "runId" => run_id,
+      "kind" => kind,
+      "artifact" => artifact,
+      "auditBatch" => %{
+        "operationId" => "append_#{operation_id}",
+        "batchId" => "batch_#{operation_id}",
         "repository" => repository_body(repository),
-        "issueNumber" => issue_number,
-        "operationId" => operation_id,
-        "runId" => run_id,
-        "kind" => kind,
-        "artifact" => artifact,
-        "auditBatch" => %{
-          "operationId" => "append_#{operation_id}",
-          "batchId" => "batch_#{operation_id}",
-          "repository" => repository_body(repository),
-          "events" => [event]
-        }
+        "events" => [event]
       }
-    )
+    }
+
+    body = if SymphonyElixir.GovernanceTransport.configured?(repository["repository_id"]), do: Map.delete(body, "auditBatch"), else: body
+    request(:post, "/v1/internal/bos/delivery/artifacts", json: body)
   end
 
   defp list_artifacts(repository, run_id, directory) do
@@ -649,7 +694,7 @@ defmodule SymphonyElixir.GameApi.Client do
     sequence = (chain["lastSequence"] || 0) + 1
     previous_hash = chain["lastEventHash"]
     suffix = event_type |> String.replace(".", "_") |> String.replace("-", "_")
-    operation_id = "#{suffix}_#{attempt_id}"
+    operation_id = "#{suffix}_#{attempt_id || "coordination_#{run_id}"}"
     occurred_at = DateTime.utc_now() |> DateTime.truncate(:millisecond) |> DateTime.to_iso8601()
 
     event = %{
