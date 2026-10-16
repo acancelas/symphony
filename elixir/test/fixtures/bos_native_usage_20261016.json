@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "sourceReportSha256": "fdb85942a3865d2bfecdca844ca24e91f6f3f877401aaee5f9b142f4f571d932",
+  "nativeThreadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+  "nativeTurnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+  "bindingProvenance": "Token usage fields unchanged from host-observed native events. Thread/turn envelope reconstructed from same host report nativeThreadId/nativeSessionId, not a raw transport transcript.",
+  "scope": "Synthetic replay test of actual native counters only; not whole-run ledger/authority certification",
+  "events": [
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+        "turnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+        "tokenUsage": {
+          "last": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 0,
+            "inputTokens": 18405,
+            "outputTokens": 63,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 18468
+          },
+          "modelContextWindow": 475000,
+          "total": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 0,
+            "inputTokens": 18405,
+            "outputTokens": 63,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 18468
+          }
+        }
+      }
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+        "turnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+        "tokenUsage": {
+          "last": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 18176,
+            "inputTokens": 28680,
+            "outputTokens": 61,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 28741
+          },
+          "modelContextWindow": 475000,
+          "total": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 18176,
+            "inputTokens": 47085,
+            "outputTokens": 124,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 47209
+          }
+        }
+      }
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+        "turnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+        "tokenUsage": {
+          "last": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 28544,
+            "inputTokens": 37892,
+            "outputTokens": 177,
+            "reasoningOutputTokens": 16,
+            "totalTokens": 38069
+          },
+          "modelContextWindow": 475000,
+          "total": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 46720,
+            "inputTokens": 84977,
+            "outputTokens": 301,
+            "reasoningOutputTokens": 16,
+            "totalTokens": 85278
+          }
+        }
+      }
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+        "turnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+        "tokenUsage": {
+          "last": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 37760,
+            "inputTokens": 38150,
+            "outputTokens": 47,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 38197
+          },
+          "modelContextWindow": 475000,
+          "total": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 84480,
+            "inputTokens": 123127,
+            "outputTokens": 348,
+            "reasoningOutputTokens": 16,
+            "totalTokens": 123475
+          }
+        }
+      }
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+        "turnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+        "tokenUsage": {
+          "last": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 38016,
+            "inputTokens": 53792,
+            "outputTokens": 129,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 53921
+          },
+          "modelContextWindow": 475000,
+          "total": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 122496,
+            "inputTokens": 176919,
+            "outputTokens": 477,
+            "reasoningOutputTokens": 16,
+            "totalTokens": 177396
+          }
+        }
+      }
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+        "turnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+        "tokenUsage": {
+          "last": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 53632,
+            "inputTokens": 61384,
+            "outputTokens": 199,
+            "reasoningOutputTokens": 16,
+            "totalTokens": 61583
+          },
+          "modelContextWindow": 475000,
+          "total": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 176128,
+            "inputTokens": 238303,
+            "outputTokens": 676,
+            "reasoningOutputTokens": 32,
+            "totalTokens": 238979
+          }
+        }
+      }
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+        "turnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+        "tokenUsage": {
+          "last": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 61184,
+            "inputTokens": 71491,
+            "outputTokens": 171,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 71662
+          },
+          "modelContextWindow": 475000,
+          "total": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 237312,
+            "inputTokens": 309794,
+            "outputTokens": 847,
+            "reasoningOutputTokens": 32,
+            "totalTokens": 310641
+          }
+        }
+      }
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1431e-71b5-7730-83aa-c7929670b19c",
+        "turnId": "01a1431e-72ed-7192-8551-8b9eebb4696a",
+        "tokenUsage": {
+          "last": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 71296,
+            "inputTokens": 75714,
+            "outputTokens": 926,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 76640
+          },
+          "modelContextWindow": 475000,
+          "total": {
+            "cacheWriteInputTokens": 0,
+            "cachedInputTokens": 308608,
+            "inputTokens": 385508,
+            "outputTokens": 1773,
+            "reasoningOutputTokens": 32,
+            "totalTokens": 387281
+          }
+        }
+      }
+    }
+  ]
+}

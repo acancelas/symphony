@@ -2,6 +2,7 @@ defmodule SymphonyElixir.GovernanceBuildReceipt do
   @moduledoc "Verifies a host-pinned full build receipt and its files before launching privileged code."
   alias SymphonyElixir.PathSafety
 
+  @spec verify(String.t(), String.t(), String.t()) :: {:ok, map()} | {:error, atom()}
   def verify(root, path, expected_sha256) do
     with {:ok, root} <- PathSafety.canonicalize(root),
          {:ok, bytes} <- File.read(path),
@@ -19,8 +20,13 @@ defmodule SymphonyElixir.GovernanceBuildReceipt do
     _ -> {:error, :governance_build_receipt_rejected}
   end
 
+  @spec file_digest(String.t()) :: String.t()
   def file_digest(path) do
-    path |> File.stream!([], 65_536) |> Enum.reduce(:crypto.hash_init(:sha256), &:crypto.hash_update(&2, &1)) |> :crypto.hash_final() |> Base.encode16(case: :lower)
+    path
+    |> File.stream!([], 65_536)
+    |> Enum.reduce(:crypto.hash_init(:sha256), &:crypto.hash_update(&2, &1))
+    |> :crypto.hash_final()
+    |> Base.encode16(case: :lower)
   end
 
   defp digest(bytes), do: Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
@@ -47,15 +53,20 @@ defmodule SymphonyElixir.GovernanceBuildReceipt do
         {:ok, resolved, cache}
 
       :error ->
-        with {:ok, parent, cache} <- resolve_entry(root, Path.dirname(path), cache),
-             candidate = Path.join(parent, Path.basename(path)),
-             {:ok, stat} <- File.lstat(candidate),
-             {:ok, resolved} <- if(stat.type == :symlink, do: PathSafety.canonicalize(candidate), else: {:ok, candidate}),
-             true <- String.starts_with?(resolved, root <> "/") do
-          {:ok, resolved, Map.put(cache, path, resolved)}
-        else
-          _ -> {:error, :receipt_path_rejected}
-        end
+        resolve_uncached_entry(root, path, cache)
+    end
+  end
+
+  defp resolve_uncached_entry(root, path, cache) do
+    with {:ok, parent, cache} <- resolve_entry(root, Path.dirname(path), cache),
+         candidate = Path.join(parent, Path.basename(path)),
+         {:ok, stat} <- File.lstat(candidate),
+         {:ok, resolved} <-
+           if(stat.type == :symlink, do: PathSafety.canonicalize(candidate), else: {:ok, candidate}),
+         true <- String.starts_with?(resolved, root <> "/") do
+      {:ok, resolved, Map.put(cache, path, resolved)}
+    else
+      _ -> {:error, :receipt_path_rejected}
     end
   end
 

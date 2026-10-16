@@ -1,6 +1,11 @@
 defmodule SymphonyElixir.GovernanceHostExecutionTest do
   use ExUnit.Case, async: true
-  alias SymphonyElixir.{GovernanceBuildReceipt, GovernanceHostStore, GovernanceExecutionJournal, GovernanceProcess, GovernanceWorkspaceProfile}
+
+  alias SymphonyElixir.GovernanceBuildReceipt
+  alias SymphonyElixir.GovernanceExecutionJournal
+  alias SymphonyElixir.GovernanceHostStore
+  alias SymphonyElixir.GovernanceProcess
+  alias SymphonyElixir.GovernanceWorkspaceProfile
 
   setup do
     root = Path.join(System.tmp_dir!(), "bos-host-store-#{System.unique_integer([:positive])}")
@@ -13,7 +18,9 @@ defmodule SymphonyElixir.GovernanceHostExecutionTest do
     end)
 
     python = "/usr/bin/python3"
-    {:ok, root: root, store: %{journal_root: root, python_executable: python, python_sha256: GovernanceBuildReceipt.file_digest(python)}}
+
+    store = %{journal_root: root, python_executable: python, python_sha256: GovernanceBuildReceipt.file_digest(python)}
+    {:ok, root: root, store: store}
   end
 
   defp execution_binding,
@@ -44,7 +51,9 @@ defmodule SymphonyElixir.GovernanceHostExecutionTest do
           Port.open({:spawn_executable, ~c"/usr/bin/cat"}, [
             :binary,
             :exit_status,
-            {:env, Enum.map(System.get_env(), fn {k, _} -> {String.to_charlist(k), false} end) ++ [{~c"BOS_HOST_WORKER_MARKER", String.to_charlist(launch.marker)}]}
+            {:env,
+             Enum.map(System.get_env(), fn {k, _} -> {String.to_charlist(k), false} end) ++
+               [{~c"BOS_HOST_WORKER_MARKER", String.to_charlist(launch.marker)}]}
           ])
 
         {:ok, witness} = GovernanceExecutionJournal.attach(store, execution_binding(), port, launch)
@@ -55,7 +64,10 @@ defmodule SymphonyElixir.GovernanceHostExecutionTest do
         end
 
         GovernanceProcess.stop(port)
-        {:ok, %{"record" => %{"state" => "COMPLETED"}}} = GovernanceExecutionJournal.transition(store, execution_binding(), "finish")
+
+        {:ok, %{"record" => %{"state" => "COMPLETED"}}} =
+          GovernanceExecutionJournal.transition(store, execution_binding(), "finish")
+
         GovernanceHostStore.release(launch.lease)
         send(parent, :finished)
       end)
@@ -69,7 +81,9 @@ defmodule SymphonyElixir.GovernanceHostExecutionTest do
 
     assert {:error, _} = GovernanceExecutionJournal.spawn_once(store, execution_binding())
     # A claimant with a new invocation cannot rotate the logical reservation key.
-    assert {:error, _} = GovernanceExecutionJournal.spawn_once(store, Map.put(execution_binding(), "hostInvocationId", "other"))
+    assert {:error, _} =
+             GovernanceExecutionJournal.spawn_once(store, Map.put(execution_binding(), "hostInvocationId", "other"))
+
     send(owner, :resume)
     assert_receive {:attached, %{"pid" => pid, "startTicks" => ticks}, port}, 5000
     on_exit(fn -> GovernanceProcess.stop(port) end)
@@ -84,7 +98,10 @@ defmodule SymphonyElixir.GovernanceHostExecutionTest do
     {:ok, launch} = GovernanceExecutionJournal.spawn_once(store, execution_binding())
     GovernanceHostStore.release(launch.lease)
     assert {:error, _} = GovernanceExecutionJournal.spawn_once(store, execution_binding())
-    assert {:ok, %{"record" => %{"state" => "SPAWN_INTENT"}}} = GovernanceExecutionJournal.transition(store, execution_binding(), "read")
+
+    assert {:ok, %{"record" => %{"state" => "SPAWN_INTENT"}}} =
+             GovernanceExecutionJournal.transition(store, execution_binding(), "read")
+
     assert {:ok, _} = GovernanceExecutionJournal.transition(store, execution_binding(), "fence")
     assert {:error, _} = GovernanceExecutionJournal.spawn_once(store, execution_binding())
   end
@@ -95,7 +112,14 @@ defmodule SymphonyElixir.GovernanceHostExecutionTest do
     File.write!(record, "{\"record\":{},\"sha256\":\"forged\"}")
     assert {:error, _} = GovernanceExecutionJournal.transition(store, execution_binding(), "read")
     File.write!(Path.join(root, ".pending"), "prepared transaction with unknown outcome")
-    assert {:error, _} = GovernanceHostStore.request(store, %{"kind" => "observation", "id" => String.duplicate("a", 64), "command" => "create", "record" => %{}})
+
+    assert {:error, _} =
+             GovernanceHostStore.request(store, %{
+               "kind" => "observation",
+               "id" => String.duplicate("a", 64),
+               "command" => "create",
+               "record" => %{}
+             })
   end
 
   test "pre-existing writable symlinks fail before native launch", %{root: root} do
@@ -104,10 +128,22 @@ defmodule SymphonyElixir.GovernanceHostExecutionTest do
     assert {:error, :governance_workspace_boundary_rejected} = GovernanceWorkspaceProfile.build(root, "/pinned-vendor")
   end
 
-  test "observation writes are immutable, survive helper restart, and reject symlink parents", %{store: store, root: root} do
-    operation = %{"kind" => "observation", "id" => String.duplicate("b", 64), "command" => "create", "record" => %{"probe" => "original"}}
+  test "observation writes are immutable, survive helper restart, and reject symlink parents", %{
+    store: store,
+    root: root
+  } do
+    operation = %{
+      "kind" => "observation",
+      "id" => String.duplicate("b", 64),
+      "command" => "create",
+      "record" => %{"probe" => "original"}
+    }
+
     assert {:ok, %{"transitioned" => true}} = GovernanceHostStore.request(store, operation)
-    assert {:ok, %{"transitioned" => false, "record" => %{"probe" => "original"}}} = GovernanceHostStore.request(store, operation)
+
+    assert {:ok, %{"transitioned" => false, "record" => %{"probe" => "original"}}} =
+             GovernanceHostStore.request(store, operation)
+
     assert {:error, _} = GovernanceHostStore.request(store, put_in(operation, ["record", "probe"], "altered"))
     alias_path = root <> "-alias"
     File.ln_s!(root, alias_path)

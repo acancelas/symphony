@@ -13,7 +13,13 @@ defmodule SymphonyElixir.GovernanceBuildReceiptTest do
     end)
 
     File.write!(root <> "/module", "trusted")
-    bytes = Jason.encode!(%{"files" => %{"module" => GovernanceBuildReceipt.file_digest(root <> "/module")}, "sealedDirectories" => ["."]})
+
+    bytes =
+      Jason.encode!(%{
+        "files" => %{"module" => GovernanceBuildReceipt.file_digest(root <> "/module")},
+        "sealedDirectories" => ["."]
+      })
+
     File.write!(receipt, bytes)
     digest = Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
     assert {:ok, _} = GovernanceBuildReceipt.verify(root, receipt, digest)
@@ -28,7 +34,13 @@ defmodule SymphonyElixir.GovernanceBuildReceiptTest do
     entry = Path.join(root, "dist/entry.js")
     File.write!(entry, "safe-pinned-build")
     receipt = Path.join(root, "receipt.json")
-    bytes = Jason.encode!(%{"files" => %{"dist/entry.js" => GovernanceBuildReceipt.file_digest(entry)}, "sealedDirectories" => ["dist"]})
+
+    bytes =
+      Jason.encode!(%{
+        "files" => %{"dist/entry.js" => GovernanceBuildReceipt.file_digest(entry)},
+        "sealedDirectories" => ["dist"]
+      })
+
     File.write!(receipt, bytes)
     digest = Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
     assert {:ok, _} = GovernanceBuildReceipt.verify(root, receipt, digest)

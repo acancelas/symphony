@@ -1,6 +1,8 @@
 defmodule SymphonyElixir.GovernanceCoordinatorTest do
   use ExUnit.Case, async: true
-  alias SymphonyElixir.{GovernanceCatalog, GovernanceCoordinator, GovernanceSession}
+  alias SymphonyElixir.GovernanceCatalog
+  alias SymphonyElixir.GovernanceCoordinator
+  alias SymphonyElixir.GovernanceSession
   alias SymphonyElixir.Tracker.Issue
 
   defmodule Client do
@@ -8,10 +10,20 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
   end
 
   defmodule Broker do
-    def capabilities(_, _), do: {:ok, %{read_only: :enforced, tool_allowlist: :enforced, minimal_environment: :enforced, read_roots: :enforced, private_mcp_credentials: :enforced}}
+    def capabilities(_, _),
+      do:
+        {:ok,
+         %{
+           read_only: :enforced,
+           tool_allowlist: :enforced,
+           minimal_environment: :enforced,
+           read_roots: :enforced,
+           private_mcp_credentials: :enforced
+         }}
 
     @behaviour GovernanceSession
-    def identity(context, role), do: {:ok, %{machine_id: "verified-" <> role, role: role, repository_id: context.issue.native_ref["repositoryId"]}}
+    def identity(context, role),
+      do: {:ok, %{machine_id: "verified-" <> role, role: role, repository_id: context.issue.native_ref["repositoryId"]}}
 
     def run(context, role, prompt, policy) do
       [_, json] = Regex.run(~r/Required artifact base: (.*)\. Add a concise/, prompt)
@@ -34,19 +46,37 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
           state =
             case event do
               "candidate" ->
-                put_in(state, ["phases", context.phase], Map.merge(artifact, %{"votes" => %{}, "verdict" => nil, "exception" => nil}))
+                put_in(
+                  state,
+                  ["phases", context.phase],
+                  Map.merge(artifact, %{"votes" => %{}, "verdict" => nil, "exception" => nil})
+                )
 
               "round_started" ->
-                state |> put_in(["phases", context.phase, "round"], artifact["round"]) |> put_in(["counters", context.phase], artifact["round"])
+                state
+                |> put_in(["phases", context.phase, "round"], artifact["round"])
+                |> put_in(["counters", context.phase], artifact["round"])
 
               "applicability" ->
-                put_in(state, ["phases", context.phase, "votes", role], Map.merge(artifact, %{"applicable" => false, "summary" => "No affected flow"}))
+                put_in(
+                  state,
+                  ["phases", context.phase, "votes", role],
+                  Map.merge(artifact, %{"applicable" => false, "summary" => "No affected flow"})
+                )
 
               "verdict" ->
-                put_in(state, ["phases", context.phase, "verdict"], Map.merge(artifact, %{"status" => "passed", "verdict" => "APPROVED"}))
+                put_in(
+                  state,
+                  ["phases", context.phase, "verdict"],
+                  Map.merge(artifact, %{"status" => "passed", "verdict" => "APPROVED"})
+                )
 
               "exception" ->
-                put_in(state, ["phases", context.phase, "exception"], Map.put(artifact, "summary", "Independent evidence justifies one final review"))
+                put_in(
+                  state,
+                  ["phases", context.phase, "exception"],
+                  Map.put(artifact, "summary", "Independent evidence justifies one final review")
+                )
 
               "readiness" ->
                 Map.put(state, "readiness", Map.merge(artifact, %{"status" => "passed", "state" => "READY"}))
@@ -66,8 +96,16 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
   end
 
   setup do
-    roles = Enum.map(~w(business-challenger product cro seo ux legal security architecture qa operations), &%{"id" => &1, "kind" => "specialist"})
-    issue = %Issue{id: "symphony#69", native_ref: %{"repositoryId" => "symphony", "issueNumber" => 69, "runId" => "run_69"}}
+    roles =
+      Enum.map(
+        ~w(business-challenger product cro seo ux legal security architecture qa operations),
+        &%{"id" => &1, "kind" => "specialist"}
+      )
+
+    issue = %Issue{
+      id: "symphony#69",
+      native_ref: %{"repositoryId" => "symphony", "issueNumber" => 69, "runId" => "run_69"}
+    }
 
     context = %{
       workspace: "/unused",
@@ -82,7 +120,12 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
       sha: String.duplicate("b", 40)
     }
 
-    state = %{"counters" => %{"planning" => 0, "implementation" => 0, "technical" => 8, "transport" => 5}, "phases" => %{}, "readiness" => nil}
+    state = %{
+      "counters" => %{"planning" => 0, "implementation" => 0, "technical" => 8, "transport" => 5},
+      "phases" => %{},
+      "readiness" => nil
+    }
+
     Process.put(:gov_state, state)
     %{context: context, state: state}
   end
@@ -128,7 +171,10 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
 
   test "model success without durable receipt cannot advance", %{context: c, state: s} do
     Process.put(:gov_missing, "candidate")
-    assert {:error, {:governance_receipt_missing, "candidate", "task-orchestrator", _}} = GovernanceCoordinator.resume(c, s)
+
+    assert {:error, {:governance_receipt_missing, "candidate", "task-orchestrator", _}} =
+             GovernanceCoordinator.resume(c, s)
+
     assert get_in(Process.get(:gov_state), ["counters", "planning"]) == 0
   end
 
@@ -147,7 +193,10 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
     s = put_in(s, ["counters", "planning"], 2)
     Process.put(:gov_state, s)
     Process.put(:gov_missing, "exception")
-    assert {:error, {:governance_receipt_missing, "exception", "governance-arbiter", _}} = GovernanceCoordinator.resume(c, s)
+
+    assert {:error, {:governance_receipt_missing, "exception", "governance-arbiter", _}} =
+             GovernanceCoordinator.resume(c, s)
+
     assert get_in(Process.get(:gov_state), ["counters", "planning"]) == 2
   end
 
@@ -172,12 +221,20 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
   end
 
   test "shared actor routing is not an authentication fallback", %{context: c} do
-    assert {:error, :governance_m2m_broker_unavailable} = GovernanceSession.run(%{c | broker: nil}, "security", "review", %{})
+    assert {:error, :governance_m2m_broker_unavailable} =
+             GovernanceSession.run(%{c | broker: nil}, "security", "review", %{})
   end
 
   test "missing broker stops before Git candidate publication", %{context: c} do
     assert {:error, :governance_m2m_broker_unavailable} =
-             GovernanceCoordinator.run(:planning, "/must-not-touch", c.issue, nil, [governance_enabled: true, governance_session_broker: nil], nil)
+             GovernanceCoordinator.run(
+               :planning,
+               "/must-not-touch",
+               c.issue,
+               nil,
+               [governance_enabled: true, governance_session_broker: nil],
+               nil
+             )
   end
 
   test "catalog fails closed without exact pinned Git object" do
@@ -187,6 +244,9 @@ defmodule SymphonyElixir.GovernanceCoordinatorTest do
   end
 
   test "readOnly without secret and read-root isolation cannot start a reviewer", %{context: c} do
-    assert {:error, :governance_isolation_unavailable} = GovernanceSession.run(%{c | broker: UnisolatedBroker}, "security", "review", %{sandbox: %{"type" => "readOnly"}})
+    assert {:error, :governance_isolation_unavailable} =
+             GovernanceSession.run(%{c | broker: UnisolatedBroker}, "security", "review", %{
+               sandbox: %{"type" => "readOnly"}
+             })
   end
 end

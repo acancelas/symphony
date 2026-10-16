@@ -2,6 +2,7 @@ defmodule SymphonyElixir.GovernanceProcess do
   @moduledoc false
   # Capture exact Linux child identities before closing their control port. The
   # start-time check prevents a recycled PID from ever selecting unrelated work.
+  @spec stop(port()) :: :ok
   def stop(port) do
     case Port.info(port, :os_pid) do
       {:os_pid, pid} ->
@@ -19,6 +20,7 @@ defmodule SymphonyElixir.GovernanceProcess do
   end
 
   @doc false
+  @spec witness(pos_integer(), String.t()) :: {:ok, map()} | {:error, atom()}
   def witness(pid, marker) when is_integer(pid) and pid > 1 and is_binary(marker) do
     with {^pid, ticks} <- identity(pid), {:ok, boot} <- File.read("/proc/sys/kernel/random/boot_id") do
       {:ok, %{"pid" => pid, "startTicks" => ticks, "bootId" => String.trim(boot), "marker" => marker}}

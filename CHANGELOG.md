@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-16 — Disabled host foundations follow-up checkpoint (Issue #69, incomplete)
+
+Preserve strict host-bound native usage, permanent inode-checked publication locking, raw scoped snapshot reads, sealed observed-snapshot production and original-policy preflight wiring. The stronger alternate-policy denial recipe intentionally invalidates older implementation proofs; installed configuration remains unchanged. Local suite: 517 tests, zero failures, six skipped; format/specs checks pass. Credo and real sandbox QA remain incomplete. Whole-run lifecycle, handoff, final committee and runtime activation remain pending. Retain active worktree and all unique evidence; no API69 gates, main integration or production changes.
+
 ## 2026-10-16 — Correct policy scopes before independent acceptance (Issue #69)
 
 Correct the initial global scope label to GLOBAL, separate native global discovery from explicitly pinned additive BOS ancestors, and preserve scoped Git subtree originals. Add a conflicting-sibling regression. Seven policy tests and strict module Credo pass. Historical canary digests are not reused for changed scope material or the uncommitted new permission recipe; no activation or acceptance is granted.

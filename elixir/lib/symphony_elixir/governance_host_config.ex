@@ -3,10 +3,14 @@ defmodule SymphonyElixir.GovernanceHostConfig do
   @keys ~w(service_subject service_secret_file catalog_path allowed_authenticated_by repositories workspaces api_base_url target_project_id private_home private_cache_root mcp runtime)
   @mcp ~w(executable executable_sha256 entrypoint build_root receipt_path receipt_sha256 timeout_ms)
   @runtime ~w(package_root receipt_path receipt_sha256 executable executable_sha256 proof_path proof_sha256 vendor_root auth_home worker_root native_config_sha256 disabled_mcp_servers)
-  @optional_runtime ~w(implementation_proof_path implementation_proof_sha256 dependency_receipts)
-  @execution ~w(python_executable python_sha256 journal_root qa_executable qa_executable_sha256)
-  @atoms Map.new(@keys ++ @mcp ++ @runtime ++ @optional_runtime ++ @execution ++ ["execution"], &{&1, String.to_atom(&1)})
+  @optional_runtime ~w(implementation_proof_path implementation_proof_sha256 dependency_receipts policy_sources policy_fallback_filenames)
+  @execution ~w(python_executable python_sha256 journal_root qa_executable qa_executable_sha256 source_guard_directory source_guard_identity)
+  @atoms Map.new(
+           @keys ++ @mcp ++ @runtime ++ @optional_runtime ++ @execution ++ ["execution"],
+           &{&1, String.to_atom(&1)}
+         )
 
+  @spec load(String.t()) :: {:ok, map()} | {:error, atom()}
   def load(path) do
     with {:ok, %{type: :regular, mode: mode}} <- File.lstat(path),
          true <- Bitwise.band(mode, 0o077) == 0,
@@ -21,7 +25,12 @@ defmodule SymphonyElixir.GovernanceHostConfig do
          true <- is_map(raw["workspaces"]) and map_size(raw["workspaces"]) > 0,
          true <- raw["allowed_authenticated_by"] == ["bos-host-hmac-v2"],
          true <- loopback?(raw["api_base_url"]) do
-      {:ok, raw |> Map.new(fn {k, v} -> {Map.fetch!(@atoms, k), v} end) |> Map.put(:mcp, mcp) |> Map.put(:runtime, runtime) |> Map.put(:execution, execution)}
+      {:ok,
+       raw
+       |> Map.new(fn {k, v} -> {Map.fetch!(@atoms, k), v} end)
+       |> Map.put(:mcp, mcp)
+       |> Map.put(:runtime, runtime)
+       |> Map.put(:execution, execution)}
     else
       _ -> {:error, :governance_host_configuration_rejected}
     end

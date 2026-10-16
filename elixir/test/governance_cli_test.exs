@@ -1,11 +1,18 @@
 defmodule SymphonyElixir.GovernanceCLITest do
   use ExUnit.Case, async: true
-  alias SymphonyElixir.{GovernanceCLI, GovernanceHostConfig}
+  alias SymphonyElixir.GovernanceCLI
+  alias SymphonyElixir.GovernanceHostConfig
 
   test "one-shot parser fails closed before a host configuration, rejects duplicates and arbitrary phase" do
     scheduler_before = Process.whereis(SymphonyElixir.Orchestrator)
 
-    for args <- [[], ["--phase", "planning"], ["--phase", "execute"], ["--phase", "planning", "--phase", "implementation"], ["--token", "not-allowed"]] do
+    for args <- [
+          [],
+          ["--phase", "planning"],
+          ["--phase", "execute"],
+          ["--phase", "planning", "--phase", "implementation"],
+          ["--token", "not-allowed"]
+        ] do
       assert {:error, _} = GovernanceCLI.evaluate(args)
       assert Process.get(:symphony_governance_runtime_settings) == nil
     end
@@ -32,7 +39,10 @@ defmodule SymphonyElixir.GovernanceCLITest do
     end
 
     issue = %SymphonyElixir.Tracker.Issue{branch_name: "issue/69-agent-governance"}
-    assert {:ok, %{head_sha: ^sha}} = SymphonyElixir.CandidateHead.confirm("/owned/task", issue, nil, command_runner: runner, remote: remote)
+
+    assert {:ok, %{head_sha: ^sha}} =
+             SymphonyElixir.CandidateHead.confirm("/owned/task", issue, nil, command_runner: runner, remote: remote)
+
     assert_received {:git_arguments, ["ls-remote", "--heads", ^remote, "refs/heads/issue/69-agent-governance"]}
     refute_received {:git_arguments, ["remote" | _]}
   end

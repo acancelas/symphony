@@ -24,6 +24,25 @@ defmodule SymphonyElixir.GovernanceToolBoundaryTest do
     }
   end
 
+  test "raw snapshot callback only binds three exact read operations to the enrolled run" do
+    context = %{issue: %{native_ref: %{"repositoryId" => "symphony", "issueNumber" => 69, "runId" => "symphony-governance-69"}}, principal: %{invocation_id: "host-invocation"}}
+    reads = [{"bos_get_issue", %{"issueNumber" => 69}}, {"bos_get_delivery_run", %{"runId" => "symphony-governance-69"}}, {"bos_get_run_history", %{"runId" => "symphony-governance-69"}}]
+
+    for {tool, args} <- reads do
+      assert {:ok, ^args} = GovernanceToolBoundary.snapshot_read_arguments(tool, args, context)
+      assert {:ok, ^args} = GovernanceToolBoundary.snapshot_read_arguments(tool, args, Map.delete(context, :principal))
+      assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments(tool, Map.put(args, "artifact", %{}), context)
+      assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments(tool, args, put_in(context, [:issue, :native_ref, "issueNumber"], 70))
+      assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments(tool, args, put_in(context, [:issue, :native_ref, "repositoryId"], "game-api"))
+    end
+
+    assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments("bos_get_agent_run", %{}, context)
+    assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments("bos_get_issue_timeline", %{}, context)
+    assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments("bos_record_evidence", %{}, context)
+    assert {:error, _} = GovernanceToolBoundary.snapshot_read_arguments("bos_get_delivery_run", %{"runId" => "foreign"}, context)
+    assert {:error, _} = SymphonyElixir.GovernanceAppServerBroker.host_snapshot_read(context, "bos_record_evidence", %{})
+  end
+
   test "effective identity needs explicitly trusted server authentication and exact role rights" do
     assert {:error, _} = GovernanceToolBoundary.identity(source(), @repository, "security")
     assert {:ok, principal} = GovernanceToolBoundary.identity(source(), @repository, "security", ["bos-host-hmac-v2"])

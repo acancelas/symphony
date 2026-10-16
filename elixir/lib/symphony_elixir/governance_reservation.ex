@@ -1,16 +1,22 @@
 defmodule SymphonyElixir.GovernanceReservation do
   @moduledoc "Validate authentic preparation leases independently of new_run/resume_run disposition names."
+  @spec verify_response(map(), map(), map(), map(), DateTime.t()) :: :ok | {:error, atom()}
   def verify_response(result, context, run, source, now \\ DateTime.utc_now()) do
-    if result["status"] == "completed", do: verify(context, run, source, now), else: {:error, :governance_existing_run_reservation_denied}
+    if result["status"] == "completed",
+      do: verify(context, run, source, now),
+      else: {:error, :governance_existing_run_reservation_denied}
   end
 
+  @spec run_matches?(map(), map()) :: boolean()
   def run_matches?(context, run) do
     native = context.issue.native_ref
 
-    run["runId"] == native["runId"] and run["issueNumber"] == native["issueNumber"] and run["repositoryId"] == native["repositoryId"] and
+    run["runId"] == native["runId"] and run["issueNumber"] == native["issueNumber"] and
+      run["repositoryId"] == native["repositoryId"] and
       is_binary(get_in(run, ["runner", "id"])) and get_in(run, ["runner", "id"]) != "" and run["status"] == "running"
   end
 
+  @spec verify(map(), map(), map(), DateTime.t()) :: :ok | {:error, atom()}
   def verify(context, run, source, now \\ DateTime.utc_now()) do
     claim = source["claim"]
 

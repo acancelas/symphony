@@ -2,8 +2,10 @@ defmodule SymphonyElixir.GovernanceCatalog do
   @moduledoc "Loads role definitions from an exact canonical Git object, never mutable checkout files."
   @commit "ea1d38867fb8096991312d77fd7643e2810ee72e"
   @digest "2a3932de1ce0c2f868030891366815a7cdda7c0c464058fca959cc2abd7ff7cc"
+  @spec commit() :: String.t()
   def commit, do: @commit
 
+  @spec load(String.t() | nil) :: {:ok, map()} | {:error, atom()}
   def load(path) when is_binary(path) do
     with {bytes, 0} <- System.cmd("git", ["-C", path, "show", "#{@commit}:catalog.json"], stderr_to_stdout: true),
          true <- Base.encode16(:crypto.hash(:sha256, bytes), case: :lower) == @digest,

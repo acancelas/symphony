@@ -77,6 +77,8 @@ defmodule SymphonyElixir.GameApi.Adapter do
     end
   end
 
+  @spec start_coordination(Issue.t()) ::
+          {:ok, Issue.t()} | {:error, term()}
   def start_coordination(%Issue{} = issue), do: client_module().start_coordination(issue)
 
   defp require_coordinator(issue) do
@@ -103,7 +105,9 @@ defmodule SymphonyElixir.GameApi.Adapter do
 
   @spec secret_environment_names(map()) :: [String.t()]
   def secret_environment_names(_tracker_settings),
-    do: ["BOS_API_INTERNAL_TOKEN", "BOS_RUNNER_ACTION_TOKEN"] ++ SymphonyElixir.GovernanceTransport.secret_environment_names()
+    do:
+      ["BOS_API_INTERNAL_TOKEN", "BOS_RUNNER_ACTION_TOKEN"] ++
+        SymphonyElixir.GovernanceTransport.secret_environment_names()
 
   defp normalize_issue(payload) do
     labels = payload["labels"] || []

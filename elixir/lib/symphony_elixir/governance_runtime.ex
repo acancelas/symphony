@@ -1,18 +1,33 @@
 defmodule SymphonyElixir.GovernanceRuntime do
   @moduledoc "Pinned native runtime and an empty, read-only worker cwd; original source stays behind host tools."
-  alias SymphonyElixir.{GovernanceBuildReceipt, PathSafety}
+  alias SymphonyElixir.Audit.CanonicalJson
+  alias SymphonyElixir.GovernanceBuildReceipt
+  alias SymphonyElixir.PathSafety
+
   @hook_events ~w(Interrupt PermissionRequest PostCompact PostToolUse PreCompact PreToolUse SessionEnd SessionStart Stop SubagentStart SubagentStop UserPromptSubmit)
   @proof_checks ~w(outsideRead secretRead symlinkEscapeRead procRootEscapeRead workspaceWrite authEnvVisible outerHostProcOpen networkConnect)
 
+  @spec validate(map()) :: :ok | {:error, atom()}
   def validate(configuration) do
-    with {:ok, _} <- GovernanceBuildReceipt.verify(configuration.package_root, configuration.receipt_path, configuration.receipt_sha256),
+    with {:ok, _} <-
+           GovernanceBuildReceipt.verify(
+             configuration.package_root,
+             configuration.receipt_path,
+             configuration.receipt_sha256
+           ),
          true <- GovernanceBuildReceipt.file_digest(configuration.executable) == configuration.executable_sha256,
-         true <- GovernanceBuildReceipt.file_digest(Path.join(configuration.auth_home, "config.toml")) == configuration.native_config_sha256,
-         true <- is_list(configuration.disabled_mcp_servers) and Enum.all?(configuration.disabled_mcp_servers, &(is_binary(&1) and Regex.match?(~r/^[A-Za-z0-9_-]+$/, &1))),
+         true <-
+           GovernanceBuildReceipt.file_digest(Path.join(configuration.auth_home, "config.toml")) ==
+             configuration.native_config_sha256,
+         true <-
+           is_list(configuration.disabled_mcp_servers) and
+             Enum.all?(configuration.disabled_mcp_servers, &(is_binary(&1) and Regex.match?(~r/^[A-Za-z0-9_-]+$/, &1))),
          {:ok, report_bytes} <- File.read(configuration.proof_path),
          true <- digest(report_bytes) == configuration.proof_sha256,
          {:ok, proof} <- Jason.decode(report_bytes),
-         true <- proof["candidate"] == configuration.executable and proof["realToolIsolationPassed"] == true and proof["processReaped"] == true,
+         true <-
+           proof["candidate"] == configuration.executable and proof["realToolIsolationPassed"] == true and
+             proof["processReaped"] == true,
          [checks] <- proof["canaryResults"],
          true <- checks["allowedRead"] == true and Enum.all?(@proof_checks, &(checks[&1] == false)) do
       :ok
@@ -23,6 +38,8 @@ defmodule SymphonyElixir.GovernanceRuntime do
     _ -> {:error, :governance_runtime_proof_rejected}
   end
 
+  @spec launch(map(), map(), String.t(), map()) ::
+          {:ok, %{workspace: String.t(), managed: map(), thread_parameters: map()}} | {:error, atom()}
   def launch(configuration, context, role, policy) do
     with :ok <- validate(configuration),
          {:ok, directory, profile, permission} <- worker(configuration, context, role, policy) do
@@ -40,9 +57,13 @@ defmodule SymphonyElixir.GovernanceRuntime do
         "features.workspace_dependencies" => false
       }
 
+      overrides = primary_policy_overrides(overrides, permission)
+      arguments = startup_arguments(configuration)
+      arguments = if permission == "bos-implementation", do: Enum.drop(arguments, -1) ++ ["-c", "project_doc_max_bytes=0", "-c", "project_doc_fallback_filenames=[]", "app-server"], else: arguments
+
       managed = %{
         executable: configuration.executable,
-        arguments: startup_arguments(configuration),
+        arguments: arguments,
         permissions: permission,
         allowed_workspace_roots: [directory],
         environment: %{
@@ -53,7 +74,17 @@ defmodule SymphonyElixir.GovernanceRuntime do
         }
       }
 
-      {:ok, %{workspace: directory, managed: managed, thread_parameters: %{"permissions" => permission, "config" => overrides, "ephemeral" => true, "selectedCapabilityRoots" => []}}}
+      {:ok,
+       %{
+         workspace: directory,
+         managed: managed,
+         thread_parameters: %{
+           "permissions" => permission,
+           "config" => overrides,
+           "ephemeral" => true,
+           "selectedCapabilityRoots" => []
+         }
+       }}
     else
       true -> {:error, :governance_private_runtime_inside_agent_workspace}
       false -> {:error, :governance_workspace_write_runtime_not_certified}
@@ -61,6 +92,12 @@ defmodule SymphonyElixir.GovernanceRuntime do
     end
   end
 
+  defp primary_policy_overrides(overrides, "bos-implementation"),
+    do: overrides |> Map.put("project_doc_max_bytes", 0) |> Map.put("project_doc_fallback_filenames", [])
+
+  defp primary_policy_overrides(overrides, _), do: overrides
+
+  @spec validate_implementation(map()) :: :ok | {:error, atom()}
   def validate_implementation(configuration) do
     with path when is_binary(path) <- configuration[:implementation_proof_path],
          expected when is_binary(expected) <- configuration[:implementation_proof_sha256],
@@ -70,7 +107,9 @@ defmodule SymphonyElixir.GovernanceRuntime do
          true <- proof["nativeExecutableSha256"] == configuration.executable_sha256,
          true <- proof["nativeConfigSha256"] == configuration.native_config_sha256,
          true <- proof["recipeSha256"] == SymphonyElixir.GovernanceWorkspaceProfile.recipe_sha256(),
-         true <- proof["dependencyReceiptsSha256"] == digest(SymphonyElixir.Audit.CanonicalJson.encode(configuration[:dependency_receipts] || [])),
+         true <-
+           proof["dependencyReceiptsSha256"] ==
+             digest(CanonicalJson.encode(configuration[:dependency_receipts] || [])),
          true <- proof["effectiveConfigVerified"] == true and proof["processReaped"] == true,
          true <- proof["allowedRead"] == true and proof["workspaceWrite"] == true,
          true <- Enum.all?(SymphonyElixir.GovernanceWorkspaceProfile.required_denials(), &(proof[&1] == false)),
@@ -83,6 +122,7 @@ defmodule SymphonyElixir.GovernanceRuntime do
     _ -> {:error, :governance_workspace_write_runtime_not_certified}
   end
 
+  @spec dependency_roots(map()) :: {:ok, [String.t()]} | {:error, atom()}
   def dependency_roots(configuration), do: dependencies(configuration)
 
   defp dependencies(configuration) do
@@ -90,7 +130,8 @@ defmodule SymphonyElixir.GovernanceRuntime do
       with %{"root" => root, "receiptPath" => path, "receiptSha256" => expected} <- item,
            {:ok, canonical} <- PathSafety.canonicalize(root),
            true <- canonical == Path.expand(root),
-           true <- root != "/" and not inside?(configuration.auth_home, root) and not inside?(root, configuration.auth_home),
+           true <-
+             root != "/" and not inside?(configuration.auth_home, root) and not inside?(root, configuration.auth_home),
            {:ok, _} <- GovernanceBuildReceipt.verify(root, path, expected) do
         {:cont, {:ok, [root | roots]}}
       else
@@ -102,7 +143,8 @@ defmodule SymphonyElixir.GovernanceRuntime do
   defp worker(configuration, context, "task-orchestrator", %{sandbox: %{"type" => "workspaceWrite"}}) do
     with :ok <- validate_implementation(configuration),
          {:ok, roots} <- dependencies(configuration),
-         {:ok, profile} <- SymphonyElixir.GovernanceWorkspaceProfile.build(context.workspace, configuration.vendor_root, roots) do
+         {:ok, profile} <-
+           SymphonyElixir.GovernanceWorkspaceProfile.build(context.workspace, configuration.vendor_root, roots) do
       {:ok, context.workspace, profile, "bos-implementation"}
     end
   end
@@ -121,7 +163,14 @@ defmodule SymphonyElixir.GovernanceRuntime do
           ":minimal" => "read",
           "/proc" => "deny",
           configuration.vendor_root => "read",
-          ":workspace_roots" => %{"." => "read", ".env" => "deny", ".codex" => "deny", ".aws" => "deny", ".ssh" => "deny", ".bos-local" => "deny"}
+          ":workspace_roots" => %{
+            "." => "read",
+            ".env" => "deny",
+            ".codex" => "deny",
+            ".aws" => "deny",
+            ".ssh" => "deny",
+            ".bos-local" => "deny"
+          }
         },
         "network" => %{"enabled" => false}
       }
@@ -134,9 +183,14 @@ defmodule SymphonyElixir.GovernanceRuntime do
 
   defp worker(_, _, _, _), do: {:error, :governance_workspace_write_runtime_not_certified}
   @doc false
+  @spec startup_arguments(map()) :: [String.t()]
   def startup_arguments(configuration) do
     overrides = [
-      {"mcp_servers", Map.new(configuration.disabled_mcp_servers, &{&1, %{"command" => "/usr/bin/false", "args" => [], "env" => %{}, "enabled" => false}})},
+      {"mcp_servers",
+       Map.new(
+         configuration.disabled_mcp_servers,
+         &{&1, %{"command" => "/usr/bin/false", "args" => [], "env" => %{}, "enabled" => false}}
+       )},
       {"plugins", %{}},
       {"hooks", %{}},
       {"web_search", "disabled"},
@@ -154,14 +208,19 @@ defmodule SymphonyElixir.GovernanceRuntime do
   end
 
   @doc false
-  def permission_arguments(profile, name) when name in ["bos-review", "bos-implementation"] do
+  @spec permission_arguments(map(), String.t()) :: [String.t()]
+  def permission_arguments(profile, name) when name in ["bos-review", "bos-implementation", "bos-qa"] do
     ["-c", "permissions." <> name <> "=" <> toml(profile), "-c", "default_permissions=" <> Jason.encode!(name)]
   end
 
-  defp toml(value) when is_map(value), do: "{" <> Enum.map_join(value, ",", fn {key, nested} -> Jason.encode!(key) <> "=" <> toml(nested) end) <> "}"
+  defp toml(value) when is_map(value),
+    do: "{" <> Enum.map_join(value, ",", fn {key, nested} -> Jason.encode!(key) <> "=" <> toml(nested) end) <> "}"
+
   defp toml(value), do: Jason.encode!(value)
 
-  defp worker_name(context, role), do: digest(Jason.encode!([context.issue.native_ref["repositoryId"], context.issue.native_ref["runId"], role]))
+  defp worker_name(context, role),
+    do: digest(Jason.encode!([context.issue.native_ref["repositoryId"], context.issue.native_ref["runId"], role]))
+
   defp digest(bytes), do: Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
   defp inside?(path, root), do: path == Path.expand(root) or String.starts_with?(path, Path.expand(root) <> "/")
 end

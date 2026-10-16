@@ -1,11 +1,21 @@
 defmodule SymphonyElixir.GovernanceBootstrapTest do
   use SymphonyElixir.TestSupport
-  alias SymphonyElixir.GovernanceDossier
+  alias SymphonyElixir.Audit.CanonicalJson
   alias SymphonyElixir.GameApi.{Client, ProviderCircuit}
+  alias SymphonyElixir.GovernanceDossier
 
   defmodule Catalog do
     def load(_),
-      do: {:ok, %{"committee" => Enum.map(~w(business-challenger product cro seo ux legal security architecture qa operations), &%{"id" => &1}), "roles" => [%{"id" => "governance-arbiter"}]}}
+      do:
+        {:ok,
+         %{
+           "committee" =>
+             Enum.map(
+               ~w(business-challenger product cro seo ux legal security architecture qa operations),
+               &%{"id" => &1}
+             ),
+           "roles" => [%{"id" => "governance-arbiter"}]
+         }}
   end
 
   defmodule Candidate do
@@ -36,7 +46,16 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
       cond do
         String.ends_with?(path, "/goals/planning") ->
           proposal = Process.get(:bootstrap_goal_proposal)
-          hash = if is_map(proposal), do: "sha256:" <> Base.encode16(:crypto.hash(:sha256, IO.iodata_to_binary(SymphonyElixir.Audit.CanonicalJson.encode(proposal))), case: :lower)
+
+          hash =
+            if is_map(proposal),
+              do:
+                "sha256:" <>
+                  Base.encode16(
+                    :crypto.hash(:sha256, IO.iodata_to_binary(CanonicalJson.encode(proposal))),
+                    case: :lower
+                  )
+
           reply(200, %{"proposal" => proposal, "review" => nil, "goalBreakdownHash" => hash})
 
         String.ends_with?(path, "/goals/execution") ->
@@ -50,7 +69,12 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
 
         String.ends_with?(path, "/issues/claim") ->
           SymphonyElixir.GovernanceBootstrapTest.trace(:lease)
-          reply(200, %{"status" => "completed", "claim" => %{"runId" => "fresh_run", "runnerId" => "x1"}, "issue" => %{"labels" => ["agent:running"]}})
+
+          reply(200, %{
+            "status" => "completed",
+            "claim" => %{"runId" => "fresh_run", "runnerId" => "x1"},
+            "issue" => %{"labels" => ["agent:running"]}
+          })
 
         String.ends_with?(path, "/issues/69") ->
           digest = "sha256:" <> Base.encode16(:crypto.hash(:sha256, Process.get(:bootstrap_issue_body)), case: :lower)
@@ -101,11 +125,22 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
   end
 
   defmodule Broker do
-    def capabilities(_, _), do: {:ok, %{read_only: :enforced, tool_allowlist: :enforced, minimal_environment: :enforced, read_roots: :enforced, private_mcp_credentials: :enforced}}
+    def capabilities(_, _),
+      do:
+        {:ok,
+         %{
+           read_only: :enforced,
+           tool_allowlist: :enforced,
+           minimal_environment: :enforced,
+           read_roots: :enforced,
+           private_mcp_credentials: :enforced
+         }}
 
     import ExUnit.Assertions
     alias SymphonyElixir.GovernanceBootstrapTest, as: Test
-    def identity(context, role), do: {:ok, %{machine_id: "machine-subject-" <> role, role: role, repository_id: context.issue.native_ref["repositoryId"]}}
+
+    def identity(context, role),
+      do: {:ok, %{machine_id: "machine-subject-" <> role, role: role, repository_id: context.issue.native_ref["repositoryId"]}}
 
     def draft(_context, _prompt, policy) do
       assert policy.sandbox["type"] == "readOnly"
@@ -113,7 +148,9 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
       assert Process.get(:bootstrap_run) != nil
       assert Process.get(:bootstrap_attempts, []) == []
       Test.trace(:draft)
-      if Process.get(:change_definition_during_draft), do: Process.put(:bootstrap_issue_body, "Concurrent change\n" <> Process.get(:bootstrap_issue_body))
+
+      if Process.get(:change_definition_during_draft),
+        do: Process.put(:bootstrap_issue_body, "Concurrent change\n" <> Process.get(:bootstrap_issue_body))
 
       {:ok,
        %{
@@ -139,7 +176,13 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
         :ok
       else
         if String.contains?(prompt, "bos_propose_goal_breakdown") do
-          Process.put(:bootstrap_goal_proposal, %{"rationale" => "Original Goal", "capabilities" => [%{"key" => "product"}], "dependencies" => [], "risks" => []})
+          Process.put(:bootstrap_goal_proposal, %{
+            "rationale" => "Original Goal",
+            "capabilities" => [%{"key" => "product"}],
+            "dependencies" => [],
+            "risks" => []
+          })
+
           Process.put(:bootstrap_goal_execution, %{"version" => 1})
           Test.trace(:goal_proposals)
           :ok
@@ -166,16 +209,28 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
       state =
         case event do
           "candidate" ->
-            put_in(state, ["phases", phase], Map.merge(artifact, %{"votes" => %{}, "verdict" => nil, "exception" => nil}))
+            put_in(
+              state,
+              ["phases", phase],
+              Map.merge(artifact, %{"votes" => %{}, "verdict" => nil, "exception" => nil})
+            )
 
           "round_started" ->
-            state |> put_in(["counters", phase], artifact["round"]) |> put_in(["phases", phase, "round"], artifact["round"])
+            state
+            |> put_in(["counters", phase], artifact["round"])
+            |> put_in(["phases", phase, "round"], artifact["round"])
 
           "applicability" ->
             applicable = role == "qa"
 
             if applicable do
-              review = %{"reviewId" => "review_#{phase}_qa", "actor" => identity, "status" => "passed", "commitSha" => artifact["candidateCommitSha"]}
+              review = %{
+                "reviewId" => "review_#{phase}_qa",
+                "actor" => identity,
+                "status" => "passed",
+                "commitSha" => artifact["candidateCommitSha"]
+              }
+
               assert review["actor"]["subjectId"] == "machine-subject-qa"
               refute review["actor"]["subjectId"] == "qa"
               Process.put(:bootstrap_reviews, [review | Process.get(:bootstrap_reviews, [])])
@@ -187,7 +242,12 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
           "verdict" ->
             assert map_size(get_in(state, ["phases", phase, "votes"])) == 10
             assert Enum.any?(Process.get(:bootstrap_reviews), &(&1["commitSha"] == artifact["candidateCommitSha"]))
-            put_in(state, ["phases", phase, "verdict"], Map.merge(artifact, %{"actor" => identity, "status" => "passed", "verdict" => "APPROVED"}))
+
+            put_in(
+              state,
+              ["phases", phase, "verdict"],
+              Map.merge(artifact, %{"actor" => identity, "status" => "passed", "verdict" => "APPROVED"})
+            )
 
           "readiness" ->
             assert get_in(state, ["phases", "planning", "verdict", "status"]) == "passed"
@@ -217,7 +277,11 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     System.put_env("SYMPHONY_TEST_PROCESS_OWNER", owner)
     env = owned_process_environment(owner)
 
-    for args <- [["init", "-b", "issue/69"], ["config", "user.name", "Fixture"], ["config", "user.email", "fixture@example.invalid"]] do
+    for args <- [
+          ["init", "-b", "issue/69"],
+          ["config", "user.name", "Fixture"],
+          ["config", "user.email", "fixture@example.invalid"]
+        ] do
       {_, 0} = System.cmd("git", args, cd: root, env: env)
     end
 
@@ -226,20 +290,37 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     {_, 0} = System.cmd("git", ["commit", "-m", "Initial fixture"], cd: root, env: env)
     Process.put(:bootstrap_workspace, root)
     Process.put(:bootstrap_issue_body, "Visible original requirement\n<!-- original unchanged marker -->")
-    Process.put(:bootstrap_state, %{"phases" => %{}, "counters" => %{"planning" => 0, "implementation" => 0, "technical" => 0, "transport" => 0}, "readiness" => nil})
-    previous = for key <- [:governance, :game_api_http_client_module, :game_api_client_module], into: %{}, do: {key, Application.get_env(:symphony_elixir, key)}
+
+    Process.put(:bootstrap_state, %{
+      "phases" => %{},
+      "counters" => %{"planning" => 0, "implementation" => 0, "technical" => 0, "transport" => 0},
+      "readiness" => nil
+    })
+
+    previous =
+      for key <- [:governance, :game_api_http_client_module, :game_api_client_module],
+          into: %{},
+          do: {key, Application.get_env(:symphony_elixir, key)}
+
     old_target = System.get_env("BOS_API_TARGET_PROJECT_ID")
     System.put_env("BOS_API_TARGET_PROJECT_ID", "fixture-control-plane")
     old_token = System.get_env("BOS_TEST_COORDINATOR_JWT")
     System.put_env("BOS_TEST_COORDINATOR_JWT", "fixture-signed-coordinator")
-    Application.put_env(:symphony_elixir, :governance, session_broker: Broker, coordinator_repositories: %{"bos-front" => %{token_env: "BOS_TEST_COORDINATOR_JWT"}})
+
+    Application.put_env(:symphony_elixir, :governance,
+      session_broker: Broker,
+      coordinator_repositories: %{"bos-front" => %{token_env: "BOS_TEST_COORDINATOR_JWT"}}
+    )
+
     Application.put_env(:symphony_elixir, :game_api_http_client_module, Http)
     Application.put_env(:symphony_elixir, :game_api_client_module, Client)
 
     write_workflow_file!(Workflow.workflow_file_path(),
       tracker_kind: "game_api",
       tracker_endpoint: "https://game-api.test",
-      tracker_provider: %{"repositories" => [%{"repository_id" => "bos-front", "owner" => "acancelas", "repo" => "bos-front"}]}
+      tracker_provider: %{
+        "repositories" => [%{"repository_id" => "bos-front", "owner" => "acancelas", "repo" => "bos-front"}]
+      }
     )
 
     assert :ok = SymphonyElixir.WorkflowStore.force_reload()
@@ -247,7 +328,13 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     ProviderCircuit.reset_for_test()
 
     on_exit(fn ->
-      for {key, value} <- previous, do: if(value == nil, do: Application.delete_env(:symphony_elixir, key), else: Application.put_env(:symphony_elixir, key, value))
+      for {key, value} <- previous,
+          do:
+            if(value == nil,
+              do: Application.delete_env(:symphony_elixir, key),
+              else: Application.put_env(:symphony_elixir, key, value)
+            )
+
       restore_env("BOS_TEST_COORDINATOR_JWT", old_token)
       restore_env("SYMPHONY_TEST_PROCESS_OWNER", old_owner)
       restore_env("BOS_API_TARGET_PROJECT_ID", old_target)
@@ -267,11 +354,21 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     %{
       root: root,
       issue: issue,
-      opts: [workspace_module: WorkspaceFixture, candidate_head_module: Candidate, governance_catalog_module: Catalog, governance_session_broker: Broker, game_api_client_module: Client]
+      opts: [
+        workspace_module: WorkspaceFixture,
+        candidate_head_module: Candidate,
+        governance_catalog_module: Catalog,
+        governance_session_broker: Broker,
+        game_api_client_module: Client
+      ]
     }
   end
 
-  test "fresh Issue reserves and plans before first implementation Attempt/session", %{issue: issue, opts: opts, root: root} do
+  test "fresh Issue reserves and plans before first implementation Attempt/session", %{
+    issue: issue,
+    opts: opts,
+    root: root
+  } do
     refute File.exists?(Path.join(root, "docs"))
     assert get_in(Process.get(:bootstrap_state), ["phases"]) == %{}
     assert {:ok, claimed} = Tracker.claim_issue(issue)
@@ -309,8 +406,15 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
   end
 
   test "draft output cannot request a product edit", %{issue: issue, root: root} do
-    draft = %{"plan" => "plan", "manifest" => %{"scope" => [], "acceptanceCriteria" => [], "requirements" => []}, "files" => %{"product.txt" => "changed"}}
-    assert {:error, :governance_dossier_write_rejected} = GovernanceDossier.commit(root, issue, draft, snapshot_bindings())
+    draft = %{
+      "plan" => "plan",
+      "manifest" => %{"scope" => [], "acceptanceCriteria" => [], "requirements" => []},
+      "files" => %{"product.txt" => "changed"}
+    }
+
+    assert {:error, :governance_dossier_write_rejected} =
+             GovernanceDossier.commit(root, issue, draft, snapshot_bindings())
+
     assert File.read!(Path.join(root, "product.txt")) == "original product\n"
     refute File.exists?(Path.join(root, "docs"))
   end
@@ -320,11 +424,18 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     File.write!(Path.join(root, ".git/info/exclude"), "docs\n", [:append])
     assert {"", 0} = System.cmd("git", ["status", "--porcelain"], cd: root)
     draft = %{"plan" => "plan", "manifest" => %{"scope" => [], "acceptanceCriteria" => [], "requirements" => []}}
-    assert {:error, :governance_dossier_write_rejected} = GovernanceDossier.commit(root, issue, draft, snapshot_bindings())
+
+    assert {:error, :governance_dossier_write_rejected} =
+             GovernanceDossier.commit(root, issue, draft, snapshot_bindings())
+
     refute File.exists?(Path.join(root, "issues"))
   end
 
-  test "visible body edit with unchanged marker blocks existing plan without rewrite", %{issue: issue, opts: opts, root: root} do
+  test "visible body edit with unchanged marker blocks existing plan without rewrite", %{
+    issue: issue,
+    opts: opts,
+    root: root
+  } do
     assert {:ok, claimed} = Tracker.claim_issue(issue)
     assert :ok = AgentRunner.run_on_worker_host_for_test(claimed, opts)
     {before_head, 0} = System.cmd("git", ["rev-parse", "HEAD"], cd: root)
@@ -333,12 +444,19 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     assert String.contains?(body, marker)
     Process.put(:bootstrap_issue_body, "New manual visible requirement\n" <> marker)
     Process.put(:bootstrap_trace, [])
-    assert {:error, :governance_definition_conflict} = SymphonyElixir.GovernanceCoordinator.run(:planning, root, claimed, nil, opts, nil)
+
+    assert {:error, :governance_definition_conflict} =
+             SymphonyElixir.GovernanceCoordinator.run(:planning, root, claimed, nil, opts, nil)
+
     refute :draft in Process.get(:bootstrap_trace)
     assert {^before_head, 0} = System.cmd("git", ["rev-parse", "HEAD"], cd: root)
   end
 
-  test "concurrent visible definition edit during readOnly draft prevents dossier write", %{issue: issue, opts: opts, root: root} do
+  test "concurrent visible definition edit during readOnly draft prevents dossier write", %{
+    issue: issue,
+    opts: opts,
+    root: root
+  } do
     Process.put(:change_definition_during_draft, true)
     assert {:ok, claimed} = Tracker.claim_issue(issue)
     assert {:error, :governance_definition_conflict} = AgentRunner.run_on_worker_host_for_test(claimed, opts)
@@ -347,7 +465,11 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     assert File.read!(Path.join(root, "product.txt")) == "original product\n"
   end
 
-  test "new Goal reaches single approval queue through canonical committee without READY or product Attempt", %{issue: issue, opts: opts, root: root} do
+  test "new Goal reaches single approval queue through canonical committee without READY or product Attempt", %{
+    issue: issue,
+    opts: opts,
+    root: root
+  } do
     issue = %{issue | labels: ["bos:goal"]}
     assert Process.get(:bootstrap_goal_proposal) == nil
     assert {:ok, claimed} = Tracker.claim_issue(issue)
@@ -360,11 +482,28 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     refute :product_session in trace
     manifest = File.read!(Path.join(root, "docs/issues/69/manifest.json")) |> Jason.decode!()
     assert String.starts_with?(manifest["goalBreakdownHash"], "sha256:")
-    Process.put(:bootstrap_goal_proposal, %{Process.get(:bootstrap_goal_proposal) | "capabilities" => [%{"key" => "different"}]})
-    assert {:error, :governance_definition_conflict} = SymphonyElixir.GovernanceCoordinator.run(:planning, root, claimed, nil, Keyword.put(opts, :governance_require_ready, false), nil)
+
+    Process.put(:bootstrap_goal_proposal, %{
+      Process.get(:bootstrap_goal_proposal)
+      | "capabilities" => [%{"key" => "different"}]
+    })
+
+    assert {:error, :governance_definition_conflict} =
+             SymphonyElixir.GovernanceCoordinator.run(
+               :planning,
+               root,
+               claimed,
+               nil,
+               Keyword.put(opts, :governance_require_ready, false),
+               nil
+             )
   end
 
-  test "source snapshot preserves full safe definition and ignores model counterfeit", %{issue: issue, opts: opts, root: root} do
+  test "source snapshot preserves full safe definition and ignores model counterfeit", %{
+    issue: issue,
+    opts: opts,
+    root: root
+  } do
     raw =
       "# Original definition\nFull requirement and acceptance text.\nAPI_TOKEN=synthetic-secret-value\nBearer synthetic-bearer-value\nAuthorization: Basic synthetic-encoded-credential\nCookie: SID=synthetic-cookie-value; other=synthetic-cookie-extra\ncontact person@example.invalid\nphone: +34 600 123 456\n<!-- original unchanged marker -->"
 
@@ -399,23 +538,42 @@ defmodule SymphonyElixir.GovernanceBootstrapTest do
     assert manifest["definitionDigest"] == "sha256:" <> Base.encode16(:crypto.hash(:sha256, raw), case: :lower)
   end
 
-  test "explicit host dossier revision preserves original snapshot and appends relevant revision", %{issue: issue, opts: opts, root: root} do
+  test "explicit host dossier revision preserves original snapshot and appends relevant revision", %{
+    issue: issue,
+    opts: opts,
+    root: root
+  } do
     assert {:ok, claimed} = Tracker.claim_issue(issue)
     assert :ok = AgentRunner.run_on_worker_host_for_test(claimed, opts)
     path = Path.join(root, "docs/issues/69/manifest.json")
     original = Jason.decode!(File.read!(path))["requestSnapshot"]
     revised_body = "Explicitly adopted revised source definition"
     digest = "sha256:" <> Base.encode16(:crypto.hash(:sha256, revised_body), case: :lower)
-    {:ok, snapshot} = SymphonyElixir.GovernanceRequestSnapshot.build(%{"number" => 69, "title" => "Revised title", "body" => revised_body, "definitionDigest" => digest}, "bos-front")
+
+    {:ok, snapshot} =
+      SymphonyElixir.GovernanceRequestSnapshot.build(
+        %{"number" => 69, "title" => "Revised title", "body" => revised_body, "definitionDigest" => digest},
+        "bos-front"
+      )
 
     draft = %{
       "plan" => "# Revised plan\n",
-      "manifest" => %{"scope" => ["product"], "acceptanceCriteria" => ["product works"], "requirements" => ["product-1"], "requestSnapshot" => %{"bodySanitized" => "forged replacement"}}
+      "manifest" => %{
+        "scope" => ["product"],
+        "acceptanceCriteria" => ["product works"],
+        "requirements" => ["product-1"],
+        "requestSnapshot" => %{"bodySanitized" => "forged replacement"}
+      }
     }
 
     # This is an explicit trusted-controller write, not automatic reconciliation;
     # the ordinary coordinator still refuses changed source definitions.
-    assert :ok = GovernanceDossier.commit(root, claimed, draft, %{"definitionDigest" => digest, "requestSnapshot" => snapshot})
+    assert :ok =
+             GovernanceDossier.commit(root, claimed, draft, %{
+               "definitionDigest" => digest,
+               "requestSnapshot" => snapshot
+             })
+
     revised = Jason.decode!(File.read!(path))
     assert revised["requestSnapshot"] == original
     assert revised["requestRevisionSnapshots"] == [snapshot]

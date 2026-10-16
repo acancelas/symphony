@@ -6,20 +6,16 @@ defmodule SymphonyElixir.AgentRunner do
   require Logger
   alias SymphonyElixir.Codex.AppServer
   alias SymphonyElixir.Codex.CommandPolicy
-
-  alias SymphonyElixir.{
-    Config,
-    DeliveryCoordinator,
-    GoalExecution,
-    GoalExecutionPolicy,
-    GoalPlanningCoordinator,
-    PostApprovalCoordinator,
-    PromptBuilder,
-    Tracker,
-    Workspace
-  }
-
+  alias SymphonyElixir.Config
+  alias SymphonyElixir.DeliveryCoordinator
+  alias SymphonyElixir.GoalExecution
+  alias SymphonyElixir.GoalExecutionPolicy
+  alias SymphonyElixir.GoalPlanningCoordinator
+  alias SymphonyElixir.PostApprovalCoordinator
+  alias SymphonyElixir.PromptBuilder
+  alias SymphonyElixir.Tracker
   alias SymphonyElixir.Tracker.Issue
+  alias SymphonyElixir.Workspace
 
   @type worker_host :: String.t() | nil
 
@@ -89,6 +85,13 @@ defmodule SymphonyElixir.AgentRunner do
   end
 
   @doc "Continue the existing governed product/review path after planning reaches actual READY."
+  @spec run_governed_implementation(
+          String.t(),
+          Issue.t(),
+          pid() | nil,
+          keyword(),
+          String.t() | nil
+        ) :: :ok | {:error, term()}
   def run_governed_implementation(workspace, issue, recipient, opts, worker_host) do
     with {:ok, started?} <- DeliveryCoordinator.review_stage_started?(issue, opts) do
       if started? do
@@ -111,6 +114,7 @@ defmodule SymphonyElixir.AgentRunner do
   end
 
   @doc false
+  @spec run_on_worker_host_for_test(Issue.t(), keyword()) :: :ok | {:error, term()}
   def run_on_worker_host_for_test(issue, opts), do: run_on_worker_host(issue, nil, opts, nil)
 
   defp run_implementation_or_resume_reviews(workspace, issue, recipient, opts, worker_host) do
@@ -294,7 +298,16 @@ defmodule SymphonyElixir.AgentRunner do
     end
   end
 
-  defp do_run_codex_turns(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
+  defp do_run_codex_turns(
+         app_session,
+         workspace,
+         issue,
+         codex_update_recipient,
+         opts,
+         issue_state_fetcher,
+         turn_number,
+         max_turns
+       ) do
     client = Keyword.get(opts, :game_api_client_module, SymphonyElixir.GameApi.Client)
 
     case authorize_goal_turn(client, issue, turn_number) do
@@ -355,7 +368,16 @@ defmodule SymphonyElixir.AgentRunner do
     end
   end
 
-  defp run_codex_turn(app_session, workspace, issue, codex_update_recipient, opts, issue_state_fetcher, turn_number, max_turns) do
+  defp run_codex_turn(
+         app_session,
+         workspace,
+         issue,
+         codex_update_recipient,
+         opts,
+         issue_state_fetcher,
+         turn_number,
+         max_turns
+       ) do
     prompt = build_turn_prompt(issue, opts, turn_number, max_turns)
 
     case AppServer.run_turn(

@@ -1,20 +1,38 @@
 defmodule SymphonyElixir.GovernanceHostDiagnosticsTest do
   use ExUnit.Case, async: true
-  alias SymphonyElixir.{GovernanceHostDiagnostics, GovernanceToolBoundary}
+  alias SymphonyElixir.GovernanceHostDiagnostics
+  alias SymphonyElixir.GovernanceToolBoundary
 
   test "transport identity changes per invocation and payload without changing immutable artifact ID" do
-    original = %{"operationId" => "logical-stable-op", "artifact" => %{"governanceId" => "logical-stable-gov", "summary" => "same-body"}}
+    original = %{
+      "operationId" => "logical-stable-op",
+      "artifact" => %{"governanceId" => "logical-stable-gov", "summary" => "same-body"}
+    }
+
     one = GovernanceToolBoundary.bind_operation("bos_record_governance", original, "inv-one")
     assert one == GovernanceToolBoundary.bind_operation("bos_record_governance", original, "inv-one")
-    refute one["operationId"] == GovernanceToolBoundary.bind_operation("bos_record_governance", original, "inv-two")["operationId"]
-    refute one["operationId"] == GovernanceToolBoundary.bind_operation("bos_record_governance", put_in(original, ["artifact", "summary"], "corrected-body"), "inv-one")["operationId"]
+
+    refute one["operationId"] ==
+             GovernanceToolBoundary.bind_operation("bos_record_governance", original, "inv-two")["operationId"]
+
+    refute one["operationId"] ==
+             GovernanceToolBoundary.bind_operation(
+               "bos_record_governance",
+               put_in(original, ["artifact", "summary"], "corrected-body"),
+               "inv-one"
+             )["operationId"]
+
     assert one["artifact"] == original["artifact"]
     assert original == GovernanceToolBoundary.bind_operation("bos_get_issue", original, "inv-one")
   end
 
   test "native terminal status distinguishes completed from failed or interrupted notifications" do
     for status <- ~w(completed failed interrupted cancelled) do
-      assert status == GovernanceHostDiagnostics.terminal_status(%{"method" => "turn/completed", "params" => %{"turn" => %{"status" => status}}})
+      assert status ==
+               GovernanceHostDiagnostics.terminal_status(%{
+                 "method" => "turn/completed",
+                 "params" => %{"turn" => %{"status" => status}}
+               })
     end
 
     assert nil == GovernanceHostDiagnostics.terminal_status(%{"method" => "item/completed"})
@@ -35,7 +53,16 @@ defmodule SymphonyElixir.GovernanceHostDiagnosticsTest do
       "content" => [
         %{
           "type" => "text",
-          "text" => Jason.encode!(%{"error" => %{"code" => "delivery_api_error", "details" => %{"status" => 422, "issues" => [issue, %{"field" => "privateSecretField", "type" => "value_error"}]}}})
+          "text" =>
+            Jason.encode!(%{
+              "error" => %{
+                "code" => "delivery_api_error",
+                "details" => %{
+                  "status" => 422,
+                  "issues" => [issue, %{"field" => "privateSecretField", "type" => "value_error"}]
+                }
+              }
+            })
         }
       ]
     }
@@ -52,13 +79,28 @@ defmodule SymphonyElixir.GovernanceHostDiagnosticsTest do
       "content" => [
         %{
           "type" => "text",
-          "text" => Jason.encode!(%{"error" => %{"code" => "forbidden", "message" => "SYNTHETIC_PRIVATE_SECRET", "details" => %{"status" => 403, "authorization" => "SYNTHETIC_PRIVATE_SECRET"}}})
+          "text" =>
+            Jason.encode!(%{
+              "error" => %{
+                "code" => "forbidden",
+                "message" => "SYNTHETIC_PRIVATE_SECRET",
+                "details" => %{"status" => 403, "authorization" => "SYNTHETIC_PRIVATE_SECRET"}
+              }
+            })
         }
       ]
     }
 
     result = GovernanceHostDiagnostics.outcome({:ok, raw})
-    assert result == %{privateMcpInvoked: true, success: false, errorCode: "forbidden", httpStatus: 403, validationIssues: []}
+
+    assert result == %{
+             privateMcpInvoked: true,
+             success: false,
+             errorCode: "forbidden",
+             httpStatus: 403,
+             validationIssues: []
+           }
+
     refute Jason.encode!(result) =~ "SYNTHETIC_PRIVATE_SECRET"
   end
 end

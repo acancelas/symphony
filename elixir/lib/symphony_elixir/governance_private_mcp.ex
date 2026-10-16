@@ -3,27 +3,39 @@ defmodule SymphonyElixir.GovernancePrivateMcp do
   use GenServer
   @limit 2_000_000
 
+  @spec open(map()) :: GenServer.on_start()
   def open(options), do: GenServer.start_link(__MODULE__, options)
+  @spec request(GenServer.server(), String.t(), map()) :: {:ok, term()} | {:error, term()}
   def request(client, method, params), do: GenServer.call(client, {:request, method, params}, 50_000)
+  @spec call(GenServer.server(), String.t(), map()) :: {:ok, term()} | {:error, term()}
   def call(client, tool, arguments), do: request(client, "tools/call", %{"name" => tool, "arguments" => arguments})
 
+  @spec close(pid()) :: :ok
   def close(client) when is_pid(client) do
     if Process.alive?(client), do: GenServer.stop(client, :normal, 5_000), else: :ok
   catch
     :exit, _ -> :ok
   end
 
+  @spec init(map()) :: {:ok, map()} | {:stop, atom()}
   def init(options) do
     Process.flag(:trap_exit, true)
 
     with true <- Path.type(options.executable) == :absolute,
-         {:ok, receipt} <- SymphonyElixir.GovernanceBuildReceipt.verify(options.build_root, options.receipt_path, options.receipt_sha256),
+         {:ok, receipt} <-
+           SymphonyElixir.GovernanceBuildReceipt.verify(
+             options.build_root,
+             options.receipt_path,
+             options.receipt_sha256
+           ),
          relative_entrypoint = Path.relative_to(options.entrypoint, options.build_root),
          true <- Map.has_key?(receipt["files"], relative_entrypoint),
          true <- SymphonyElixir.GovernanceBuildReceipt.file_digest(options.executable) == options.executable_sha256,
          true <- File.regular?(options.entrypoint) do
       environment = System.get_env() |> Map.keys() |> Enum.map(&{String.to_charlist(&1), false})
-      environment = environment ++ Enum.map(options.environment, fn {k, v} -> {String.to_charlist(k), String.to_charlist(v)} end)
+
+      environment =
+        environment ++ Enum.map(options.environment, fn {k, v} -> {String.to_charlist(k), String.to_charlist(v)} end)
 
       port =
         Port.open({:spawn_executable, String.to_charlist(options.executable)}, [
@@ -38,7 +50,11 @@ defmodule SymphonyElixir.GovernancePrivateMcp do
 
       state = %{port: port, sequence: 0, timeout: Map.get(options, :timeout_ms, 40_000)}
 
-      case invoke(state, "initialize", %{"protocolVersion" => "2024-11-05", "capabilities" => %{}, "clientInfo" => %{"name" => "bos-private-governance", "version" => "1"}}) do
+      case invoke(state, "initialize", %{
+             "protocolVersion" => "2024-11-05",
+             "capabilities" => %{},
+             "clientInfo" => %{"name" => "bos-private-governance", "version" => "1"}
+           }) do
         {{:ok, _}, next} ->
           Port.command(port, Jason.encode!(%{"jsonrpc" => "2.0", "method" => "notifications/initialized"}) <> "\n")
           {:ok, next}
@@ -54,18 +70,26 @@ defmodule SymphonyElixir.GovernancePrivateMcp do
     _ -> {:stop, :governance_mcp_start_failed}
   end
 
+  @spec handle_call({:request, String.t(), map()}, GenServer.from(), map()) :: {:reply, term(), map()}
   def handle_call({:request, method, params}, _from, state) do
     {reply, next} = invoke(state, method, params)
     {:reply, reply, next}
   end
 
+  @spec handle_info(term(), map()) :: {:noreply, map()} | {:stop, :normal, map()}
   def handle_info({_port, {:exit_status, _}}, state), do: {:stop, :normal, state}
   def handle_info(_, state), do: {:noreply, state}
+  @spec terminate(term(), map()) :: :ok
   def terminate(_, %{port: port}), do: SymphonyElixir.GovernanceProcess.stop(port)
 
   defp invoke(state, method, params) do
     sequence = state.sequence + 1
-    Port.command(state.port, Jason.encode!(%{"jsonrpc" => "2.0", "id" => sequence, "method" => method, "params" => params}) <> "\n")
+
+    Port.command(
+      state.port,
+      Jason.encode!(%{"jsonrpc" => "2.0", "id" => sequence, "method" => method, "params" => params}) <> "\n"
+    )
+
     result = await(state.port, sequence, "", System.monotonic_time(:millisecond) + state.timeout)
     {result, %{state | sequence: sequence}}
   rescue
@@ -88,7 +112,15 @@ defmodule SymphonyElixir.GovernancePrivateMcp do
             {:error, :governance_mcp_request_rejected}
 
           {:ok, %{"id" => incoming, "method" => _}} ->
-            Port.command(port, Jason.encode!(%{"jsonrpc" => "2.0", "id" => incoming, "error" => %{"code" => -32601, "message" => "Host requests disabled"}}) <> "\n")
+            Port.command(
+              port,
+              Jason.encode!(%{
+                "jsonrpc" => "2.0",
+                "id" => incoming,
+                "error" => %{"code" => -32_601, "message" => "Host requests disabled"}
+              }) <> "\n"
+            )
+
             await(port, id, "", deadline)
 
           _ ->

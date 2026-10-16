@@ -169,7 +169,10 @@ defmodule SymphonyElixir.Audit.Outbox do
 
   defp persist_pending(state, issue, event) do
     run_id = event["runId"]
-    path = Path.join([state.root, run_id, "events", String.pad_leading(to_string(event["sequence"]), 8, "0") <> ".json"])
+
+    path =
+      Path.join([state.root, run_id, "events", String.pad_leading(to_string(event["sequence"]), 8, "0") <> ".json"])
+
     File.mkdir_p!(Path.dirname(path))
     atomic_write(path, Jason.encode!(%{"issue" => issue_identity(issue), "event" => event}))
     state
@@ -1319,6 +1322,7 @@ defmodule SymphonyElixir.Audit.Outbox do
   defp sha256(value), do: "sha256:" <> (:crypto.hash(:sha256, value) |> Base.encode16(case: :lower))
 
   @doc false
+  @spec redact_text_for_evidence(String.t()) :: String.t()
   def redact_text_for_evidence(text) when is_binary(text), do: redact_sensitive_text(text)
 
   defp redact_sensitive_text(value) do

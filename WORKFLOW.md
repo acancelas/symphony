@@ -1,4 +1,7 @@
 # BOS Delivery Workflow
+# Governance bootstrap host pins live in private host JSON, not workflow keys.
+# Original-policy runtime fields: policy_sources (exact path/sha256 inventory),
+# policy_fallback_filenames. Primary execution remains uncertified and disabled.
 
 Use `bos-mcp` for all product context and durable Delivery operations. Do not call GitHub REST/GraphQL, `gh`, or BOS Delivery endpoints directly from Codex.
 

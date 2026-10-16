@@ -83,6 +83,8 @@ defmodule SymphonyElixir.Tracker do
   end
 
   @doc "Persist a governed preparatory Run without opening an implementation Attempt."
+  @spec start_coordination(Issue.t()) ::
+          {:ok, Issue.t()} | {:error, term()}
   def start_coordination(%Issue{} = issue) do
     adapter = adapter()
 

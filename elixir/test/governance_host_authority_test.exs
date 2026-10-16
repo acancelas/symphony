@@ -1,6 +1,11 @@
 defmodule SymphonyElixir.GovernanceHostAuthorityTest do
   use ExUnit.Case, async: true
-  alias SymphonyElixir.{GovernanceTrustedGit, GovernanceExecutionAuthority, GovernanceCandidatePublication, GovernanceExecutionMonitor, GovernanceProcess}
+
+  alias SymphonyElixir.GovernanceCandidatePublication
+  alias SymphonyElixir.GovernanceExecutionAuthority
+  alias SymphonyElixir.GovernanceExecutionMonitor
+  alias SymphonyElixir.GovernanceProcess
+  alias SymphonyElixir.GovernanceTrustedGit
 
   setup do
     root = Path.join(System.tmp_dir!(), "bos-authority-#{System.unique_integer([:positive])}")
@@ -16,7 +21,10 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
     File.mkdir_p!(root <> "/elixir/lib")
     File.write!(root <> "/elixir/lib/value.txt", "baseline")
     {_, 0} = fixture_git(root, ["add", "."])
-    {_, 0} = fixture_git(root, ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "baseline"])
+
+    {_, 0} =
+      fixture_git(root, ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "baseline"])
+
     {head, 0} = fixture_git(root, ["rev-parse", "HEAD"])
     manifest = %{"planHash" => "sha256: " <> String.duplicate("a", 64), "catalogCommitSha" => String.duplicate("b", 40)}
 
@@ -33,7 +41,13 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
     source = %{
       "claim" => %{"runId" => "run69", "leaseExpiresAt" => DateTime.to_iso8601(DateTime.add(now, 60))},
       "governance" => %{
-        "phases" => %{"planning" => Map.merge(manifest, %{"candidateCommitSha" => context.sha, "verdict" => %{"status" => "passed", "verdict" => "APPROVED_WITH_NOTES"}})},
+        "phases" => %{
+          "planning" =>
+            Map.merge(manifest, %{
+              "candidateCommitSha" => context.sha,
+              "verdict" => %{"status" => "passed", "verdict" => "APPROVED_WITH_NOTES"}
+            })
+        },
         "readiness" => Map.merge(manifest, %{"candidateCommitSha" => context.sha, "state" => "READY", "status" => "passed"}),
         "developmentExecution" => %{
           "protocolVersion" => 1,
@@ -62,14 +76,19 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
     {:ok, root: root, context: context, source: source, now: now}
   end
 
-  defp fixture_git(root, args), do: System.cmd("/usr/bin/git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root | args], stderr_to_stdout: true)
+  defp fixture_git(root, args),
+    do: System.cmd("/usr/bin/git", ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-C", root | args], stderr_to_stdout: true)
 
   test "authority remains valid at the admitted attempt ceiling but denies stale/revoked/changed plan", ctx do
     assert {:ok, _} = GovernanceExecutionAuthority.check(ctx.context, ctx.source, nil, ctx.now)
 
     for source <- [
           put_in(ctx.source, ["governance", "developmentExecution", "active"], false),
-          put_in(ctx.source, ["governance", "developmentExecution", "lastObservedAt"], DateTime.to_iso8601(DateTime.add(ctx.now, -31))),
+          put_in(
+            ctx.source,
+            ["governance", "developmentExecution", "lastObservedAt"],
+            DateTime.to_iso8601(DateTime.add(ctx.now, -31))
+          ),
           put_in(ctx.source, ["governance", "readiness", "planHash"], "other"),
           put_in(ctx.source, ["governance", "developmentExecution", "consumed", "uncachedInputTokens"], 600_001)
         ] do
@@ -96,8 +115,18 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
 
     assert GovernanceExecutionAuthority.admission_matches?(admission, authority, ctx.context, ctx.now)
 
-    for {key, value} <- [{"ownerInvocationId", "forged"}, {"authorityGeneration", 2}, {"sourcePublicationId", "other"}, {"deadline", DateTime.to_iso8601(DateTime.add(ctx.now, -1))}] do
-      refute GovernanceExecutionAuthority.admission_matches?(Map.put(admission, key, value), authority, ctx.context, ctx.now)
+    for {key, value} <- [
+          {"ownerInvocationId", "forged"},
+          {"authorityGeneration", 2},
+          {"sourcePublicationId", "other"},
+          {"deadline", DateTime.to_iso8601(DateTime.add(ctx.now, -1))}
+        ] do
+      refute GovernanceExecutionAuthority.admission_matches?(
+               Map.put(admission, key, value),
+               authority,
+               ctx.context,
+               ctx.now
+             )
     end
   end
 
@@ -133,7 +162,18 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
 
     File.ln_s!("value.txt", link)
     {_, 0} = fixture_git(ctx.root, ["add", "elixir/lib/alias"])
-    {_, 0} = fixture_git(ctx.root, ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "historical symlink"])
+
+    {_, 0} =
+      fixture_git(ctx.root, [
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@example.invalid",
+        "commit",
+        "-qm",
+        "historical symlink"
+      ])
+
     {head, 0} = fixture_git(ctx.root, ["rev-parse", "HEAD"])
     File.rm!(link)
     assert {:error, _} = GovernanceCandidatePublication.stage(%{ctx.context | sha: String.trim(head)})
@@ -144,8 +184,22 @@ defmodule SymphonyElixir.GovernanceHostAuthorityTest do
     port = Port.open({:spawn_executable, ~c"/usr/bin/cat"}, [:binary, :exit_status, {:env, env}])
     {:os_pid, pid} = Port.info(port, :os_pid)
     on_exit(fn -> GovernanceProcess.stop(port) end)
-    admission = %{"deadline" => DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), 30)), "reservedDurationSeconds" => 30, "reservedUncachedInputTokens" => 1000}
-    {:ok, monitor} = GovernanceExecutionMonitor.start(port, admission, fn -> {:error, :revoked} end, fn _ -> flunk("No native measurement exists") end, System.monotonic_time(:millisecond))
+
+    admission = %{
+      "deadline" => DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), 30)),
+      "reservedDurationSeconds" => 30,
+      "reservedUncachedInputTokens" => 1000
+    }
+
+    {:ok, monitor} =
+      GovernanceExecutionMonitor.start(
+        port,
+        admission,
+        fn -> {:error, :revoked} end,
+        fn _ -> flunk("No native measurement exists") end,
+        System.monotonic_time(:millisecond)
+      )
+
     Process.sleep(1300)
     refute File.exists?("/proc/#{pid}")
     assert {:error, _} = GovernanceExecutionMonitor.healthy?(monitor)

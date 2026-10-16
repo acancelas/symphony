@@ -3,6 +3,7 @@ defmodule SymphonyElixir.GovernanceSecretStore do
   import Bitwise
   # Reads the existing host registry in memory. Never sources a shell, copies a
   # credential file, returns secrets to a model tool, or writes the registry.
+  @spec service_secret(String.t(), String.t()) :: {:ok, String.t()} | {:error, atom()}
   def service_secret(path, subject) do
     with {:ok, stat} <- File.lstat(path),
          true <- stat.type == :regular and (stat.mode &&& 0o077) == 0,
@@ -20,7 +21,9 @@ defmodule SymphonyElixir.GovernanceSecretStore do
   end
 
   defp decode("'" <> rest) do
-    if String.ends_with?(rest, "'"), do: Jason.decode(String.slice(rest, 0, byte_size(rest) - 1)), else: {:error, :invalid_registry}
+    if String.ends_with?(rest, "'"),
+      do: Jason.decode(String.slice(rest, 0, byte_size(rest) - 1)),
+      else: {:error, :invalid_registry}
   end
 
   defp decode(text) do

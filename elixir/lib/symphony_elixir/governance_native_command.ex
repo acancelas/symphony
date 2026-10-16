@@ -1,7 +1,11 @@
 defmodule SymphonyElixir.GovernanceNativeCommand do
   @moduledoc "Fixed repository QA argv executed inside the same certified native profile, without a model."
-  alias SymphonyElixir.{GovernanceRuntime, GovernanceBuildReceipt, GovernanceProcess, GovernanceWorkspaceProfile}
+  alias SymphonyElixir.GovernanceBuildReceipt
+  alias SymphonyElixir.GovernanceProcess
+  alias SymphonyElixir.GovernanceRuntime
+  alias SymphonyElixir.GovernanceWorkspaceProfile
 
+  @spec qa(map(), map(), (-> :ok | {:error, term()})) :: {:ok, map()} | {:error, atom()}
   def qa(context, configuration, guard) when is_function(guard, 0) do
     execution = configuration.execution
 
@@ -16,7 +20,8 @@ defmodule SymphonyElixir.GovernanceNativeCommand do
          true <- canonical_executable == executable,
          true <- Enum.any?(dependencies, &String.starts_with?(executable, &1 <> "/")),
          mix_home when is_binary(mix_home) <- Enum.find(dependencies, &(Path.basename(&1) == ".mix")),
-         {:ok, profile} <- GovernanceWorkspaceProfile.build(context.workspace, configuration.runtime.vendor_root, dependencies) do
+         {:ok, profile} <-
+           GovernanceWorkspaceProfile.build(context.workspace, configuration.runtime.vendor_root, dependencies) do
       id = Base.encode16(:crypto.hash(:sha256, context.issue.native_ref["runId"] <> context.sha), case: :lower)
       outbox = Path.join(context.workspace, "elixir/_build/governance-outbox-" <> id)
       path = Enum.map_join(dependencies, ":", &Path.join(&1, "bin")) <> ":/usr/bin:/bin"
@@ -42,7 +47,8 @@ defmodule SymphonyElixir.GovernanceNativeCommand do
 
       arguments =
         Enum.drop(GovernanceRuntime.startup_arguments(configuration.runtime), -1) ++
-          GovernanceRuntime.permission_arguments(profile, "bos-implementation") ++ ["sandbox", "--permission-profile", "bos-implementation", "--cd", context.workspace, "--"] ++ command
+          GovernanceRuntime.permission_arguments(profile, "bos-implementation") ++
+          ["sandbox", "--permission-profile", "bos-implementation", "--cd", context.workspace, "--"] ++ command
 
       cleared = Enum.map(System.get_env(), fn {k, _} -> {String.to_charlist(k), false} end)
 
@@ -98,9 +104,14 @@ defmodule SymphonyElixir.GovernanceNativeCommand do
   defp collect(port, guard, output, started) do
     with :ok <- guard.(), true <- System.monotonic_time(:millisecond) - started < 900_000 do
       receive do
-        {^port, {:data, bytes}} when byte_size(output) + byte_size(bytes) <= 1_000_000 -> collect(port, guard, output <> bytes, started)
-        {^port, {:exit_status, 0}} -> with :ok <- guard.(), do: {:ok, output}
-        {^port, _} -> {:error, :governance_sandbox_qa_failed}
+        {^port, {:data, bytes}} when byte_size(output) + byte_size(bytes) <= 1_000_000 ->
+          collect(port, guard, output <> bytes, started)
+
+        {^port, {:exit_status, 0}} ->
+          with :ok <- guard.(), do: {:ok, output}
+
+        {^port, _} ->
+          {:error, :governance_sandbox_qa_failed}
       after
         100 -> collect(port, guard, output, started)
       end

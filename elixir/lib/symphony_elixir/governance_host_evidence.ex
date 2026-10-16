@@ -1,26 +1,43 @@
 defmodule SymphonyElixir.GovernanceHostEvidence do
   @moduledoc "Fixed host observations, never model claims or repository script output."
-  alias SymphonyElixir.{GovernanceHostStore, GovernanceRuntime, GovernanceReservation, GovernanceBuildReceipt, GovernanceWorkspaceProfile}
+  alias SymphonyElixir.Audit.CanonicalJson
+  alias SymphonyElixir.GovernanceBuildReceipt
+  alias SymphonyElixir.GovernanceHostStore
+  alias SymphonyElixir.GovernanceReservation
+  alias SymphonyElixir.GovernanceRuntime
+  alias SymphonyElixir.GovernanceWorkspaceProfile
+
   @recipe "host-environment-v1:clean-git+exact-dossier+lease+HMAC-epoch+sealed-builds+real-profile-proof"
+  @spec recipe_sha256() :: String.t()
   def recipe_sha256, do: digest(@recipe)
 
+  @spec observe(map(), map(), map(), map()) :: {:ok, map()} | {:error, atom()}
   def observe(context, configuration, source, run) do
     with execution when is_map(execution) <- configuration[:execution],
          true <- get_in(source, ["governanceIdentity", "verified"]) == true,
          true <- get_in(source, ["governanceIdentity", "authenticatedBy"]) == "bos-host-hmac-v2",
-         epoch when is_binary(epoch) and byte_size(epoch) > 0 <- get_in(source, ["governance", "developmentExecution", "epoch"]),
+         epoch when is_binary(epoch) and byte_size(epoch) > 0 <-
+           get_in(source, ["governance", "developmentExecution", "epoch"]),
          :ok <- GovernanceReservation.verify(context, run, source),
          {head, 0} <- git(context.workspace, ["rev-parse", "HEAD"]),
          true <- String.trim(head) == context.sha,
          {"", 0} <- git(context.workspace, ["status", "--porcelain", "--untracked-files=all"]),
          {branch, 0} <- git(context.workspace, ["symbolic-ref", "--short", "HEAD"]),
          true <- String.trim(branch) == run["branch"],
-         {:ok, plan} <- File.read(Path.join(context.workspace, "docs/issues/#{context.issue.native_ref["issueNumber"]}/plan.md")),
+         {:ok, plan} <-
+           File.read(Path.join(context.workspace, "docs/issues/#{context.issue.native_ref["issueNumber"]}/plan.md")),
          true <- "sha256:" <> digest(plan) == context.manifest["planHash"],
-         true <- get_in(source, ["governance", "requirementDefinition", "currentDigest"]) == context.manifest["definitionDigest"],
+         true <-
+           get_in(source, ["governance", "requirementDefinition", "currentDigest"]) ==
+             context.manifest["definitionDigest"],
          :ok <- GovernanceRuntime.validate(configuration.runtime),
          :ok <- GovernanceRuntime.validate_implementation(configuration.runtime),
-         {:ok, _} <- GovernanceBuildReceipt.verify(configuration.mcp.build_root, configuration.mcp.receipt_path, configuration.mcp.receipt_sha256),
+         {:ok, _} <-
+           GovernanceBuildReceipt.verify(
+             configuration.mcp.build_root,
+             configuration.mcp.receipt_path,
+             configuration.mcp.receipt_sha256
+           ),
          {:ok, _} <- GovernanceWorkspaceProfile.build(context.workspace, configuration.runtime.vendor_root) do
       observation = %{
         "recipeSha256" => recipe_sha256(),
@@ -44,18 +61,48 @@ defmodule SymphonyElixir.GovernanceHostEvidence do
         }
       }
 
-      id = digest(SymphonyElixir.Audit.CanonicalJson.encode(observation))
+      id = digest(CanonicalJson.encode(observation))
 
-      with {:ok, _} <- GovernanceHostStore.request(execution, %{"kind" => "observation", "command" => "create", "id" => id, "record" => observation}) do
+      with {:ok, _} <-
+             GovernanceHostStore.request(execution, %{
+               "kind" => "observation",
+               "command" => "create",
+               "id" => id,
+               "record" => observation
+             }) do
         artifact = %{
           "evidenceId" => "host_environment_" <> id,
           "runId" => context.issue.native_ref["runId"],
           "commitSha" => context.sha,
           "phase" => "readiness",
           "status" => "passed",
-          "acceptanceCriteria" => [%{"id" => "environment", "name" => "Host-observed exact-candidate local execution environment", "status" => "passed", "verified" => true}],
-          "checks" => [%{"id" => "environment", "kind" => "environment", "status" => "passed", "verified" => true, "environment" => "local", "commands" => [@recipe]}],
-          "artifacts" => [%{"kind" => "host_environment_observation", "sha256" => id, "recipeSha256" => recipe_sha256(), "epoch" => epoch, "observedAt" => observation["observedAt"]}],
+          "acceptanceCriteria" => [
+            %{
+              "id" => "environment",
+              "name" => "Host-observed exact-candidate local execution environment",
+              "status" => "passed",
+              "verified" => true
+            }
+          ],
+          "checks" => [
+            %{
+              "id" => "environment",
+              "kind" => "environment",
+              "status" => "passed",
+              "verified" => true,
+              "environment" => "local",
+              "commands" => [@recipe]
+            }
+          ],
+          "artifacts" => [
+            %{
+              "kind" => "host_environment_observation",
+              "sha256" => id,
+              "recipeSha256" => recipe_sha256(),
+              "epoch" => epoch,
+              "observedAt" => observation["observedAt"]
+            }
+          ],
           "summary" => "Host observed fixed Git/dossier/lease/HMAC-epoch/build/profile checks. No repository script executed on the privileged host; no implementation acceptance asserted."
         }
 

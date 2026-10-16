@@ -30,3 +30,11 @@ Registered worktree and private evidence remain active and retained. No cleanup,
 
 ## Offline validation
 2026-10-16: 21 focal tests passed; full standard suite 495 tests, 0 failures, 6 skipped (seed 613). Changed Elixir files formatted. This does not substitute for full fixed sandbox QA, native model proof or independent acceptance.
+
+## Follow-up source checkpoint
+
+The disabled bootstrap now includes strict actual native usage collection, a permanent inode-bound source publication guard, raw fixed-scope snapshot reads and the transferred observed-snapshot producer. Host observation IDs derive from and seal the canonical observation basis; callers cannot supply them. Independent backend code round 2 retained two upheld defects and the unchanged qualified review originals. A separate arbiter exception opinion for corrected backend aeacfe5f766746e5dbfa6233083b21dc714865f6 conditionally permits one later code round, only after canonical persistence and explicit origin clearance. No third reviewer is launched by that opinion.
+
+Primary policy wiring is preparatory: complete original material, GLOBAL scope, explicit additive BOS ancestors, conditional Git subtrees and pre-model actual scope observation. It requires new private path/hash pins and rejects uncertified custom fallback profiles. The strengthened AGENTS.override.md recipe has no valid execution proof yet; earlier canary evidence is historical for its prior recipe only. Installed private configuration and activation pins are unchanged.
+
+Latest local source validation: 517 tests, zero failures, six skipped; format check and public specs check passed. Credo still has unresolved complexity/nesting/style findings, so the full quality gate is not passed. Sandbox QA is not certified. Whole-run accounting through final review, real publication handoff, CLI/daemon unification, current-recipe certification, snapshot lifecycle wiring and independent final acceptance remain pending. No project API69 calls, READY, approval, main integration or production deployment occurred. Task worktree and unique evidence remain active and retained.

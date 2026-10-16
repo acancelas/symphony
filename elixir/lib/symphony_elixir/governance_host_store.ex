@@ -3,6 +3,7 @@ defmodule SymphonyElixir.GovernanceHostStore do
   alias SymphonyElixir.GovernanceBuildReceipt
   @timeout 10_000
 
+  @spec request(map() | nil, map()) :: {:ok, map()} | {:error, atom()}
   def request(configuration, operation) when is_map(configuration) and is_map(operation) do
     with true <- GovernanceBuildReceipt.file_digest(configuration.python_executable) == configuration.python_sha256,
          true <- Path.type(configuration.journal_root) == :absolute do
@@ -29,6 +30,7 @@ defmodule SymphonyElixir.GovernanceHostStore do
 
   def request(_, _), do: {:error, :governance_host_store_unconfigured}
 
+  @spec hold(map(), String.t()) :: {:ok, port()} | {:error, atom()}
   def hold(configuration, id) do
     with true <- GovernanceBuildReceipt.file_digest(configuration.python_executable) == configuration.python_sha256 do
       cleared = Enum.map(System.get_env(), fn {key, _} -> {String.to_charlist(key), false} end)
@@ -43,7 +45,11 @@ defmodule SymphonyElixir.GovernanceHostStore do
           {:env, cleared ++ [{~c"LANG", ~c"C.UTF-8"}]}
         ])
 
-      Port.command(port, Jason.encode!(%{"root" => configuration.journal_root, "kind" => "execution", "id" => id, "command" => "hold"}) <> "\n")
+      Port.command(
+        port,
+        Jason.encode!(%{"root" => configuration.journal_root, "kind" => "execution", "id" => id, "command" => "hold"}) <>
+          "\n"
+      )
 
       case frame(port, "") do
         {:ok, %{"ok" => true, "held" => true}} ->
@@ -62,8 +68,11 @@ defmodule SymphonyElixir.GovernanceHostStore do
 
   # The immutable helper acquires flock before its first acknowledgement and
   # never unlocks while alive. Do not consume its owner's mailbox from a monitor.
+  @spec held?(term()) :: boolean()
   def held?(port) when is_port(port) do
-    with {:os_pid, pid} <- Port.info(port, :os_pid), {:ok, bytes} <- File.read("/proc/#{pid}/stat"), [_name, tail] <- String.split(bytes, ") ", parts: 2) do
+    with {:os_pid, pid} <- Port.info(port, :os_pid),
+         {:ok, bytes} <- File.read("/proc/#{pid}/stat"),
+         [_name, tail] <- String.split(bytes, ") ", parts: 2) do
       List.first(String.split(tail)) not in ["Z", "X"]
     else
       _ -> false
@@ -73,6 +82,7 @@ defmodule SymphonyElixir.GovernanceHostStore do
   end
 
   def held?(_), do: false
+  @spec release(port()) :: :ok
   def release(port), do: SymphonyElixir.GovernanceProcess.stop(port)
 
   defp frame(port, bytes) do

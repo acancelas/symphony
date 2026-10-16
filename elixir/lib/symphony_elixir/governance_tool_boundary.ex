@@ -1,10 +1,16 @@
 defmodule SymphonyElixir.GovernanceToolBoundary do
   @moduledoc "Scope and least-privilege checks applied by the host before every private MCP tool call."
-  alias SymphonyElixir.{GovernanceCatalog, GovernanceRequestSnapshot}
+  alias SymphonyElixir.GovernanceCatalog
+  alias SymphonyElixir.GovernanceRequestSnapshot
+
   @production ~w(bos_request_merge bos_create_deployment bos_create_release bos_realize_vercel_deployment bos_record_deployment_verification bos_record_deployment_runtime_probe)
 
+  @spec identity(map(), map(), String.t(), [String.t()]) :: {:ok, map()} | {:error, atom()}
   def identity(source, expected, role, allowed_authenticators \\ []) do
-    required = if role == "task-orchestrator", do: ~w(bos:delivery bos:governance:execute), else: ~w(bos:delivery bos:governance:review)
+    required =
+      if role == "task-orchestrator",
+        do: ~w(bos:delivery bos:governance:execute),
+        else: ~w(bos:delivery bos:governance:review)
 
     case source["governanceIdentity"] do
       %{
@@ -23,11 +29,21 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
         "attestationScope" => scope
       }
       when is_binary(service) and service != "" and is_binary(subject) and subject != "" and is_binary(binding) ->
-        if authenticated_by in allowed_authenticators and repository == expected and Enum.sort(permissions) == Enum.sort(required) and
+        if authenticated_by in allowed_authenticators and repository == expected and
+             Enum.sort(permissions) == Enum.sort(required) and
              readonly == (role != "task-orchestrator") and catalog == GovernanceCatalog.commit() and
              isolation == if(role == "task-orchestrator", do: "executor", else: "read-only-worker") and
              Regex.match?(~r/^sha256:[0-9a-f]{64}$/, binding) do
-          {:ok, %{service_id: service, subject_id: subject, role: role, repository_id: repository["repositoryId"], invocation_id: invocation, binding_digest: binding, attestation_scope: scope}}
+          {:ok,
+           %{
+             service_id: service,
+             subject_id: subject,
+             role: role,
+             repository_id: repository["repositoryId"],
+             invocation_id: invocation,
+             binding_digest: binding,
+             attestation_scope: scope
+           }}
         else
           {:error, :governance_effective_principal_mismatch}
         end
@@ -39,6 +55,7 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
     _ -> {:error, :governance_effective_principal_unverified}
   end
 
+  @spec arguments(String.t(), map(), map(), [String.t()]) :: {:ok, map()} | {:error, atom()}
   def arguments(tool, args, context, allowed) when is_map(args) do
     native = context.issue.native_ref
 
@@ -59,7 +76,31 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
   def arguments(_, _, _, _), do: {:error, :governance_tool_scope_rejected}
 
   @doc false
-  def bind_operation(tool, args, invocation) when tool in ~w(bos_record_governance bos_record_review bos_record_evidence) and is_binary(invocation) do
+  @spec snapshot_read_arguments(String.t(), map(), map()) :: {:ok, map()} | {:error, atom()}
+  def snapshot_read_arguments(tool, args, context) do
+    native = context.issue.native_ref
+    expected = snapshot_arguments(tool)
+    scope = %{"repositoryId" => "symphony", "issueNumber" => 69, "runId" => "symphony-governance-69"}
+
+    if Map.take(native, Map.keys(scope)) == scope and is_map(expected) and args == expected do
+      {:ok, args}
+    else
+      {:error, :governance_snapshot_read_scope_rejected}
+    end
+  rescue
+    _ -> {:error, :governance_snapshot_read_scope_rejected}
+  end
+
+  defp snapshot_arguments("bos_get_issue"), do: %{"issueNumber" => 69}
+
+  defp snapshot_arguments(tool) when tool in ~w(bos_get_delivery_run bos_get_run_history),
+    do: %{"runId" => "symphony-governance-69"}
+
+  defp snapshot_arguments(_), do: nil
+  @doc false
+  @spec bind_operation(String.t(), map(), String.t()) :: map()
+  def bind_operation(tool, args, invocation)
+      when tool in ~w(bos_record_governance bos_record_review bos_record_evidence) and is_binary(invocation) do
     case args["operationId"] do
       logical when is_binary(logical) ->
         bytes = :erlang.term_to_binary({logical, invocation, Map.delete(args, "operationId")}, [:deterministic])
@@ -72,6 +113,7 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
 
   def bind_operation(_, args, _), do: args
 
+  @spec decode_result(term()) :: {:ok, term()} | {:error, term()}
   def decode_result(%{"isError" => true} = raw) do
     details = SymphonyElixir.GovernanceHostDiagnostics.outcome({:ok, raw})
 
@@ -96,14 +138,18 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
 
   def decode_result(_), do: {:error, :governance_mcp_result_invalid}
 
+  @spec safe_output(term()) :: term()
   def safe_output(value) when is_binary(value), do: GovernanceRequestSnapshot.sanitize(value)
   def safe_output(value) when is_list(value), do: Enum.map(value, &safe_output/1)
 
   def safe_output(value) when is_map(value) do
     Map.new(value, fn {key, nested} ->
-      if Regex.match?(~r/^(?:access[_-]?token|refresh[_-]?token|token|authorization|cookie|password|api[_-]?key|machine[_-]?secret[_-]?key|client[_-]?secret)$/i, to_string(key)),
-        do: {key, "[REDACTED]"},
-        else: {key, safe_output(nested)}
+      if Regex.match?(
+           ~r/^(?:access[_-]?token|refresh[_-]?token|token|authorization|cookie|password|api[_-]?key|machine[_-]?secret[_-]?key|client[_-]?secret)$/i,
+           to_string(key)
+         ),
+         do: {key, "[REDACTED]"},
+         else: {key, safe_output(nested)}
     end)
   end
 
@@ -118,7 +164,12 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
          true <- observed_evidence?(tool, artifact, context),
          true <- tool != "bos_record_governance" or Enum.all?(~w(actor role payload), &(not Map.has_key?(artifact, &1))) do
       actor = %{"type" => "agent", "subjectId" => context.principal.subject_id}
-      {:ok, if(tool in ~w(bos_record_review bos_start_attempt bos_complete_attempt), do: Map.put(artifact, "actor", actor), else: artifact)}
+
+      {:ok,
+       if(tool in ~w(bos_record_review bos_start_attempt bos_complete_attempt),
+         do: Map.put(artifact, "actor", actor),
+         else: artifact
+       )}
     else
       _ -> {:error, :governance_tool_scope_rejected}
     end
@@ -128,8 +179,18 @@ defmodule SymphonyElixir.GovernanceToolBoundary do
 
   defp observed_evidence?("bos_record_evidence", artifact, context) do
     checks = artifact["checks"] || []
-    host_only = artifact["phase"] == "readiness" or Enum.any?(artifact["artifacts"] || [], &(is_map(&1) and &1["kind"] in ~w(host_environment_observation development_execution_observation)))
-    asserted = host_only or artifact["status"] == "passed" or (is_list(checks) and Enum.any?(checks, &(is_map(&1) and &1["verified"] == true)))
+
+    host_only =
+      artifact["phase"] == "readiness" or
+        Enum.any?(
+          artifact["artifacts"] || [],
+          &(is_map(&1) and &1["kind"] in ~w(host_environment_observation development_execution_observation))
+        )
+
+    asserted =
+      host_only or artifact["status"] == "passed" or
+        (is_list(checks) and Enum.any?(checks, &(is_map(&1) and &1["verified"] == true)))
+
     not asserted or get_in(context, [:host_observed_evidence, artifact["evidenceId"]]) == artifact
   end
 

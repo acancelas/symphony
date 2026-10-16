@@ -4,19 +4,33 @@ defmodule SymphonyElixir.GovernanceCoordinator do
   artifact tools. Only durable readbacks advance gates. Transport/technical failures
   return to the existing scheduler without opening a new committee round or budget.
   """
-  alias SymphonyElixir.{CandidateHead, GovernanceCatalog, GovernanceSession}
+  alias SymphonyElixir.CandidateHead
   alias SymphonyElixir.GameApi.Client
+  alias SymphonyElixir.GovernanceCatalog
+  alias SymphonyElixir.GovernanceSession
+  alias SymphonyElixir.Tracker.Issue
 
   @read_tools ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_goal_execution bos_get_run_history bos_get_evidence)
   @coordinator_tools @read_tools ++ ~w(bos_record_governance bos_record_evidence)
   @review_tools @read_tools ++ ~w(bos_record_review bos_record_governance)
   @arbiter_tools @read_tools ++ ~w(bos_record_governance)
 
+  @spec enabled?(Issue.t(), keyword()) :: boolean()
   def enabled?(issue, opts) do
     native = issue.native_ref || %{}
-    Keyword.get(opts, :governance_enabled, false) or is_map(native["governance"]) or SymphonyElixir.GovernanceTransport.configured?(native["repositoryId"])
+
+    Keyword.get(opts, :governance_enabled, false) or is_map(native["governance"]) or
+      SymphonyElixir.GovernanceTransport.configured?(native["repositoryId"])
   end
 
+  @spec run(
+          :planning | :implementation,
+          String.t(),
+          Issue.t(),
+          pid() | nil,
+          keyword(),
+          String.t() | nil
+        ) :: :ok | {:error, term()}
   def run(phase, workspace, issue, recipient, opts, worker_host) when phase in [:planning, :implementation] do
     if enabled?(issue, opts) do
       config = Application.get_env(:symphony_elixir, :governance, [])
@@ -45,9 +59,10 @@ defmodule SymphonyElixir.GovernanceCoordinator do
         planning = get_in(state, ["phases", "planning"])
 
         context =
-          if phase == :planning and is_map(planning) and planning["planHash"] == manifest["planHash"] and planning["catalogCommitSha"] == GovernanceCatalog.commit(),
-            do: %{context | sha: planning["candidateCommitSha"]},
-            else: context
+          if phase == :planning and is_map(planning) and planning["planHash"] == manifest["planHash"] and
+               planning["catalogCommitSha"] == GovernanceCatalog.commit(),
+             do: %{context | sha: planning["candidateCommitSha"]},
+             else: context
 
         convene(context, state)
       end
@@ -103,15 +118,21 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     number = context.issue.native_ref["issueNumber"]
     path = "docs/issues/#{number}"
 
-    case System.cmd("git", ["-C", context.workspace, "ls-tree", "--name-only", sha, "--", "#{path}/manifest.json", "#{path}/plan.md"], stderr_to_stdout: true) do
+    case System.cmd(
+           "git",
+           ["-C", context.workspace, "ls-tree", "--name-only", sha, "--", "#{path}/manifest.json", "#{path}/plan.md"],
+           stderr_to_stdout: true
+         ) do
       {"", 0} ->
         {:error, :governance_manifest_missing}
 
       _ ->
-        with {bytes, 0} <- System.cmd("git", ["-C", context.workspace, "show", "#{sha}:#{path}/manifest.json"], stderr_to_stdout: true),
+        with {bytes, 0} <-
+               System.cmd("git", ["-C", context.workspace, "show", "#{sha}:#{path}/manifest.json"], stderr_to_stdout: true),
              {:ok, manifest} <- Jason.decode(bytes),
              :ok <- verify_definition(manifest, context.definition_bindings),
-             {plan, 0} <- System.cmd("git", ["-C", context.workspace, "show", "#{sha}:#{path}/plan.md"], stderr_to_stdout: true),
+             {plan, 0} <-
+               System.cmd("git", ["-C", context.workspace, "show", "#{sha}:#{path}/plan.md"], stderr_to_stdout: true),
              true <- manifest["issueNumber"] == number,
              true <- manifest["catalogCommitSha"] == GovernanceCatalog.commit(),
              true <- manifest["planHash"] == "sha256:" <> Base.encode16(:crypto.hash(:sha256, plan), case: :lower) do
@@ -126,7 +147,8 @@ defmodule SymphonyElixir.GovernanceCoordinator do
   defp definition_bindings(context) do
     native = context.issue.native_ref
 
-    with {:ok, %{"definitionDigest" => digest} = source} <- context.client.fetch_issue(native["repositoryId"], native["issueNumber"]),
+    with {:ok, %{"definitionDigest" => digest} = source} <-
+           context.client.fetch_issue(native["repositoryId"], native["issueNumber"]),
          true <- is_binary(digest) and Regex.match?(~r/^sha256:[0-9a-f]{64}$/, digest),
          {:ok, snapshot} <- SymphonyElixir.GovernanceRequestSnapshot.build(source, native["repositoryId"]),
          true <- snapshot["number"] == native["issueNumber"],
@@ -143,7 +165,8 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     if "bos:goal" in (context.issue.labels || []) do
       native = context.issue.native_ref
 
-      with {:ok, %{"proposal" => proposal} = planning} when is_map(proposal) <- context.client.fetch_goal_planning(native["repositoryId"], native["issueNumber"]) do
+      with {:ok, %{"proposal" => proposal} = planning} when is_map(proposal) <-
+             context.client.fetch_goal_planning(native["repositoryId"], native["issueNumber"]) do
         hash = planning["goalBreakdownHash"]
 
         if is_binary(hash) and Regex.match?(~r/^sha256:[0-9a-f]{64}$/, hash),
@@ -163,9 +186,10 @@ defmodule SymphonyElixir.GovernanceCoordinator do
     revisions = manifest["requestRevisionSnapshots"] || []
     snapshots = if is_list(revisions), do: [manifest["requestSnapshot"] | revisions], else: []
 
-    if Enum.all?(Map.delete(bindings, "requestSnapshot"), fn {key, value} -> manifest[key] == value end) and current in snapshots,
-      do: :ok,
-      else: {:error, :governance_definition_conflict}
+    if Enum.all?(Map.delete(bindings, "requestSnapshot"), fn {key, value} -> manifest[key] == value end) and
+         current in snapshots,
+       do: :ok,
+       else: {:error, :governance_definition_conflict}
   end
 
   defp read_state(context) do
@@ -179,11 +203,19 @@ defmodule SymphonyElixir.GovernanceCoordinator do
   end
 
   defp current(context, state), do: get_in(state, ["phases", context.phase])
-  defp version(context), do: %{"planHash" => context.manifest["planHash"], "catalogCommitSha" => GovernanceCatalog.commit(), "candidateCommitSha" => context.sha}
+
+  defp version(context),
+    do: %{
+      "planHash" => context.manifest["planHash"],
+      "catalogCommitSha" => GovernanceCatalog.commit(),
+      "candidateCommitSha" => context.sha
+    }
+
   defp matches?(context, phase) when is_map(phase), do: Enum.all?(version(context), fn {k, v} -> phase[k] == v end)
   defp matches?(_, _), do: false
 
   @doc false
+  @spec resume(map(), map()) :: :ok | {:error, term()}
   def resume(context, state), do: convene(context, state)
 
   defp convene(context, state) do
@@ -191,7 +223,15 @@ defmodule SymphonyElixir.GovernanceCoordinator do
 
     cond do
       not matches?(context, phase) ->
-        with {:ok, next} <- record(context, "task-orchestrator", "candidate", 0, "Register exact candidate; preserve issue counters and Goal consumption.", &matches?(context, current(context, &1))) do
+        with {:ok, next} <-
+               record(
+                 context,
+                 "task-orchestrator",
+                 "candidate",
+                 0,
+                 "Register exact candidate; preserve issue counters and Goal consumption.",
+                 &matches?(context, current(context, &1))
+               ) do
           convene(context, next)
         end
 
@@ -256,7 +296,14 @@ defmodule SymphonyElixir.GovernanceCoordinator do
           detail =
             "Evaluate applicability first. Persist a justified NOT_APPLICABLE (applicable=false), or record a version-bound Review and applicability with applicable=true, matching status and reviewIds. Missing mandatory evidence is UNVERIFIED. Use original evidence; never invent a review or authority.\nCanonical role definition: #{Jason.encode!(role)}"
 
-          case record(context, role["id"], "applicability", phase["round"], detail, &is_map(get_in(&1, ["phases", context.phase, "votes", role["id"]]))) do
+          case record(
+                 context,
+                 role["id"],
+                 "applicability",
+                 phase["round"],
+                 detail,
+                 &is_map(get_in(&1, ["phases", context.phase, "votes", role["id"]]))
+               ) do
             {:ok, next} -> {:cont, {:ok, next}}
             error -> {:halt, error}
           end
@@ -355,13 +402,26 @@ defmodule SymphonyElixir.GovernanceCoordinator do
   defp finish(%{phase: "implementation"}, _state), do: :ok
 
   defp prepare_host_readiness(context) do
-    if function_exported?(context.broker, :prepare_readiness, 1), do: context.broker.prepare_readiness(context), else: {:ok, nil}
+    if function_exported?(context.broker, :prepare_readiness, 1),
+      do: context.broker.prepare_readiness(context),
+      else: {:ok, nil}
   end
 
   defp record(context, role, event, round, detail, confirmed?) do
-    key = [context.issue.native_ref["runId"], context.phase, event, round, context.sha, context.manifest["planHash"], role] |> Jason.encode!()
+    key =
+      [context.issue.native_ref["runId"], context.phase, event, round, context.sha, context.manifest["planHash"], role]
+      |> Jason.encode!()
+
     id = "gov_" <> Base.encode16(:crypto.hash(:sha256, key), case: :lower)
-    artifact = Map.merge(version(context), %{"governanceId" => id, "runId" => context.issue.native_ref["runId"], "phase" => context.phase, "event" => event, "round" => round})
+
+    artifact =
+      Map.merge(version(context), %{
+        "governanceId" => id,
+        "runId" => context.issue.native_ref["runId"],
+        "phase" => context.phase,
+        "event" => event,
+        "round" => round
+      })
 
     prompt = """
     Recover BOS Issue #{context.issue.native_ref["issueNumber"]} and the existing AgentRun.
