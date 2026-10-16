@@ -3,7 +3,11 @@ defmodule SymphonyElixir.PromptBuilder do
   Builds agent prompts from normalized tracker work item data.
   """
 
-  alias SymphonyElixir.{Config, Workflow}
+  alias SymphonyElixir.Audit.CanonicalJson
+  alias SymphonyElixir.Config
+  alias SymphonyElixir.GovernanceTrustedGit
+  alias SymphonyElixir.PathSafety
+  alias SymphonyElixir.Workflow
 
   @render_opts [strict_variables: true, strict_filters: true]
 
@@ -24,6 +28,170 @@ defmodule SymphonyElixir.PromptBuilder do
     )
     |> IO.iodata_to_binary()
   end
+
+  @doc "Assemble original, exact-candidate policy texts before any governed implementation turn."
+  @spec governed_policy_material(map(), map()) :: {:ok, map()} | {:error, atom()}
+  def governed_policy_material(context, configuration) do
+    with pins when is_list(pins) <- configuration[:policy_sources],
+         fallbacks when is_list(fallbacks) <- configuration[:policy_fallback_filenames],
+         true <- valid_policy_names?(fallbacks),
+         names = ["AGENTS.override.md", "AGENTS.md" | fallbacks],
+         {:ok, external} <- external_policies(context.workspace, configuration.auth_home, names, pins),
+         {:ok, repository} <- repository_policies(context, names),
+         true <- external != [] and repository != [] do
+      entries = external ++ repository
+      manifest = Enum.map(entries, &Map.drop(&1, ["text"]))
+      digest = policy_digest(CanonicalJson.encode(manifest))
+      prompt = Enum.map_join(entries, "\n\n", &policy_message/1)
+      {:ok, %{prompt: prompt, manifest: manifest, digest: digest}}
+    else
+      _ -> {:error, :governance_original_policy_material_rejected}
+    end
+  rescue
+    _ -> {:error, :governance_original_policy_material_rejected}
+  end
+
+  defp valid_policy_names?(names) do
+    Enum.all?(names, fn name ->
+      is_binary(name) and name != "" and Path.basename(name) == name and
+        name not in [".", "..", "AGENTS.override.md", "AGENTS.md"] and
+        not String.contains?(name, ["\\", "\n", "\r", <<0>>])
+    end) and Enum.uniq(names) == names
+  end
+
+  defp external_policies(workspace, auth_home, names, pins) do
+    global = selected_external(auth_home, ["AGENTS.override.md", "AGENTS.md"])
+    directories = workspace |> Path.expand() |> Path.dirname() |> policy_ancestors()
+    selected = (global ++ Enum.flat_map(directories, &selected_external(&1, names))) |> Enum.uniq()
+    pinned = Map.new(pins, &{&1["path"], &1["sha256"]})
+
+    if global != [] and map_size(pinned) == length(pins) and Enum.sort(Map.keys(pinned)) == Enum.sort(selected) do
+      policy_entries(selected, fn path -> external_policy(path, pinned[path]) end)
+    else
+      {:error, :governance_external_policy_inventory_mismatch}
+    end
+  end
+
+  defp policy_ancestors("/"), do: ["/"]
+  defp policy_ancestors(path), do: policy_ancestors(Path.dirname(path)) ++ [path]
+
+  defp selected_external(directory, names) do
+    Enum.reduce_while(names, [], fn name, _ ->
+      path = Path.join(directory, name)
+
+      case File.lstat(path) do
+        {:error, :enoent} -> {:cont, []}
+        {:ok, %{type: :regular, size: 0}} -> {:cont, []}
+        _ -> {:halt, [path]}
+      end
+    end)
+  end
+
+  defp external_policy(path, expected) do
+    with {:ok, ^path} <- PathSafety.canonicalize(path),
+         {:ok, %{type: :regular, links: 1}} <- File.lstat(path),
+         {:ok, bytes} <- File.read(path),
+         true <- bytes != "" and String.valid?(bytes) and policy_digest(bytes) == expected do
+      {:ok, %{"path" => path, "scope" => Path.dirname(path), "source" => "host-pinned", "sha256" => expected, "text" => bytes}}
+    else
+      _ -> {:error, :governance_external_policy_pin_rejected}
+    end
+  end
+
+  defp repository_policies(context, names) do
+    with {raw, 0} <- GovernanceTrustedGit.run(context.workspace, ["ls-tree", "-r", "-z", context.sha]),
+         entries = String.split(raw, <<0>>, trim: true),
+         {:ok, policies} <- parse_policy_tree(entries, names),
+         {:ok, policies} <- nonempty_policy_blobs(context.workspace, policies),
+         :ok <- reject_untracked_policies(context.workspace, names) do
+      selected = policies |> Enum.group_by(&Path.dirname(&1.path)) |> Enum.sort_by(fn {directory, _} -> {length(Path.split(directory)), directory} end)
+      paths = Enum.map(selected, fn {_, files} -> Enum.min_by(files, &policy_priority(&1, names)) end)
+      policy_entries(paths, &repository_policy(context, &1))
+    else
+      _ -> {:error, :governance_repository_policy_inventory_rejected}
+    end
+  end
+
+  defp nonempty_policy_blobs(workspace, policies) do
+    Enum.reduce_while(policies, {:ok, []}, fn policy, {:ok, acc} ->
+      case GovernanceTrustedGit.run(workspace, ["cat-file", "blob", policy.oid]) do
+        {"", 0} -> {:cont, {:ok, acc}}
+        {_, 0} -> {:cont, {:ok, [policy | acc]}}
+        _ -> {:halt, {:error, :governance_policy_blob_unavailable}}
+      end
+    end)
+  end
+
+  defp reject_untracked_policies(workspace, names) do
+    scopes = names ++ Enum.map(names, &Path.join("elixir", &1)) ++ ["elixir/lib", "elixir/test"]
+
+    Enum.reduce_while([[], ["--ignored"]], :ok, fn flags, :ok ->
+      workspace
+      |> GovernanceTrustedGit.run(["ls-files", "--others", "--exclude-standard", "-z"] ++ flags ++ ["--" | scopes])
+      |> untracked_policy_result(names)
+    end)
+  end
+
+  defp policy_priority(policy, names), do: Enum.find_index(names, &(&1 == Path.basename(policy.path)))
+
+  defp untracked_policy_result({raw, 0}, names) do
+    if Enum.any?(String.split(raw, <<0>>, trim: true), &(Path.basename(&1) in names)), do: {:halt, {:error, :governance_untracked_policy_rejected}}, else: {:cont, :ok}
+  end
+
+  defp untracked_policy_result(_, _), do: {:halt, {:error, :governance_untracked_policy_inventory_failed}}
+
+  defp parse_policy_tree(entries, names) do
+    Enum.reduce_while(entries, {:ok, []}, fn entry, {:ok, acc} ->
+      case String.split(entry, "\t", parts: 2) do
+        [metadata, path] -> parse_policy_entry(metadata, path, names, acc)
+        _ -> {:halt, {:error, :governance_policy_tree_malformed}}
+      end
+    end)
+  end
+
+  defp parse_policy_entry(metadata, path, names, acc) do
+    if Path.basename(path) in names do
+      case String.split(metadata, " ") do
+        [mode, "blob", oid] when mode in ["100644", "100755"] -> {:cont, {:ok, [%{path: path, oid: oid} | acc]}}
+        _ -> {:halt, {:error, :governance_policy_file_kind_rejected}}
+      end
+    else
+      {:cont, {:ok, acc}}
+    end
+  end
+
+  defp repository_policy(context, %{path: path, oid: oid}) do
+    absolute = Path.join(context.workspace, path)
+
+    with {bytes, 0} <- GovernanceTrustedGit.run(context.workspace, ["cat-file", "blob", oid]),
+         true <- bytes != "" and String.valid?(bytes),
+         {:ok, ^absolute} <- PathSafety.canonicalize(absolute),
+         {:ok, %{type: :regular, links: 1}} <- File.lstat(absolute),
+         {:ok, ^bytes} <- File.read(absolute) do
+      {:ok, %{"path" => path, "scope" => Path.dirname(path), "source" => "git:" <> context.sha, "sha256" => policy_digest(bytes), "text" => bytes}}
+    else
+      _ -> {:error, :governance_repository_policy_drift}
+    end
+  end
+
+  defp policy_entries(paths, load) do
+    Enum.reduce_while(paths, {:ok, []}, fn path, {:ok, entries} ->
+      case load.(path) do
+        {:ok, entry} -> {:cont, {:ok, entries ++ [entry]}}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp policy_message(entry) do
+    "# Original governed policy: " <>
+      entry["path"] <>
+      "\nScope: " <>
+      entry["scope"] <>
+      "\nSource: " <> entry["source"] <> "\nSHA-256: " <> entry["sha256"] <> "\n\n" <> entry["text"]
+  end
+
+  defp policy_digest(bytes), do: Base.encode16(:crypto.hash(:sha256, bytes), case: :lower)
 
   defp prompt_template!({:ok, %{prompt_template: prompt}}), do: default_prompt(prompt)
 

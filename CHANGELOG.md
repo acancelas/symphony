@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-16 — Original policy preparation and synthetic model calibration (Issue #69, incomplete)
+
+Extend the existing PromptBuilder with exact-candidate original policy assembly, explicit host path/hash pins, scope labels, override/fallback precedence and fail-closed drift checks. Preserve every selected original byte. Six focused policy tests and strict module Credo pass. The helper remains disconnected from the primary broker; installed configuration and activation pins are unchanged.
+
+One authorized real native model turn in a synthetic fixture exercised the current implementation profile with original policies supplied in full and actual pre-model scope fsynced. Both positives and all 27 current recipe denials passed, with network disabled and process reaped; 9,716 uncached input tokens measured, cost unknown. Preserve the original parser-failure report and an append-only evaluation that removes only its exact startup warning prefix. See docs/issues/69/original-policy-material.md for hashes, scope and pending review. No project gates or runtime certification are granted. Alternate policy filename protection, broker wiring and whole-run execution remain pending. Active worktree retained for ongoing work.
+
 ## 2026-10-16 — Offline bootstrap checkpoint (Issue #69, incomplete)
 
 Preserve unfinished host evidence, launch journal, authority monitoring and native QA/publication scaffolding for review. Reject changed Git symlink/gitlink modes and filesystem aliases before staging. Synthetic isolated QA demonstrates internal loopback with host TCP/Unix denied and sources read-only; real QA certification remains pending. Native AppServer startup is blocked by AGENTS glob denial. Whole-run accounting, publication handoff/source guard and final pipeline remain unfinished. See docs/issues/69/offline-bootstrap-2026-10-16.md.
