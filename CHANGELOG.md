@@ -165,3 +165,4 @@ host environment results, runtime certification and independent Goal authorizati
 - Add pinned opt-in host guard creation with stable task/owner identity, real fresh-main/quota checks, final-path setup and no clone/staging fallback.
 - Validate registered worktree paths for hooks/App Server; preserve admitted worktrees for explicit owner-aware retirement and reject unsupported SSH admission.
 - Keep existing controllers, runtime/config pins, legacy defaults and unrelated optional-BOS edits unchanged. Document separate activation and outstanding historical QA limitations.
+- Add protocol/output/timeout/inventory negatives: new admission adapter100% coverage,544 tests pass; exact parent comparison preserves its existing QA-custody timing failure and global coverage blocker. No thresholds or exclusions changed.

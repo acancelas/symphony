@@ -50,7 +50,7 @@ defmodule SymphonyElixir.WorkspaceAdmission do
 
   defp configuration do
     value = Config.settings!().workspace.admission
-    allowed = ~w(command command_sha256 guard_path guard_sha256 canonical_repositories owner)
+    allowed = ~w(command command_sha256 guard_path guard_sha256 canonical_repositories owner timeout_ms)
 
     with true <- is_map(value) and Enum.all?(Map.keys(value), &(&1 in allowed)),
          command when is_binary(command) <- value["command"],
@@ -64,7 +64,9 @@ defmodule SymphonyElixir.WorkspaceAdmission do
          {:ok, %{type: :regular}} <- File.lstat(guard),
          true <- digest(File.read!(guard)) == value["guard_sha256"],
          roots when is_map(roots) and map_size(roots) > 0 <- value["canonical_repositories"],
-         true <- Enum.all?(roots, fn {id, root} -> is_binary(id) and is_binary(root) and Path.type(root) == :absolute end) do
+         true <- Enum.all?(roots, fn {id, root} -> is_binary(id) and is_binary(root) and Path.type(root) == :absolute end),
+         timeout = value["timeout_ms"] || 180_000,
+         true <- is_integer(timeout) and timeout > 0 and timeout <= 180_000 do
       {:ok, value}
     else
       _ -> {:error, :workspace_admission_configuration_invalid}
@@ -84,7 +86,7 @@ defmodule SymphonyElixir.WorkspaceAdmission do
       ])
 
     try do
-      collect(port, "", System.monotonic_time(:millisecond) + 180_000)
+      collect(port, "", System.monotonic_time(:millisecond) + (configuration["timeout_ms"] || 180_000))
     after
       GovernanceProcess.stop(port)
     end

@@ -98,6 +98,23 @@ defmodule SymphonyElixir.WorkspaceAdmissionTest do
     File.write!(Workflow.workflow_file_path(), String.replace(text, "workspace:\n", "workspace:\n  admission: #{Jason.encode!(changed)}\n"))
     assert {:error, {:workspace_admission_blocked, "duplicate_clone_or_canonical_mismatch"}} = WorkspaceAdmission.create(%{context | issue_id: "5"})
     File.write!(Workflow.workflow_file_path(), String.replace(text, "workspace:\n", "workspace:\n  admission: #{Jason.encode!(config)}\n"))
+    # A failed canonical inventory read must deny an otherwise valid worktree.
+    git_binary = System.find_executable("git")
+    bin = Path.join(root, "fault-bin")
+    File.mkdir_p!(bin)
+    shim = Path.join(bin, "git")
+    script = "#!/bin/sh\nif [ \"$3\" = worktree ] && [ \"$4\" = list ]; then exit 74; fi\nexec '#{git_binary}' \"$@\"\n"
+    File.write!(shim, script)
+    File.chmod!(shim, 0o700)
+    previous_path = System.get_env("PATH")
+
+    try do
+      System.put_env("PATH", bin <> ":" <> previous_path)
+      assert {:error, :workspace_admission_path_unverified} = WorkspaceAdmission.validate_path(second)
+    after
+      System.put_env("PATH", previous_path)
+    end
+
     File.write!(wrapper, "# changed pin\n", [:append])
     assert {:error, :workspace_admission_configuration_invalid} = WorkspaceAdmission.create(context)
   end
@@ -108,6 +125,61 @@ defmodule SymphonyElixir.WorkspaceAdmissionTest do
     File.write!(Workflow.workflow_file_path(), String.replace(text, "workspace:\n", "workspace:\n  admission: {}\n"))
     issue = %{id: "1", identifier: "X", native_ref: %{}}
     assert {:error, :workspace_admission_configuration_invalid} = Workspace.create_for_issue(issue)
+  end
+
+  test "guard protocol errors, output bounds and timeout preserve scope without a clone fallback" do
+    root = Path.join(System.tmp_dir!(), "symphony-admission-errors-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(root)
+    on_exit(fn -> File.rm_rf!(root) end)
+    guard = Path.join(root, "guard")
+    File.write!(guard, "synthetic guarded entrypoint")
+    command = Path.join(root, "bos-workspace")
+    context = %{repository_id: "fixture", issue_id: "1", run_id: "run"}
+    config = %{"command" => command, "guard_path" => guard, "guard_sha256" => digest(File.read!(guard)), "canonical_repositories" => %{"fixture" => root}}
+
+    for {body, expected} <- [
+          {"printf invalid", :workspace_admission_response_invalid},
+          {"printf invalid; exit 1", :workspace_admission_failed_reconcile_required},
+          {"head -c 70000 /dev/zero", :workspace_admission_output_exceeded}
+        ] do
+      configure_command!(command, body, config)
+      assert {:error, ^expected} = WorkspaceAdmission.create(context)
+    end
+
+    task = WorkspaceAdmission.task_id("fixture", "1")
+
+    record = %{
+      "status" => "created",
+      "enforced" => true,
+      "state" => "created",
+      "task" => task,
+      "owner" => "run",
+      "limit" => 4,
+      "occupied" => 1,
+      "baseSha" => String.duplicate("a", 40),
+      "path" => Path.join([Path.dirname(root), ".bos-worktrees", Path.basename(root), task]),
+      "branch" => "refs/heads/codex/" <> task
+    }
+
+    configure_command!(command, "printf '%s' '" <> Jason.encode!(record) <> "'", config)
+    assert {:error, :workspace_admission_scope_unverified} = WorkspaceAdmission.create(context)
+    assert {:error, :workspace_admission_path_unverified} = WorkspaceAdmission.validate_path(nil)
+
+    configure_command!(command, "sleep 30", Map.put(config, "timeout_ms", 25))
+    assert {:error, :workspace_admission_timeout_reconcile_required} = WorkspaceAdmission.create(context)
+    refute File.exists?(Path.join(root, ".git"))
+    configure_command!(command, "exit 0", config)
+    File.chmod!(command, 0o600)
+    assert {:error, :workspace_admission_unavailable} = WorkspaceAdmission.create(context)
+  end
+
+  defp configure_command!(path, body, config) do
+    File.write!(path, "#!/bin/sh\n" <> body <> "\n")
+    File.chmod!(path, 0o700)
+    config = Map.put(config, "command_sha256", digest(File.read!(path)))
+    write_workflow_file!(Workflow.workflow_file_path())
+    text = File.read!(Workflow.workflow_file_path())
+    File.write!(Workflow.workflow_file_path(), String.replace(text, "workspace:\n", "workspace:\n  admission: #{Jason.encode!(config)}\n"))
   end
 
   defp git!(directory, arguments) do

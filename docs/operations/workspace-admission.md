@@ -31,6 +31,8 @@ A missing owner or repository scope fails closed. Task IDs are deterministic has
 of repository ID and original Issue ID, independent of Attempt and display name.
 Owner/task labels coordinate allocation; they are not authentication credentials.
 
+The optional `timeout_ms` can reduce the 180000 ms host deadline (positive integer, at most 180000). A timeout preserves uncertainty and requires reconciliation; it never allocates a replacement.
+
 The adapter invokes the command with only `create --canonical ... --task ...
 --owner ...`, without shell interpolation, a state-dir override or alternate clone.
 The production command uses the shared Ubuntu registry. It receives a bounded
@@ -80,3 +82,9 @@ whole-Run certification remain separate, unresolved limitations.
 - One earlier loaded-suite run hit the existing QA-custody monitor timing assertion; the same-seed focal4 tests and complete543-test rerun passed. The original observation is retained as a limitation.
 - Full coverage remains below the unchanged100% requirement:68.53%; all543 tests still pass. Dialyzer still fails with diagnostics; neither check is waived. No claim of full-branch QA acceptance or integration follows.
 - The task worktree is retained because governance69 recovery/work and unintegrated changes remain active. Synthetic test repositories are removed by their fixture owner; the canonical project and shared production registry are preserved.
+
+### Coverage comparison and additional negatives
+
+The exact parent19833b8d was compared using the same mix test --cover --seed356348 command and published guard fixture. Only this task's five code/test files were temporarily restored/absent, with original bytes fsynced and restored in finally; no branch changed, clone made or unrelated edit touched. Hash verification succeeded and temporary backups were removed. The parent produced541 tests/1 prior QA-custody timing failure/6 skips and68.03% coverage; this is retained as a failed baseline, not a clean acceptance result.
+
+After protocol/output/timeout/invalid-capacity/executable/inventory-failure negatives, the final candidate produced544 tests/0 failures/6 skips and68.80% global coverage; WorkspaceAdmission itself is100%. Global100% threshold and exclusions remain unchanged. This establishes the baseline global blocker and exercised new error paths, not full-branch acceptance or permission to integrate.
