@@ -113,12 +113,13 @@ defmodule SymphonyElixir.Config.Schema do
     embedded_schema do
       field(:root, :string, default: Path.join(System.tmp_dir!(), "symphony_workspaces"))
       field(:recover_non_git_directories, :boolean, default: false)
+      field(:admission, :map, default: nil)
     end
 
     @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
     def changeset(schema, attrs) do
       schema
-      |> cast(attrs, [:root, :recover_non_git_directories], empty_values: [])
+      |> cast(attrs, [:root, :recover_non_git_directories, :admission], empty_values: [])
     end
   end
 

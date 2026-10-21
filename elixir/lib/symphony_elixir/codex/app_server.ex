@@ -227,6 +227,13 @@ defmodule SymphonyElixir.Codex.AppServer do
   defp session_policies_for(_, _, managed),
     do: {:ok, %{approval_policy: "never", thread_sandbox: nil, turn_sandbox_policy: nil, permissions: managed.permissions}}
 
+  defp validate_admitted_workspace_cwd(workspace) do
+    case SymphonyElixir.WorkspaceAdmission.validate_path(workspace) do
+      :ok -> {:ok, workspace}
+      {:error, _} -> {:error, {:invalid_workspace_cwd, :admission_unverified, workspace}}
+    end
+  end
+
   defp validate_workspace_cwd(workspace, nil) when is_binary(workspace) do
     expanded_workspace = Path.expand(workspace)
     expanded_root = Config.local_workspace_root()
@@ -245,6 +252,9 @@ defmodule SymphonyElixir.Codex.AppServer do
 
         String.starts_with?(expanded_workspace <> "/", expanded_root_prefix) ->
           {:error, {:invalid_workspace_cwd, :symlink_escape, expanded_workspace, canonical_root}}
+
+        SymphonyElixir.WorkspaceAdmission.enabled?() ->
+          validate_admitted_workspace_cwd(canonical_workspace)
 
         true ->
           {:error, {:invalid_workspace_cwd, :outside_workspace_root, canonical_workspace, canonical_root}}

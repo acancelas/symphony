@@ -159,3 +159,9 @@ host environment results, runtime certification and independent Goal authorizati
   source handoff, all-session metering and final settlement are implemented.
   Fresh approved plan inventory, actual primary canary and final review remain
   prerequisites; no69 API, READY, installation, integration or production authority.
+
+## 2026-10-21 — Optional shared workspace admission for future runners
+
+- Add pinned opt-in host guard creation with stable task/owner identity, real fresh-main/quota checks, final-path setup and no clone/staging fallback.
+- Validate registered worktree paths for hooks/App Server; preserve admitted worktrees for explicit owner-aware retirement and reject unsupported SSH admission.
+- Keep existing controllers, runtime/config pins, legacy defaults and unrelated optional-BOS edits unchanged. Document separate activation and outstanding historical QA limitations.
