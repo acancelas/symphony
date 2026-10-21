@@ -33,14 +33,22 @@ defmodule SymphonyElixir.DeliveryCoordinator do
     client = Keyword.get(opts, :game_api_client_module, Client)
     native_ref = issue.native_ref || %{}
 
-    with repository_id when is_binary(repository_id) <- native_ref["repositoryId"],
-         run_id when is_binary(run_id) <- native_ref["runId"],
-         {:ok, artifacts} <- client.fetch_run_artifacts(repository_id, run_id, "reviews") do
-      {:ok, artifacts != []}
+    if SymphonyElixir.GovernanceCoordinator.enabled?(issue, opts) do
+      case client.fetch_issue(native_ref["repositoryId"], native_ref["issueNumber"]) do
+        {:ok, %{"governance" => state}} -> {:ok, is_map(get_in(state, ["phases", "implementation"]))}
+        {:error, reason} -> {:error, reason}
+        _ -> {:error, :governance_projection_missing}
+      end
     else
-      nil -> {:ok, false}
-      {:error, reason} -> {:error, reason}
-      _ -> {:ok, false}
+      with repository_id when is_binary(repository_id) <- native_ref["repositoryId"],
+           run_id when is_binary(run_id) <- native_ref["runId"],
+           {:ok, artifacts} <- client.fetch_run_artifacts(repository_id, run_id, "reviews") do
+        {:ok, artifacts != []}
+      else
+        nil -> {:ok, false}
+        {:error, reason} -> {:error, reason}
+        _ -> {:ok, false}
+      end
     end
   end
 
@@ -65,10 +73,39 @@ defmodule SymphonyElixir.DeliveryCoordinator do
       max_lookup_attempts: max_lookup_attempts,
       sleep_fn: sleep_fn,
       candidate_head: candidate_head,
-      prior_command_context: Keyword.get(opts, :prior_command_context)
+      prior_command_context: Keyword.get(opts, :prior_command_context),
+      governance_opts: opts
     }
 
-    run_delivery_cycle(context, 1, max_cycles, [])
+    if SymphonyElixir.GovernanceCoordinator.enabled?(issue, opts) do
+      with :ok <- SymphonyElixir.GovernanceCoordinator.run(:implementation, workspace, issue, recipient, opts, worker_host),
+           {:ok, candidate} <- candidate_head.confirm(workspace, issue, worker_host),
+           {:ok, %{"governance" => state}} <- client.fetch_issue(issue.native_ref["repositoryId"], issue.native_ref["issueNumber"]),
+           true <- get_in(state, ["phases", "implementation", "candidateCommitSha"]) == candidate.head_sha do
+        scoped = SymphonyElixir.GovernanceSession.context(workspace, issue, recipient, opts, worker_host)
+
+        prompt =
+          "Recover exact candidate #{candidate.head_sha}, original acceptance and required passing checks/evidence. Create or recover the exact-HEAD PR, record final evidence and Attempt outcome, then request only the next authorized backend transition. No production or approval grant. Closure requires separately confirmed integration."
+
+        policy = %{
+          sandbox: %{"type" => "readOnly", "networkAccess" => false},
+          tools:
+            ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_evidence bos_create_pull_request bos_get_pull_request bos_get_pull_request_checks bos_record_evidence bos_transition_issue bos_record_governance),
+          native_operations: [:read],
+          verified_m2m: true,
+          fresh_session: true,
+          check_goal_authorization: true
+        }
+
+        SymphonyElixir.GovernanceSession.run(scoped, "task-orchestrator", prompt, policy)
+      else
+        false -> {:error, :governance_candidate_changed_before_finalizer}
+        {:error, reason} -> {:error, reason}
+        _ -> {:error, :governance_projection_missing}
+      end
+    else
+      run_delivery_cycle(context, 1, max_cycles, [])
+    end
   end
 
   defp inherited_review_roles(%Issue{native_ref: native_ref}) when is_map(native_ref) do
@@ -130,14 +167,7 @@ defmodule SymphonyElixir.DeliveryCoordinator do
   defp confirm_reviewed_candidate(context, reviewed, cycle, max_cycles, dirty_fingerprints) do
     case context.candidate_head.confirm(context.workspace, context.issue, context.worker_host) do
       {:ok, %{head_sha: head_sha} = candidate} when head_sha == reviewed.head_sha ->
-        run_finalizer(
-          context.workspace,
-          context.issue,
-          context.recipient,
-          context.worker_host,
-          context.app_server,
-          candidate
-        )
+        run_finalizer(context.workspace, context.issue, context.recipient, context.worker_host, context.app_server, candidate)
 
       {:ok, candidate} when cycle < max_cycles ->
         Logger.warning("Candidate HEAD changed after review; restarting reviews at exact HEAD=#{candidate.head_sha}")

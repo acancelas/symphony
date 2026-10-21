@@ -50,3 +50,7 @@ help with the setup:
 ## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
+
+## Governed host bootstrap (incomplete)
+
+Issue 69 prepares an opt-in host broker with pinned native runtime, private BOS identity, original policy material and host-owned execution evidence. It remains disabled pending independent acceptance and live verification. Private host JSON carries explicit `runtime.policy_sources` path/SHA-256 pins and `runtime.policy_fallback_filenames`; no credentials belong in repository configuration. Global policy scope covers every worker operation. Explicitly pinned BOS host ancestors supplement native discovery; Git subtree policies apply only to their corresponding paths. See [the policy dossier](docs/issues/69/original-policy-material.md). No existing canary grants project gates or production authority.

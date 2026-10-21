@@ -345,20 +345,37 @@ defmodule SymphonyElixir.PostApprovalCoordinator do
   defp require_local_probe_handoff(_worker_host), do: {:error, :remote_probe_handoff_not_supported}
 
   defp run_role(app_server, workspace, issue, worker_host, actor, prompt, recipient) do
-    with {:ok, session} <-
-           app_server.start_session(workspace,
-             worker_host: worker_host,
-             environment_overrides: [{"BOS_MCP_ACTOR", actor}]
-           ) do
-      try do
-        callback = fn message -> send_update(recipient, issue, actor, message) end
+    if SymphonyElixir.GovernanceCoordinator.enabled?(issue, []) do
+      scoped = SymphonyElixir.GovernanceSession.context(workspace, issue, recipient, [], worker_host)
 
-        case app_server.run_turn(session, prompt, issue, on_message: callback, role: actor) do
-          {:ok, _turn} -> :ok
-          {:error, reason} -> {:error, reason}
+      policy = %{
+        sandbox: %{"type" => "workspaceWrite", "networkAccess" => false},
+        tools:
+          ~w(bos_get_project_context bos_get_delivery_context bos_get_issue bos_get_delivery_run bos_get_pull_request bos_get_pull_request_checks bos_get_evidence bos_record_evidence bos_record_governance bos_complete_attempt bos_finalize_run bos_transition_issue bos_get_approvals bos_mark_pull_request_ready bos_request_merge bos_create_deployment bos_inspect_vercel_deployment bos_inspect_vps_deployment bos_record_deployment_verification bos_create_release),
+        native_operations: [:read, :local_validation],
+        verified_m2m: true,
+        fresh_session: true,
+        check_goal_authorization: true,
+        execution_scope: :existing_authorized_release
+      }
+
+      SymphonyElixir.GovernanceSession.run(scoped, "task-orchestrator", prompt, policy)
+    else
+      with {:ok, session} <-
+             app_server.start_session(workspace,
+               worker_host: worker_host,
+               environment_overrides: [{"BOS_MCP_ACTOR", actor}]
+             ) do
+        try do
+          callback = fn message -> send_update(recipient, issue, actor, message) end
+
+          case app_server.run_turn(session, prompt, issue, on_message: callback, role: actor) do
+            {:ok, _turn} -> :ok
+            {:error, reason} -> {:error, reason}
+          end
+        after
+          app_server.stop_session(session)
         end
-      after
-        app_server.stop_session(session)
       end
     end
   end

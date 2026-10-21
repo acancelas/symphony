@@ -24,6 +24,21 @@ defmodule SymphonyElixir.CLI do
 
   @doc false
   @spec main([String.t()], (-> ensure_started_result())) :: no_return()
+  def main(["governance" | arguments], _ensure_all_started) do
+    Application.ensure_all_started(:logger)
+    Application.ensure_all_started(:crypto)
+
+    case SymphonyElixir.GovernanceCLI.evaluate(arguments) do
+      {:ok, report} ->
+        IO.puts(Jason.encode!(report))
+        System.halt(0)
+
+      {:error, reason} ->
+        IO.puts(Jason.encode!(%{status: "blocked", error: SymphonyElixir.GovernanceRequestSnapshot.sanitize(inspect(reason))}))
+        System.halt(2)
+    end
+  end
+
   def main(args, ensure_all_started) do
     case evaluate(args, runtime_deps(ensure_all_started)) do
       :ok ->

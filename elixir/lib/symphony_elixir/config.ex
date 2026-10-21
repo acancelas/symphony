@@ -28,7 +28,10 @@ defmodule SymphonyElixir.Config do
 
   @spec settings() :: {:ok, Schema.t()} | {:error, term()}
   def settings do
-    WorkflowStore.settings()
+    case Process.get(:symphony_governance_runtime_settings) do
+      %Schema{} = settings -> {:ok, settings}
+      _ -> WorkflowStore.settings()
+    end
   end
 
   @spec settings!() :: Schema.t()

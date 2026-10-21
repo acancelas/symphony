@@ -21,12 +21,13 @@ defmodule SymphonyElixir.CandidateHead do
       when is_binary(workspace) do
     with :ok <- require_local_worker(worker_host),
          command_runner <- Keyword.get(opts, :command_runner, &run_command/4),
+         remote <- Keyword.get(opts, :remote, "origin"),
          {:ok, status} <- git(command_runner, workspace, worker_host, ["status", "--porcelain", "--untracked-files=no"]),
          :ok <- require_clean(status),
          {:ok, head_sha} <- git(command_runner, workspace, worker_host, ["rev-parse", "HEAD"]),
          {:ok, branch} <- git(command_runner, workspace, worker_host, ["symbolic-ref", "--short", "HEAD"]),
          :ok <- require_issue_branch(issue, branch),
-         {:ok, remote_sha} <- ensure_remote_head(command_runner, workspace, worker_host, branch, head_sha) do
+         {:ok, remote_sha} <- ensure_remote_head(command_runner, workspace, worker_host, branch, head_sha, remote) do
       {:ok, %{branch: branch, head_sha: head_sha, remote_sha: remote_sha}}
     end
   end
@@ -36,23 +37,23 @@ defmodule SymphonyElixir.CandidateHead do
   defp require_local_worker(worker_host),
     do: {:error, {:candidate_remote_worker_unsupported, worker_host}}
 
-  defp ensure_remote_head(command_runner, workspace, worker_host, branch, head_sha) do
-    case remote_head(command_runner, workspace, worker_host, branch) do
+  defp ensure_remote_head(command_runner, workspace, worker_host, branch, head_sha, remote) do
+    case remote_head(command_runner, workspace, worker_host, branch, remote) do
       {:ok, ^head_sha} ->
         {:ok, head_sha}
 
       {:ok, nil} ->
-        push_and_confirm(command_runner, workspace, worker_host, branch, head_sha)
+        push_and_confirm(command_runner, workspace, worker_host, branch, head_sha, remote)
 
       {:ok, remote_sha} ->
         with {:ok, _output} <-
                git(command_runner, workspace, worker_host, [
                  "push",
                  "--set-upstream",
-                 "origin",
+                 remote,
                  "HEAD:refs/heads/#{branch}"
                ]) do
-          confirm_remote_head(command_runner, workspace, worker_host, branch, head_sha, remote_sha)
+          confirm_remote_head(command_runner, workspace, worker_host, branch, head_sha, remote_sha, remote)
         end
 
       {:error, reason} ->
@@ -60,32 +61,32 @@ defmodule SymphonyElixir.CandidateHead do
     end
   end
 
-  defp push_and_confirm(command_runner, workspace, worker_host, branch, head_sha) do
+  defp push_and_confirm(command_runner, workspace, worker_host, branch, head_sha, remote) do
     with {:ok, _output} <-
            git(command_runner, workspace, worker_host, [
              "push",
              "--set-upstream",
-             "origin",
+             remote,
              "HEAD:refs/heads/#{branch}"
            ]) do
-      confirm_remote_head(command_runner, workspace, worker_host, branch, head_sha, nil)
+      confirm_remote_head(command_runner, workspace, worker_host, branch, head_sha, nil, remote)
     end
   end
 
-  defp confirm_remote_head(command_runner, workspace, worker_host, branch, head_sha, previous_remote_sha) do
-    case remote_head(command_runner, workspace, worker_host, branch) do
+  defp confirm_remote_head(command_runner, workspace, worker_host, branch, head_sha, previous_remote_sha, remote) do
+    case remote_head(command_runner, workspace, worker_host, branch, remote) do
       {:ok, ^head_sha} -> {:ok, head_sha}
       {:ok, remote_sha} -> {:error, {:candidate_remote_mismatch, head_sha, remote_sha, previous_remote_sha}}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp remote_head(command_runner, workspace, worker_host, branch) do
+  defp remote_head(command_runner, workspace, worker_host, branch, remote) do
     with {:ok, output} <-
            git(command_runner, workspace, worker_host, [
              "ls-remote",
              "--heads",
-             "origin",
+             remote,
              "refs/heads/#{branch}"
            ]) do
       case String.split(output, ~r/\s+/, trim: true) do

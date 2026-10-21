@@ -15,18 +15,46 @@ defmodule SymphonyElixir.Workspace do
   def create_for_issue(issue_or_identifier, worker_host \\ nil) do
     issue_context = issue_context(issue_or_identifier)
 
-    try do
-      safe_id = workspace_key(issue_or_identifier)
-
-      with {:ok, workspace} <- workspace_path_for_issue(safe_id, worker_host),
-           :ok <- validate_workspace_path(workspace, worker_host) do
-        prepare_workspace(workspace, issue_context, worker_host)
-      end
-    rescue
-      error in [ArgumentError, ErlangError, File.Error] ->
-        Logger.error("Workspace creation failed #{issue_log_context(issue_context)} worker_host=#{worker_host_for_log(worker_host)} error=#{Exception.message(error)}")
-        {:error, error}
+    if SymphonyElixir.WorkspaceAdmission.enabled?() do
+      create_admitted_workspace(issue_context, worker_host)
+    else
+      create_legacy_workspace(issue_or_identifier, issue_context, worker_host)
     end
+  end
+
+  defp create_admitted_workspace(issue_context, nil) do
+    with {:ok, workspace} <- SymphonyElixir.WorkspaceAdmission.create(issue_context) do
+      :global.trans({{__MODULE__, :workspace, workspace}, self()}, fn ->
+        prepare_admitted_workspace(workspace, issue_context)
+      end)
+    end
+  end
+
+  defp create_admitted_workspace(_context, _host), do: {:error, :workspace_admission_remote_not_configured}
+
+  defp prepare_admitted_workspace(workspace, issue_context) do
+    if workspace_ready?(workspace) do
+      {:ok, workspace}
+    else
+      with :ok <- maybe_run_after_create_hook(workspace, issue_context, true, nil),
+           :ok <- SymphonyElixir.WorkspaceAdmission.validate_path(workspace),
+           :ok <- mark_workspace_ready(workspace, issue_context) do
+        {:ok, workspace}
+      end
+    end
+  end
+
+  defp create_legacy_workspace(issue_or_identifier, issue_context, worker_host) do
+    safe_id = workspace_key(issue_or_identifier)
+
+    with {:ok, workspace} <- workspace_path_for_issue(safe_id, worker_host),
+         :ok <- validate_workspace_path(workspace, worker_host) do
+      prepare_workspace(workspace, issue_context, worker_host)
+    end
+  rescue
+    error in [ArgumentError, ErlangError, File.Error] ->
+      Logger.error("Workspace creation failed #{issue_log_context(issue_context)} worker_host=#{worker_host_for_log(worker_host)} error=#{Exception.message(error)}")
+      {:error, error}
   end
 
   defp prepare_workspace(workspace, issue_context, nil) do
@@ -230,18 +258,10 @@ defmodule SymphonyElixir.Workspace do
 
   @spec remove(Path.t(), worker_host()) :: {:ok, [String.t()]} | {:error, term(), String.t()}
   def remove(workspace, nil) do
-    case File.exists?(workspace) do
-      true ->
-        case validate_workspace_path(workspace, nil) do
-          :ok ->
-            remove_local_workspace(workspace)
-
-          {:error, reason} ->
-            {:error, reason, ""}
-        end
-
-      false ->
-        File.rm_rf(workspace)
+    if SymphonyElixir.WorkspaceAdmission.guarded_path?(workspace) do
+      {:error, :workspace_admission_retirement_requires_owner_check, workspace}
+    else
+      remove_legacy_workspace(workspace)
     end
   end
 
@@ -302,6 +322,22 @@ defmodule SymphonyElixir.Workspace do
 
       {:error, reason} ->
         {:error, reason, ""}
+    end
+  end
+
+  defp remove_legacy_workspace(workspace) do
+    case File.exists?(workspace) do
+      true ->
+        case validate_workspace_path(workspace, nil) do
+          :ok ->
+            remove_local_workspace(workspace)
+
+          {:error, reason} ->
+            {:error, reason, ""}
+        end
+
+      false ->
+        File.rm_rf(workspace)
     end
   end
 
@@ -388,6 +424,22 @@ defmodule SymphonyElixir.Workspace do
   @doc false
   @spec remove_recorded(Path.t(), worker_host()) :: {:ok, [String.t()]} | {:error, term(), String.t()}
   def remove_recorded(workspace, nil) when is_binary(workspace) do
+    if SymphonyElixir.WorkspaceAdmission.guarded_path?(workspace) do
+      {:error, :workspace_admission_retirement_requires_owner_check, workspace}
+    else
+      remove_legacy_recorded(workspace)
+    end
+  end
+
+  def remove_recorded(workspace, worker_host) when is_binary(workspace) and is_binary(worker_host) do
+    remove(workspace, worker_host)
+  end
+
+  def remove_recorded(workspace, _worker_host) do
+    {:error, {:workspace_path_unreadable, workspace, :invalid}, ""}
+  end
+
+  defp remove_legacy_recorded(workspace) do
     if Path.type(workspace) == :absolute do
       case validate_recorded_workspace_path(workspace) do
         :ok ->
@@ -399,14 +451,6 @@ defmodule SymphonyElixir.Workspace do
     else
       {:error, {:workspace_path_unreadable, workspace, :not_absolute}, ""}
     end
-  end
-
-  def remove_recorded(workspace, worker_host) when is_binary(workspace) and is_binary(worker_host) do
-    remove(workspace, worker_host)
-  end
-
-  def remove_recorded(workspace, _worker_host) do
-    {:error, {:workspace_path_unreadable, workspace, :invalid}, ""}
   end
 
   @spec remove_issue_workspaces(term()) :: :ok
@@ -696,7 +740,9 @@ defmodule SymphonyElixir.Workspace do
   end
 
   defp validate_workspace_path(workspace, nil) when is_binary(workspace) do
-    validate_local_workspace_path(workspace, Config.local_workspace_root())
+    if SymphonyElixir.WorkspaceAdmission.enabled?(),
+      do: SymphonyElixir.WorkspaceAdmission.validate_path(workspace),
+      else: validate_local_workspace_path(workspace, Config.local_workspace_root())
   end
 
   defp validate_workspace_path(workspace, worker_host)
