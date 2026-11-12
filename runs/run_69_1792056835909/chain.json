@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "scopeType": "run",
   "scopeId": "run_69_1792056835909",
-  "lastSequence": 360,
-  "lastEventHash": "sha256:a4697f5c9bb8583f487ff01c64f9fe17443f4c07512d655d956b5bf6caa76c3c",
-  "lastEventId": "event_run_started_attempt_run_69_1792056835909_331",
-  "updatedAt": "2026-11-12T03:45:05.168169Z"
+  "lastSequence": 361,
+  "lastEventHash": "sha256:670229f05aebe171840cabebbdf1e07f4182d0e049ce96bcf8297cf75d19f827",
+  "lastEventId": "event_run_started_attempt_run_69_1792056835909_332",
+  "updatedAt": "2026-11-12T03:51:45.095316Z"
 }
